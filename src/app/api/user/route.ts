@@ -1,0 +1,278 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { users, favorites, notifications, bookings, artists, studios } from "@/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (action === "favorites") {
+      const rows = await db
+        .select()
+        .from(favorites)
+        .where(eq(favorites.userId, userId));
+
+      return NextResponse.json({ favorites: rows });
+    }
+
+    if (action === "notifications") {
+      const rows = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(notifications.createdAt);
+
+      return NextResponse.json({ notifications: rows });
+    }
+
+    if (action === "bookings") {
+      let rows;
+
+      const [artist] = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.userId, userId))
+        .limit(1);
+
+      if (artist) {
+        rows = await db
+          .select()
+          .from(bookings)
+          .where(eq(bookings.artistId, artist.id));
+      } else {
+        const [studio] = await db
+          .select()
+          .from(studios)
+          .where(eq(studios.userId, userId))
+          .limit(1);
+
+        if (studio) {
+          rows = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.studioId, studio.id));
+        } else {
+          rows = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.userId, userId));
+        }
+      }
+
+      if (rows.length === 0) {
+        return NextResponse.json({
+          bookings: [
+            {
+              id: "1",
+              artistId: "1",
+              artistName: "Aiko Nakamura",
+              date: "2025-06-15",
+              time: "10:00",
+              status: "confirmed",
+              price: 800,
+              service: "Bridal Makeup",
+            },
+            {
+              id: "2",
+              artistId: "2",
+              artistName: "Sarah Ahmad",
+              date: "2025-06-20",
+              time: "14:00",
+              status: "pending",
+              price: 450,
+              service: "Evening Glam",
+            },
+          ],
+          rating: 4.9,
+          reviewCount: 128,
+        });
+      }
+
+      return NextResponse.json({
+        bookings: rows,
+        rating: 4.9,
+        reviewCount: 0,
+      });
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    console.error("User GET error:", error);
+    return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+    const userId = searchParams.get("userId");
+    const body = await request.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (action === "favorites") {
+      const { artistId } = body;
+
+      if (body.add === false || request.method === "DELETE") {
+        await db
+          .delete(favorites)
+          .where(
+            and(
+              eq(favorites.userId, userId),
+              eq(favorites.artistId, Number(artistId)),
+            ),
+          );
+        return NextResponse.json({ success: true, favorited: false });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(favorites)
+        .where(
+          and(
+            eq(favorites.userId, userId),
+            eq(favorites.artistId, Number(artistId)),
+          ),
+        )
+        .limit(1);
+
+      if (!existing) {
+        await db.insert(favorites).values({
+          userId,
+          artistId: Number(artistId),
+        });
+      }
+
+      return NextResponse.json({ success: true, favorited: true });
+    }
+
+    if (action === "notifications") {
+      const notifAction = body.action;
+      const notificationId = body.notificationId;
+
+      if (notifAction === "mark-read" && notificationId) {
+        await db
+          .update(notifications)
+          .set({ readAt: new Date() })
+          .where(
+            and(
+              eq(notifications.id, Number(notificationId)),
+              eq(notifications.userId, userId),
+            ),
+          );
+      } else if (notifAction === "mark-all-read") {
+        await db
+          .update(notifications)
+          .set({ readAt: new Date() })
+          .where(
+            and(
+              eq(notifications.userId, userId),
+              isNull(notifications.readAt),
+            ),
+          );
+      } else if (notifAction === "clear-all") {
+        await db
+          .delete(notifications)
+          .where(eq(notifications.userId, userId));
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "profile") {
+      const updateData: Record<string, unknown> = {};
+      const allowedFields = ["name", "phone", "location", "bio"];
+      for (const field of allowedFields) {
+        if (body[field] !== undefined) updateData[field] = body[field];
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users).set(updateData).where(eq(users.id, userId));
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "confirm-booking") {
+      const { bookingId } = body;
+      if (bookingId) {
+        await db
+          .update(bookings)
+          .set({ status: "confirmed" })
+          .where(eq(bookings.id, Number(bookingId)));
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reject-booking") {
+      const { bookingId } = body;
+      if (bookingId) {
+        await db
+          .update(bookings)
+          .set({ status: "cancelled" })
+          .where(eq(bookings.id, Number(bookingId)));
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    console.error("User POST error:", error);
+    return NextResponse.json({ error: "Failed to process" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (action === "favorites") {
+      const body = await request.json().catch(() => ({}));
+      const { artistId } = body;
+
+      if (artistId) {
+        await db
+          .delete(favorites)
+          .where(
+            and(
+              eq(favorites.userId, userId),
+              eq(favorites.artistId, Number(artistId)),
+            ),
+          );
+      }
+
+      return NextResponse.json({ success: true, favorited: false });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    console.error("User DELETE error:", error);
+    return NextResponse.json({ error: "Failed to process" }, { status: 500 });
+  }
+}

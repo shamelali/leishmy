@@ -1,0 +1,10 @@
+{
+  "name": "Leish! - Beauty Booking Marketplace",
+  "short_name": "Leish!",
+  "description": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9333ea",
+  "icons": []
+}
