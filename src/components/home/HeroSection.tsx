@@ -14,28 +14,28 @@ export function HeroSection({ stats }: { stats?: { value: string; label: string 
   return (
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
       {/* Decorative blobs */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-rose-200/30 dark:bg-rose-900/10 rounded-full blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-pink-200/30 dark:bg-pink-900/10 rounded-full blur-3xl" />
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-rose-200/30 dark:bg-rose-900/10 rounded-full blur-3xl animate-pulse-soft" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-pink-200/30 dark:bg-pink-900/10 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: "0.5s" }} />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         {/* Left Content */}
-        <div className="animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100/80 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-full mb-6 border border-rose-200/50 dark:border-rose-800/50">
+        <div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100/80 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-full mb-6 border border-rose-200/50 dark:border-rose-800/50 animate-slide-in-left">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Book Beauty. Anywhere.</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-gray-900 dark:text-white leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-gray-900 dark:text-white leading-tight animate-slide-in-left delay-200">
             Your Beauty,{" "}
-            <span className="gradient-text">Perfected.</span>
+            <span className="gradient-text animate-shimmer-text">Perfected.</span>
           </h1>
 
-          <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
+          <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl animate-slide-in-left delay-300">
             Discover makeup artists and studios, view real-time availability,
             and secure your booking in minutes.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
+          <div className="flex flex-col sm:flex-row gap-4 mt-8 animate-slide-in-left delay-400">
             <Link
               href="/artists"
               className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-2xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-xl shadow-rose-200/50 dark:shadow-rose-900/30 hover:scale-105 active:scale-100 text-base"
@@ -67,9 +67,9 @@ export function HeroSection({ stats }: { stats?: { value: string; label: string 
 
         {/* Right - Image Grid */}
         <div className="relative hidden lg:block">
-          <div className="grid grid-cols-2 gap-4 animate-fade-in delay-300">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
-              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-rose-200/40 dark:shadow-rose-900/20 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-rose-200/40 dark:shadow-rose-900/20 transform rotate-1 hover:rotate-0 transition-transform duration-500 animate-scale-in">
                 <div className="aspect-[3/4] relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -80,7 +80,7 @@ export function HeroSection({ stats }: { stats?: { value: string; label: string 
                   />
                 </div>
               </div>
-              <div className="rounded-2xl overflow-hidden shadow-xl shadow-rose-200/40 dark:shadow-rose-900/20 transform -rotate-2 hover:rotate-0 transition-transform duration-500">
+              <div className="rounded-2xl overflow-hidden shadow-xl shadow-rose-200/40 dark:shadow-rose-900/20 transform -rotate-2 hover:rotate-0 transition-transform duration-500 animate-scale-in delay-100">
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -93,7 +93,7 @@ export function HeroSection({ stats }: { stats?: { value: string; label: string 
               </div>
             </div>
             <div className="space-y-4 pt-8">
-              <div className="rounded-2xl overflow-hidden shadow-xl shadow-rose-200/40 dark:shadow-rose-900/20 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
+              <div className="rounded-2xl overflow-hidden shadow-xl shadow-rose-200/40 dark:shadow-rose-900/20 transform -rotate-1 hover:rotate-0 transition-transform duration-500 animate-scale-in delay-200">
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -104,7 +104,7 @@ export function HeroSection({ stats }: { stats?: { value: string; label: string 
                   />
                 </div>
               </div>
-              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-rose-200/40 dark:shadow-rose-900/20 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-rose-200/40 dark:shadow-rose-900/20 transform rotate-2 hover:rotate-0 transition-transform duration-500 animate-scale-in delay-300">
                 <div className="aspect-[3/4] group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

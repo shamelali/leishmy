@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
 import Link from "next/link";
 import { Search as SearchIcon, MapPin, Star, BadgeCheck, ArrowRight, Sparkles } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
@@ -45,8 +45,11 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    searchArtists("", "");
-  }, [searchArtists]);
+    startTransition(() => {
+      searchArtists("", "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

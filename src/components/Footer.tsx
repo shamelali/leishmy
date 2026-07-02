@@ -82,6 +82,14 @@ export function Footer() {
               </li>
               <li>
                 <Link
+                  href="/cancellation-policy"
+                  className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
+                >
+                  Cancellation Policy
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/terms-of-service"
                   className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
                 >

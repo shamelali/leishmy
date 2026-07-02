@@ -176,6 +176,16 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
+@keyframes shimmerText {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-shimmer-text {
+  background-size: 200% auto;
+  animation: shimmerText 4s ease-in-out infinite;
+}
+
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }

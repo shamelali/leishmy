@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   description:
     "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.",
   keywords: ["makeup artist", "beauty booking", "Malaysia", "bridal makeup", "hijab makeup", "studio booking"],
-  metadataBase: new URL("https://leishmy.vercel.app"),
+  metadataBase: new URL("https://leish.my"),
   openGraph: {
     title: "Leish! — Beauty Booking Marketplace",
     description: "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
-    url: "https://leishmy.vercel.app",
+    url: "https://leish.my",
     siteName: "Leish!",
     locale: "en_MY",
     type: "website",

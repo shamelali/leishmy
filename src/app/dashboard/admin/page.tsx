@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
 import Link from "next/link";
 import {
   Users, Building2, DollarSign, BarChart3, TrendingUp,
@@ -117,9 +117,11 @@ export default function DashboardAdmin() {
   }, [page]);
 
   useEffect(() => {
-    fetchData(tab);
-    /* eslint-disable react-hooks/set-state-in-effect */
-  }, [tab, fetchData]);
+    startTransition(() => {
+      fetchData(tab);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goToPage = (t: Tab, p: number) => {
     setPage((prev) => ({ ...prev, [t]: p }));
@@ -130,6 +132,7 @@ export default function DashboardAdmin() {
     setTab(t);
     setSearch("");
     setPage((prev) => ({ ...prev, [t]: 1 }));
+    fetchData(t, 1);
   };
 
   const toggleVerify = async (artistId: string, verified: boolean) => {

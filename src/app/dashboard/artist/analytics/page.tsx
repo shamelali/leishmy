@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Star } from "lucide-react";
 
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+const barHeights = months.map(() => `${40 + Math.random() * 60}%`);
+
 const stats = [
   { icon: BarChart3, label: "Total Bookings", value: "47", change: "+12%", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
   { icon: DollarSign, label: "Revenue", value: "MYR 28,400", change: "+18%", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
@@ -36,9 +39,9 @@ export default function ArtistAnalytics() {
         <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Monthly Overview</h2>
           <div className="h-48 flex items-end justify-between gap-2">
-            {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month, i) => (
+            {months.map((month, i) => (
               <div key={month} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-rose-100 dark:bg-rose-950/30 rounded-t-lg" style={{ height: `${40 + Math.random() * 60}%` }} />
+                <div className="w-full bg-rose-100 dark:bg-rose-950/30 rounded-t-lg" style={{ height: barHeights[i] }} />
                 <span className="text-[10px] text-gray-400">{month}</span>
               </div>
             ))}

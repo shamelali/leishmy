@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Image, Plus, Trash2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Image as ImageIcon, Plus, Trash2, ArrowLeft, ExternalLink } from "lucide-react";
+import NextImage from "next/image";
 
 export default function ArtistPortfolio() {
   const [images, setImages] = useState<string[]>([
@@ -50,14 +51,14 @@ export default function ArtistPortfolio() {
 
         {images.length === 0 ? (
           <div className="text-center py-16">
-            <Image className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-sm text-gray-500">No portfolio images yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {images.map((img, i) => (
               <div key={i} className="relative group rounded-xl overflow-hidden aspect-square bg-gray-100 dark:bg-neutral-800">
-                <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
+                <NextImage src={img} alt={`Portfolio ${i + 1}`} width={400} height={400} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <a href={img} target="_blank" className="p-2 rounded-lg bg-white/90 text-gray-700 hover:bg-white"><ExternalLink className="w-4 h-4" /></a>
                   <button onClick={() => handleDelete(i)} className="p-2 rounded-lg bg-red-500/90 text-white hover:bg-red-500"><Trash2 className="w-4 h-4" /></button>
