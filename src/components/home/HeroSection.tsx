@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Star, Users, Clock } from "lucide-react";
-import { stats } from "@/lib/data";
 
 const statIcons = [Sparkles, Star, Users, Clock];
+const defaultStats = [
+  { value: "500+", label: "Happy Brides" },
+  { value: "4.9", label: "Avg Rating" },
+  { value: "50+", label: "Pro Artists" },
+  { value: "24/7", label: "Booking" },
+];
 
-export function HeroSection() {
+export function HeroSection({ stats }: { stats?: { value: string; label: string }[] }) {
+  const displayStats = stats || defaultStats;
   return (
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
       {/* Decorative blobs */}
@@ -46,7 +52,7 @@ export function HeroSection() {
 
           {/* Stats */}
           <div className="grid grid-cols-4 gap-6 mt-12 pt-8 border-t border-gray-100 dark:border-neutral-800">
-            {stats.map((stat, i) => {
+            {displayStats.map((stat, i) => {
               const Icon = statIcons[i];
               return (
                 <div key={i} className="text-center animate-fade-in-up" style={{ animationDelay: `${200 + i * 100}ms` }}>

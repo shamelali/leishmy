@@ -147,11 +147,64 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (action === "recent-activity") {
+      const [recentUsers, recentArtists, recentBookings] = await Promise.all([
+        db.select({ id: users.id, name: users.name, createdAt: users.createdAt })
+          .from(users).orderBy(users.createdAt).limit(5),
+        db.select({ id: artists.id, name: artists.name, createdAt: artists.createdAt, verified: artists.verified })
+          .from(artists).orderBy(artists.createdAt).limit(5),
+        db.select({ id: bookings.id, status: bookings.status, amount: bookings.amount, createdAt: bookings.createdAt })
+          .from(bookings).orderBy(bookings.createdAt).limit(5),
+      ]);
+
+      const activity: { action: string; detail: string; time: string; type: string }[] = [];
+
+      for (const u of recentUsers) {
+        activity.push({ action: "New user registered", detail: u.name || "Anonymous", time: timeAgo(u.createdAt), type: "user" });
+      }
+      for (const a of recentArtists) {
+        const verb = a.verified ? "verified" : "joined";
+        activity.push({ action: `Artist ${verb}`, detail: a.name || "Unknown", time: timeAgo(a.createdAt), type: "artist" });
+      }
+      for (const b of recentBookings) {
+        const verb = b.status === "completed" ? "completed" : b.status === "confirmed" ? "confirmed" : "created";
+        activity.push({ action: `Booking ${verb}`, detail: `MYR ${b.amount || 0}`, time: timeAgo(b.createdAt), type: "booking" });
+      }
+
+      activity.sort((a, b) => {
+        const aMin = parseTimeAgo(a.time);
+        const bMin = parseTimeAgo(b.time);
+        return aMin - bMin;
+      });
+
+      return NextResponse.json({ activity: activity.slice(0, 6) });
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("Admin GET error:", error);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
+}
+
+function timeAgo(date: Date | null | undefined): string {
+  if (!date) return "recently";
+  const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+function parseTimeAgo(time: string): number {
+  if (time.includes("just now")) return 0;
+  const num = parseInt(time) || 0;
+  if (time.includes("min")) return num;
+  if (time.includes("hour")) return num * 60;
+  if (time.includes("day")) return num * 1440;
+  return 999;
 }
 
 export async function POST(request: NextRequest) {

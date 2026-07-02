@@ -70,6 +70,7 @@ export default function DashboardAdmin() {
   const [search, setSearch] = useState("");
   const [fetchError, setFetchError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
+  const [recentActivity, setRecentActivity] = useState<{ action: string; detail: string; time: string; type: string }[]>([]);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, overview: 1,
@@ -84,9 +85,16 @@ export default function DashboardAdmin() {
     const currentPage = p ?? page[t];
     try {
       if (t === "overview") {
-        const res = await fetch("/api/admin");
-        if (res.ok) setStats(await res.json());
+        const [statsRes, activityRes] = await Promise.all([
+          fetch("/api/admin"),
+          fetch("/api/admin?action=recent-activity"),
+        ]);
+        if (statsRes.ok) setStats(await statsRes.json());
         else setFetchError("Failed to load overview data");
+        if (activityRes.ok) {
+          const activityData = await activityRes.json();
+          setRecentActivity(activityData.activity || []);
+        }
       } else {
         const res = await fetch(`/api/admin?action=${t}&page=${currentPage}&pageSize=${pageSize}`);
         if (res.ok) {
@@ -140,15 +148,6 @@ export default function DashboardAdmin() {
       await fetchData("artists");
     } finally { setActionLoading(""); }
   };
-
-  const recentActivity = [
-    { action: "New artist verified", detail: "Priya Kaur - Bridal MUA", time: "30 min ago", type: "artist" },
-    { action: "Payout processed", detail: "RM 2,400 - Aiko Nakamura", time: "2 hours ago", type: "payment" },
-    { action: "Booking completed", detail: "Bridal Package - RM 800", time: "3 hours ago", type: "booking" },
-    { action: "New user registered", detail: "Sarah L. - Kuala Lumpur", time: "5 hours ago", type: "user" },
-    { action: "Studio application", detail: "GlamHouse Studio - Penang", time: "1 day ago", type: "studio" },
-    { action: "Payment dispute", detail: "Booking #1024 - RM 350", time: "2 days ago", type: "flag" },
-  ];
 
   const filterBySearch = <T extends { name?: string; id?: string; email?: string; }>(items: T[]): T[] => {
     if (!search) return items;
