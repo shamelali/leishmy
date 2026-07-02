@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { users, artists, studios, categories, artistCategories } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signSession } from "@/lib/auth/jwt";
 import { setSessionCookie } from "@/lib/auth/cookies";
@@ -46,6 +46,77 @@ export async function POST(request: NextRequest) {
         specialties: specialties || [],
       })
       .returning();
+
+    if (role === "artist") {
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") + "-" + id.slice(-5);
+
+      const [newArtist] = await db
+        .insert(artists)
+        .values({
+          name,
+          slug,
+          email: email.toLowerCase(),
+          image: avatar,
+          phone: phone || "",
+          location: location || "Kuala Lumpur, Malaysia",
+          bio: "",
+          available: true,
+          verified: false,
+          userId: id,
+        })
+        .returning();
+
+      const specialtyToSlug: Record<string, string> = {
+        "Bridal Makeup": "bridal",
+        "Soft Glam": "event",
+        "Editorial / Photoshoot": "editorial",
+        "Hijab Styling": "hijab",
+        "Airbrush Makeup": "airbrush",
+        "SFX / Creative": "sfx",
+        Hairstyling: "hair",
+      };
+
+      const categorySlugs = (specialties || [])
+        .map((s: string) => specialtyToSlug[s])
+        .filter(Boolean);
+
+      if (categorySlugs.length > 0) {
+        const matchedCategories = await db
+          .select({ id: categories.id })
+          .from(categories)
+          .where(inArray(categories.slug, categorySlugs));
+
+        if (matchedCategories.length > 0) {
+          await db.insert(artistCategories).values(
+            matchedCategories.map((c) => ({
+              artistId: newArtist.id,
+              categoryId: c.id,
+            })),
+          );
+        }
+      }
+    }
+
+    if (role === "studio") {
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") + "-" + id.slice(-5);
+
+      await db.insert(studios).values({
+        name,
+        slug,
+        email: email.toLowerCase(),
+        image: avatar,
+        phone: phone || "",
+        location: location || "Kuala Lumpur, Malaysia",
+        description: "",
+        userId: id,
+      });
+    }
 
     const token = signSession({
       id: newUser.id,

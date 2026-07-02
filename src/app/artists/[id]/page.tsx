@@ -10,8 +10,8 @@ import {
   Palette,
 } from "lucide-react";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { featuredArtists } from "@/lib/data";
 import { BookingForm } from "@/components/BookingForm";
 import type { Metadata } from "next";
@@ -25,6 +25,13 @@ async function findArtist(slug: string) {
     const rows = await db.select().from(artists).where(eq(artists.slug, slug)).limit(1);
     if (rows.length > 0) {
       const a = rows[0];
+
+      const categoryLinks = await db
+        .select({ categoryName: categoriesTable.name })
+        .from(artistCategories)
+        .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
+        .where(eq(artistCategories.artistId, a.id));
+
       return {
         id: String(a.id),
         name: a.name,
@@ -36,7 +43,7 @@ async function findArtist(slug: string) {
         price: Number(a.price) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
-        categories: [] as string[],
+        categories: categoryLinks.map((l) => l.categoryName),
         specialties: [] as string[],
         languages: (a.languages || []) as string[],
         bio: a.bio || "",

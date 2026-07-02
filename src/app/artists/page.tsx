@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
+import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { featuredArtists, categories } from "@/lib/data";
 import type { Metadata } from "next";
 
@@ -15,6 +16,24 @@ export default async function ArtistsPage() {
   try {
     const rows = await db.select().from(artists).limit(50);
     if (rows.length > 0) {
+      const artistIds = rows.map((a) => a.id);
+
+      const categoryLinks = await db
+        .select({
+          artistId: artistCategories.artistId,
+          categoryName: categoriesTable.name,
+        })
+        .from(artistCategories)
+        .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
+        .where(inArray(artistCategories.artistId, artistIds));
+
+      const categoriesByArtist = new Map<number, string[]>();
+      for (const link of categoryLinks) {
+        const list = categoriesByArtist.get(link.artistId) || [];
+        list.push(link.categoryName);
+        categoriesByArtist.set(link.artistId, list);
+      }
+
       displayArtists = rows.map((a) => ({
         id: String(a.id),
         name: a.name,
@@ -26,7 +45,7 @@ export default async function ArtistsPage() {
         price: Number(a.price) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
-        categories: [] as string[],
+        categories: categoriesByArtist.get(a.id) || [],
         specialties: [] as string[],
         languages: (a.languages || []) as string[],
         bio: a.bio || "",
