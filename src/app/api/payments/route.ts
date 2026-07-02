@@ -4,8 +4,7 @@ import { payments, payouts, muaBankAccounts, webhookEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 
-const BILLPLZ_API =
-  process.env.BILLPLZ_API_URL || "https://www.billplz-sandbox.com/api/v3";
+const BILLPLZ_API = process.env.BILLPLZ_API_URL;
 
 function billplzAuth() {
   return `Basic ${Buffer.from(process.env.BILLPLZ_API_KEY + ":").toString("base64")}`;

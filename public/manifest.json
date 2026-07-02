@@ -6,5 +6,18 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#9333ea",
-  "icons": []
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/leishlogo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/leishlogo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }

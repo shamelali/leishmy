@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://leishmy.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
 
   const staticRoutes = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 1 },

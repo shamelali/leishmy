@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/dashboard/", "/profile/", "/favorites/"],
     },
-    sitemap: "https://leishmy.vercel.app/sitemap.xml",
+    sitemap: `${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/sitemap.xml`,
   };
 }

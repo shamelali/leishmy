@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments } from "@/db/schema";
 import { eq, count, and, gte, avg, sql } from "drizzle-orm";
+import { getSession } from "@/lib/auth/cookies";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 
@@ -209,6 +215,11 @@ function parseTimeAgo(time: string): number {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const body = await request.json();
