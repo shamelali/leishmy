@@ -4,7 +4,6 @@ import { Star, MapPin, Users, ArrowLeft, Wifi, Car, Crown, Coffee } from "lucide
 import { db } from "@/db";
 import { studios } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { featuredStudios } from "@/lib/data";
 import type { Metadata } from "next";
 
 type Props = {
@@ -42,7 +41,7 @@ async function findStudio(slug: string) {
   } catch {
     // fall through
   }
-  return featuredStudios.find((s) => s.slug === slug) || null;
+  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

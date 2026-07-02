@@ -12,7 +12,6 @@ import {
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { featuredArtists } from "@/lib/data";
 import { BookingForm } from "@/components/BookingForm";
 import type { Metadata } from "next";
 
@@ -52,9 +51,9 @@ async function findArtist(slug: string) {
       };
     }
   } catch {
-    // fall through to mock
+    // fall through
   }
-  return featuredArtists.find((a) => a.slug === slug) || null;
+  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

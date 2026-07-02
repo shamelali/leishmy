@@ -67,7 +67,7 @@ export function HeroSection() {
                 <div className="aspect-[3/4] relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=800&fit=crop"
+                    src="/images/artfulcolorworks-ai-generated-9159114.jpg"
                     alt="Soft glam makeup"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -78,7 +78,7 @@ export function HeroSection() {
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&h=400&fit=crop"
+                    src="/images/gromovataya-woman-3096664.jpg"
                     alt="Contemporary beauty"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -91,7 +91,7 @@ export function HeroSection() {
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/hero-warm-tones.png"
+                    src="/images/omarmedinafilms-wedding-1183271_1920.jpg"
                     alt="Warm tones"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -102,7 +102,7 @@ export function HeroSection() {
                 <div className="aspect-[3/4] group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=800&fit=crop"
+                    src="/images/u_p081rxaf-wedding-9473397.jpg"
                     alt="Beautiful look"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"

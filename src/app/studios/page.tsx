@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Star, MapPin, Users, ArrowRight } from "lucide-react";
 import { db } from "@/db";
 import { studios } from "@/db/schema";
-import { featuredStudios } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,7 +31,7 @@ async function getStudios() {
   } catch {
     // fall through
   }
-  return featuredStudios;
+  return [];
 }
 
 export default async function StudiosPage() {

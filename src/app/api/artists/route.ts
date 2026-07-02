@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
-import { ilike, or } from "drizzle-orm";
-import { featuredArtists, categories } from "@/lib/data";
+import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
+import { ilike, or, eq, inArray } from "drizzle-orm";
+import { categories } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,50 +11,62 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
     const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
 
-    const query = db.select().from(artists).limit(limit);
+    let rows: typeof artists.$inferSelect[] = [];
 
-    if (search) {
-      query.where(
-        or(
-          ilike(artists.name, `%${search}%`),
-          ilike(artists.location, `%${search}%`),
-          ilike(artists.bio, `%${search}%`),
-        ),
-      );
-    }
+    if (category) {
+      const categoryRow = await db
+        .select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.slug, category))
+        .limit(1);
 
-    const rows = await query;
+      if (categoryRow.length > 0) {
+        const matchingArtistIds = await db
+          .select({ artistId: artistCategories.artistId })
+          .from(artistCategories)
+          .where(eq(artistCategories.categoryId, categoryRow[0].id));
 
-    if (rows.length === 0) {
-      let fallback = featuredArtists;
+        if (matchingArtistIds.length > 0) {
+          const ids = matchingArtistIds.map((r) => r.artistId);
+          rows = await db
+            .select()
+            .from(artists)
+            .where(inArray(artists.id, ids))
+            .limit(limit);
+
+          if (search) {
+            rows = rows.filter(
+              (a) =>
+                a.name?.toLowerCase().includes(search.toLowerCase()) ||
+                a.location?.toLowerCase().includes(search.toLowerCase()) ||
+                a.bio?.toLowerCase().includes(search.toLowerCase()),
+            );
+          }
+        } else {
+          rows = [];
+        }
+      } else {
+        rows = [];
+      }
+    } else {
+      const query = db.select().from(artists).limit(limit);
+
       if (search) {
-        fallback = featuredArtists.filter(
-          (a) =>
-            a.name.toLowerCase().includes(search.toLowerCase()) ||
-            a.location.toLowerCase().includes(search.toLowerCase()),
-        );
-      }
-      if (category) {
-        fallback = fallback.filter((a) =>
-          a.categories.includes(category),
+        query.where(
+          or(
+            ilike(artists.name, `%${search}%`),
+            ilike(artists.location, `%${search}%`),
+            ilike(artists.bio, `%${search}%`),
+          ),
         );
       }
 
-      return NextResponse.json({
-        artists: fallback.slice(0, limit),
-        categories,
-      });
+      rows = await query;
     }
 
     return NextResponse.json({ artists: rows, categories });
   } catch (error) {
     console.error("Fetch artists error:", error);
-    return NextResponse.json(
-      {
-        artists: featuredArtists,
-        categories,
-      },
-      { status: 200 },
-    );
+    return NextResponse.json({ artists: [], categories }, { status: 200 });
   }
 }

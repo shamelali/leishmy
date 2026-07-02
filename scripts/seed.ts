@@ -3,11 +3,10 @@ import { db } from "../src/db";
 import {
   categories,
   artists,
-  studios,
   testimonials,
   artistCategories,
 } from "../src/db/schema";
-import { featuredArtists, featuredStudios, categories as mockCategories, testimonials as mockTestimonials } from "../src/lib/data";
+import { featuredArtists, categories as mockCategories, testimonials as mockTestimonials } from "../src/lib/data";
 
 async function seed() {
   console.log("Seeding database...");
@@ -67,25 +66,7 @@ async function seed() {
   }
   console.log(`  ${linkCount} artist-category links seeded`);
 
-  // Seed studios
-  for (const s of featuredStudios) {
-    try {
-      await db.insert(studios).values({
-        name: s.name,
-        slug: s.slug,
-        image: s.image,
-        location: s.location,
-        rating: String(s.rating),
-        reviewCount: s.reviewCount,
-        description: s.description,
-        price: s.priceRange.replace(/[^0-9]/g, "").slice(0, 4) || "0",
-        featured: s.featured,
-      });
-    } catch (e: any) {
-      if (!e.message?.includes("duplicate")) console.error("  studio insert failed:", s.slug, e.message);
-    }
-  }
-  console.log(`  ${featuredStudios.length} studios seeded`);
+  console.log("  0 studios seeded (no seed data)");
 
   // Seed testimonials
   for (const t of mockTestimonials) {

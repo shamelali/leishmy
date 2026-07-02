@@ -65,19 +65,28 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <Link
+                  href="/faq"
+                  className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
+                >
                   FAQ
-                </span>
+                </Link>
               </li>
               <li>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <Link
+                  href="/privacy-policy"
+                  className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
+                >
                   Privacy Policy
-                </span>
+                </Link>
               </li>
               <li>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <Link
+                  href="/terms-of-service"
+                  className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
+                >
                   Terms of Service
-                </span>
+                </Link>
               </li>
             </ul>
           </div>

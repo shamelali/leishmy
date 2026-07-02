@@ -268,8 +268,8 @@ export default function RegisterPage() {
               />
               <label htmlFor="terms" className="text-xs text-gray-600 dark:text-gray-400">
                 I agree to the{" "}
-                <span className="text-rose-600 dark:text-rose-400 hover:underline">Terms of Service</span> and{" "}
-                <span className="text-rose-600 dark:text-rose-400 hover:underline">Privacy Policy</span>
+                <Link href="/terms-of-service" className="text-rose-600 dark:text-rose-400 hover:underline">Terms of Service</Link> and{" "}
+                <Link href="/privacy-policy" className="text-rose-600 dark:text-rose-400 hover:underline">Privacy Policy</Link>
               </label>
             </div>
 

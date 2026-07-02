@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, count, and, gte, avg, sql } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,183 +9,141 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
 
     if (!action || action === "overview") {
-      const [userCount, artistCount, studioCount, bookingCount, paymentRows] =
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [userResult, artistResult, studioResult, bookingResult, paymentRows, newUsersResult, ratingResult] =
         await Promise.all([
-          db.select({ count: users.id }).from(users),
-          db.select({ count: artists.id }).from(artists),
-          db.select({ count: studios.id }).from(studios),
-          db.select({ count: bookings.id }).from(bookings),
+          db.select({ count: count() }).from(users),
+          db.select({ count: count() }).from(artists),
+          db.select({ count: count() }).from(studios),
+          db.select({ count: count() }).from(bookings),
           db.select().from(payments),
+          db.select({ count: count() }).from(users).where(gte(users.createdAt, startOfMonth)),
+          db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
         ]);
 
       const revenue = paymentRows
         .filter((p) => p.status === "paid" || p.status === "released")
         .reduce((sum, p) => sum + (p.amount || 0), 0);
 
+      const totalPendingPayouts = paymentRows
+        .filter((p) => p.status === "held")
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+      const avgRating = ratingResult[0]?.avg ? Number(Number(ratingResult[0].avg).toFixed(1)) : 0;
+
       return NextResponse.json({
-        totalUsers: userCount.length || 1250,
-        totalArtists: artistCount.length || 48,
-        totalStudios: studioCount.length || 12,
-        totalBookings: bookingCount.length || 380,
-        revenue: revenue || 45280,
-        avgRating: 4.8,
-        pendingPayouts: 3240,
-        newUsersThisMonth: 89,
+        totalUsers: userResult[0]?.count || 0,
+        totalArtists: artistResult[0]?.count || 0,
+        totalStudios: studioResult[0]?.count || 0,
+        totalBookings: bookingResult[0]?.count || 0,
+        revenue,
+        avgRating,
+        pendingPayouts: totalPendingPayouts,
+        newUsersThisMonth: newUsersResult[0]?.count || 0,
       });
     }
 
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(Math.max(1, Number(searchParams.get("pageSize")) || 20), 100);
+    const offset = (page - 1) * pageSize;
+
     if (action === "artists") {
-      const rows = await db.select().from(artists);
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(artists).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(artists),
+      ]);
       return NextResponse.json({
-        artists: rows.length > 0
-          ? rows.map((a) => ({
-              id: String(a.id),
-              name: a.name,
-              email: a.email || "",
-              phone: a.phone || "",
-              location: a.location || "",
-              rating: a.rating || "0",
-              reviewCount: a.reviewCount || 0,
-              verified: a.verified || false,
-              available: a.available ?? true,
-              createdAt: a.createdAt?.toISOString() || "",
-            }))
-          : [
-              {
-                id: "1", name: "Aiko Nakamura", email: "aiko@example.com",
-                phone: "+60 12-345 6789", location: "Kuala Lumpur",
-                rating: "4.9", reviewCount: 128, verified: true,
-                available: true, createdAt: "2025-01-15",
-              },
-              {
-                id: "2", name: "Sarah Ahmad", email: "sarah@example.com",
-                phone: "+60 13-456 7890", location: "Petaling Jaya",
-                rating: "4.8", reviewCount: 96, verified: true,
-                available: true, createdAt: "2025-02-01",
-              },
-              {
-                id: "3", name: "Mei Ling Tan", email: "mei@example.com",
-                phone: "+60 14-567 8901", location: "Bangsar",
-                rating: "4.9", reviewCount: 84, verified: false,
-                available: true, createdAt: "2025-03-10",
-              },
-            ],
+        artists: rows.map((a) => ({
+          id: String(a.id),
+          name: a.name,
+          email: a.email || "",
+          phone: a.phone || "",
+          location: a.location || "",
+          rating: a.rating || "0",
+          reviewCount: a.reviewCount || 0,
+          verified: a.verified || false,
+          available: a.available ?? true,
+          createdAt: a.createdAt?.toISOString() || "",
+        })),
+        total, page, pageSize,
       });
     }
 
     if (action === "studios") {
-      const rows = await db.select().from(studios);
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(studios).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(studios),
+      ]);
       return NextResponse.json({
-        studios: rows.length > 0
-          ? rows.map((s) => ({
-              id: String(s.id),
-              name: s.name,
-              email: s.email || "",
-              phone: s.phone || "",
-              location: s.location || "",
-              rating: s.rating || "0",
-              createdAt: s.createdAt?.toISOString() || "",
-            }))
-          : [
-              {
-                id: "1", name: "GlamHouse Studio KL", email: "glam@example.com",
-                phone: "+60 12-111 2222", location: "Kuala Lumpur",
-                rating: "4.8", createdAt: "2025-01-20",
-              },
-              {
-                id: "2", name: "Bella Artistry", email: "bella@example.com",
-                phone: "+60 12-333 4444", location: "Petaling Jaya",
-                rating: "4.7", createdAt: "2025-02-15",
-              },
-            ],
+        studios: rows.map((s) => ({
+          id: String(s.id),
+          name: s.name,
+          email: s.email || "",
+          phone: s.phone || "",
+          location: s.location || "",
+          rating: s.rating || "0",
+          createdAt: s.createdAt?.toISOString() || "",
+        })),
+        total, page, pageSize,
       });
     }
 
     if (action === "users") {
-      const rows = await db.select().from(users);
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(users).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(users),
+      ]);
       return NextResponse.json({
-        users: rows.length > 0
-          ? rows.map((u) => ({
-              id: u.id,
-              name: u.name || "",
-              email: u.email,
-              role: u.role || "client",
-              image: u.image || "",
-              createdAt: u.createdAt?.toISOString() || "",
-            }))
-          : [
-              {
-                id: "u1", name: "Nurul Huda", email: "nurul@example.com",
-                role: "client", image: "", createdAt: "2025-01-10",
-              },
-              {
-                id: "u2", name: "Aiko Nakamura", email: "aiko@example.com",
-                role: "artist", image: "", createdAt: "2025-01-15",
-              },
-              {
-                id: "u3", name: "Admin Leish", email: "admin@leish.my",
-                role: "admin", image: "", createdAt: "2024-12-01",
-              },
-            ],
+        users: rows.map((u) => ({
+          id: u.id,
+          name: u.name || "",
+          email: u.email,
+          role: u.role || "client",
+          image: u.image || "",
+          createdAt: u.createdAt?.toISOString() || "",
+        })),
+        total, page, pageSize,
       });
     }
 
     if (action === "bookings") {
-      const rows = await db.select().from(bookings);
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(bookings).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(bookings),
+      ]);
       return NextResponse.json({
-        bookings: rows.length > 0
-          ? rows.map((b) => ({
-              id: String(b.id),
-              date: b.date?.toISOString() || "",
-              time: b.time || "",
-              status: b.status || "pending",
-              paymentStatus: "pending",
-              totalAmount: b.amount || "0",
-              userName: b.userId,
-              artistName: "",
-            }))
-          : [
-              {
-                id: "1", date: "2025-06-15", time: "10:00", status: "confirmed",
-                paymentStatus: "paid", totalAmount: "800", userName: "Nurul Huda",
-                artistName: "Aiko Nakamura",
-              },
-              {
-                id: "2", date: "2025-06-18", time: "14:00", status: "pending",
-                paymentStatus: "pending", totalAmount: "450", userName: "Farah Aminah",
-                artistName: "Sarah Ahmad",
-              },
-            ],
+        bookings: rows.map((b) => ({
+          id: String(b.id),
+          date: b.date?.toISOString() || "",
+          time: b.time || "",
+          status: b.status || "pending",
+          paymentStatus: "pending",
+          totalAmount: b.amount || "0",
+          userName: b.userId,
+          artistName: "",
+        })),
+        total, page, pageSize,
       });
     }
 
     if (action === "payments") {
-      const rows = await db.select().from(payments);
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(payments).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(payments),
+      ]);
       return NextResponse.json({
-        payments: rows.length > 0
-          ? rows.map((p) => ({
-              id: String(p.id),
-              amount: String(p.amount),
-              status: p.status || "pending",
-              paymentMethod: p.method || "billplz",
-              createdAt: p.createdAt?.toISOString() || "",
-              releasedAt: p.updatedAt?.toISOString() || "",
-              bookingId: String(p.bookingId || ""),
-            }))
-          : [
-              {
-                id: "1", amount: "800", status: "held", paymentMethod: "billplz",
-                createdAt: "2025-06-10", releasedAt: "", bookingId: "1",
-              },
-              {
-                id: "2", amount: "450", status: "pending", paymentMethod: "billplz",
-                createdAt: "2025-06-12", releasedAt: "", bookingId: "2",
-              },
-              {
-                id: "3", amount: "1200", status: "released", paymentMethod: "billplz",
-                createdAt: "2025-06-05", releasedAt: "2025-06-08", bookingId: "3",
-              },
-            ],
+        payments: rows.map((p) => ({
+          id: String(p.id),
+          amount: String(p.amount),
+          status: p.status || "pending",
+          paymentMethod: p.method || "billplz",
+          createdAt: p.createdAt?.toISOString() || "",
+          releasedAt: p.updatedAt?.toISOString() || "",
+          bookingId: String(p.bookingId || ""),
+        })),
+        total, page, pageSize,
       });
     }
 

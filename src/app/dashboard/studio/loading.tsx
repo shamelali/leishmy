@@ -8,10 +8,7 @@ export default function DashboardStudioLoading() {
             <div key={i} className="h-32 skeleton rounded-2xl" />
           ))}
         </div>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="h-80 skeleton rounded-2xl" />
-          <div className="h-80 skeleton rounded-2xl" />
-        </div>
+        <div className="h-64 skeleton rounded-2xl" />
       </div>
     </div>
   );

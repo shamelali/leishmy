@@ -2,61 +2,118 @@ import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
-import { featuredArtists, categories } from "@/lib/data";
+import { eq, inArray, and } from "drizzle-orm";
+import { categories } from "@/lib/data";
 import type { Metadata } from "next";
+
+type Props = {
+  searchParams: Promise<{ category?: string }>;
+};
 
 export const metadata: Metadata = {
   title: "Browse Makeup Artists — Leish!",
   description: "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
 };
 
-export default async function ArtistsPage() {
-  let displayArtists;
+export default async function ArtistsPage({ searchParams }: Props) {
+  const { category } = await searchParams;
+  type DisplayArtist = {
+    id: string;
+    name: string;
+    slug?: string | null;
+    image: string;
+    location: string;
+    rating: number;
+    reviewCount: number;
+    price: number;
+    verified: boolean;
+    responseTime: string;
+    categories: string[];
+    specialties: string[];
+    languages: string[];
+    bio: string;
+    portfolio: string[];
+    featured: boolean;
+  };
+
+  let displayArtists: DisplayArtist[] | undefined;
   try {
-    const rows = await db.select().from(artists).limit(50);
-    if (rows.length > 0) {
-      const artistIds = rows.map((a) => a.id);
+    let query;
 
-      const categoryLinks = await db
-        .select({
-          artistId: artistCategories.artistId,
-          categoryName: categoriesTable.name,
-        })
-        .from(artistCategories)
-        .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
-        .where(inArray(artistCategories.artistId, artistIds));
+    if (category) {
+      const categoryRow = await db
+        .select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.slug, category))
+        .limit(1);
 
-      const categoriesByArtist = new Map<number, string[]>();
-      for (const link of categoryLinks) {
-        const list = categoriesByArtist.get(link.artistId) || [];
-        list.push(link.categoryName);
-        categoriesByArtist.set(link.artistId, list);
+      if (categoryRow.length > 0) {
+        const matchingArtistIds = await db
+          .select({ artistId: artistCategories.artistId })
+          .from(artistCategories)
+          .where(eq(artistCategories.categoryId, categoryRow[0].id));
+
+        if (matchingArtistIds.length > 0) {
+          query = db
+            .select()
+            .from(artists)
+            .where(inArray(artists.id, matchingArtistIds.map((r) => r.artistId)))
+            .limit(50);
+        } else {
+          displayArtists = [];
+        }
+      } else {
+        displayArtists = [];
       }
+    } else {
+      query = db.select().from(artists).limit(50);
+    }
 
-      displayArtists = rows.map((a) => ({
-        id: String(a.id),
-        name: a.name,
-        slug: a.slug,
-        image: a.image || "",
-        location: a.location || "",
-        rating: Number(a.rating) || 0,
-        reviewCount: a.reviewCount || 0,
-        price: Number(a.price) || 0,
-        verified: a.verified || false,
-        responseTime: a.responseTime || "",
-        categories: categoriesByArtist.get(a.id) || [],
-        specialties: [] as string[],
-        languages: (a.languages || []) as string[],
-        bio: a.bio || "",
-        portfolio: (a.portfolio || []) as string[],
-        featured: false,
-      }));
+    if (!displayArtists && query) {
+      const rows = await query;
+      if (rows.length > 0) {
+        const artistIds = rows.map((a) => a.id);
+
+        const categoryLinks = await db
+          .select({
+            artistId: artistCategories.artistId,
+            categoryName: categoriesTable.name,
+          })
+          .from(artistCategories)
+          .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
+          .where(inArray(artistCategories.artistId, artistIds));
+
+        const categoriesByArtist = new Map<number, string[]>();
+        for (const link of categoryLinks) {
+          const list = categoriesByArtist.get(link.artistId) || [];
+          list.push(link.categoryName);
+          categoriesByArtist.set(link.artistId, list);
+        }
+
+        displayArtists = rows.map((a) => ({
+          id: String(a.id),
+          name: a.name,
+          slug: a.slug,
+          image: a.image || "",
+          location: a.location || "",
+          rating: Number(a.rating) || 0,
+          reviewCount: a.reviewCount || 0,
+          price: Number(a.price) || 0,
+          verified: a.verified || false,
+          responseTime: a.responseTime || "",
+          categories: categoriesByArtist.get(a.id) || [],
+          specialties: [] as string[],
+          languages: (a.languages || []) as string[],
+          bio: a.bio || "",
+          portfolio: (a.portfolio || []) as string[],
+          featured: false,
+        }));
+      }
     }
   } catch {
     // fall through
   }
-  if (!displayArtists) displayArtists = featuredArtists;
+  if (!displayArtists) displayArtists = [];
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
@@ -77,16 +134,28 @@ export default async function ArtistsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-6">
-            <span className="px-4 py-2 text-sm font-medium bg-rose-500 text-white rounded-xl cursor-pointer">
+            <Link
+              href="/artists"
+              className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                !category
+                  ? "bg-rose-500 text-white"
+                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
+              }`}
+            >
               All
-            </span>
+            </Link>
             {categories.map((cat) => (
-              <span
+              <Link
                 key={cat.id}
-                className="px-4 py-2 text-sm font-medium bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700 cursor-pointer transition-colors"
+                href={`/artists?category=${cat.id}`}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  category === cat.id
+                    ? "bg-rose-500 text-white"
+                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
+                }`}
               >
                 {cat.icon} {cat.name}
-              </span>
+              </Link>
             ))}
           </div>
         </div>

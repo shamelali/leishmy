@@ -17,21 +17,6 @@ export interface Artist {
   featured: boolean;
 }
 
-export interface Studio {
-  id: string;
-  name: string;
-  slug: string;
-  image: string;
-  location: string;
-  rating: number;
-  reviewCount: number;
-  priceRange: string;
-  description: string;
-  amenities: string[];
-  artistCount: number;
-  featured: boolean;
-}
-
 export interface Category {
   id: string;
   name: string;
@@ -172,50 +157,7 @@ export const featuredArtists: Artist[] = [
   },
 ];
 
-export const featuredStudios: Studio[] = [
-  {
-    id: "glamour-studio-kl",
-    name: "Glamour Studio KL",
-    slug: "glamour-studio-kl",
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=500&fit=crop",
-    location: "KLCC, Kuala Lumpur",
-    rating: 4.9,
-    reviewCount: 312,
-    priceRange: "MYR 200 - 800",
-    description: "Premium beauty studio in the heart of KL offering bridal, event, and editorial services.",
-    amenities: ["WiFi", "Parking", "VIP Room", "Refreshments"],
-    artistCount: 8,
-    featured: true,
-  },
-  {
-    id: "rose-beauty-lounge",
-    name: "Rose Beauty Lounge",
-    slug: "rose-beauty-lounge",
-    image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&h=500&fit=crop",
-    location: "Bangsar, Kuala Lumpur",
-    rating: 4.8,
-    reviewCount: 187,
-    priceRange: "MYR 150 - 600",
-    description: "Cozy and elegant beauty lounge specializing in personalized makeup experiences.",
-    amenities: ["WiFi", "Parking", "Private Room"],
-    artistCount: 5,
-    featured: true,
-  },
-  {
-    id: "bella-artistry",
-    name: "Bella Artistry",
-    slug: "bella-artistry",
-    image: "https://images.unsplash.com/photo-1521590832167-7228f14f23b3?w=800&h=500&fit=crop",
-    location: "Petaling Jaya",
-    rating: 4.7,
-    reviewCount: 98,
-    priceRange: "MYR 120 - 500",
-    description: "Modern studio with talented artists for any occasion.",
-    amenities: ["WiFi", "Parking"],
-    artistCount: 4,
-    featured: true,
-  },
-];
+
 
 export const categories: Category[] = [
   {
@@ -300,6 +242,65 @@ export const testimonials: Testimonial[] = [
     author: "Amanda Lee",
     role: "Model, PJ",
     rating: 5,
+  },
+];
+
+export interface FAQ {
+  question: string;
+  answer: string;
+  category: string;
+}
+
+export const faqs: FAQ[] = [
+  {
+    question: "How do I book a makeup artist on Leish!?",
+    answer: "Booking is simple! Browse our directory of verified artists, filter by location, specialty, or availability, and select a time slot that works for you. Your booking is confirmed instantly.",
+    category: "Booking",
+  },
+  {
+    question: "What payment methods are accepted?",
+    answer: "We accept all major credit cards, debit cards, and digital wallets including GrabPay, Touch 'n Go, and Boost. Payment is processed securely through our platform.",
+    category: "Payment",
+  },
+  {
+    question: "Is my deposit refundable?",
+    answer: "Our cancellation policy varies by artist. Generally, deposits are refundable if you cancel at least 48 hours before your appointment. Check the specific artist's policy before booking.",
+    category: "Payment",
+  },
+  {
+    question: "How do I become a verified artist on Leish!?",
+    answer: "Apply through our artist onboarding page. We review portfolios, verify credentials, and conduct an interview before approving artists. Once approved, you'll gain access to our full client base.",
+    category: "Artists",
+  },
+  {
+    question: "What happens if I'm not satisfied with my makeup?",
+    answer: "We have a satisfaction guarantee policy. If you're not happy with your result, contact us within 24 hours and we'll work with the artist to make it right or provide a credit for your next booking.",
+    category: "Booking",
+  },
+  {
+    question: "Do you offer group bookings for bridal parties?",
+    answer: "Yes! Many of our artists offer bridal party packages. You can book multiple artists or request a single artist who can accommodate group bookings. Contact artists directly through their profiles.",
+    category: "Booking",
+  },
+  {
+    question: "Are your artists experienced with diverse skin tones and types?",
+    answer: "Absolutely. All our artists are trained in working with diverse skin tones, textures, and types. We celebrate diversity and ensure every client receives personalized, inclusive service.",
+    category: "Artists",
+  },
+  {
+    question: "How far in advance should I book?",
+    answer: "For major events like weddings, we recommend booking 2-4 weeks in advance. For event makeup, 3-7 days is usually sufficient. Last-minute bookings depend on artist availability.",
+    category: "Booking",
+  },
+  {
+    question: "Do artists provide touch-up services?",
+    answer: "Many artists offer touch-up services for an additional fee. Check individual artist profiles for their service offerings and pricing for touch-up sessions.",
+    category: "Artists",
+  },
+  {
+    question: "What is your privacy policy?",
+    answer: "We take your privacy seriously. Your personal information is encrypted and never shared without consent. Booking details are kept confidential between you and your chosen artist.",
+    category: "Privacy",
   },
 ];
 

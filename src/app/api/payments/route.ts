@@ -32,29 +32,20 @@ export async function GET(request: NextRequest) {
         .reduce((sum, p) => sum + p.amount, 0);
 
       return NextResponse.json({
-        payouts: payoutRows.length > 0
-          ? payoutRows.map((p) => ({
-              id: String(p.id),
-              amount: p.amount,
-              status: p.status,
-              createdAt: p.createdAt?.toISOString() || "",
-              updatedAt: p.updatedAt?.toISOString() || undefined,
-            }))
-          : [
-              { id: "1", amount: 2400, status: "pending", createdAt: "2025-06-10" },
-              { id: "2", amount: 1200, status: "paid", createdAt: "2025-06-01", updatedAt: "2025-06-05" },
-            ],
-        bankAccounts: bankRows.length > 0
-          ? bankRows.map((b) => ({
-              id: String(b.id),
-              bankName: b.bankName,
-              accountNumber: b.accountNumber,
-              accountHolder: b.accountHolder,
-            }))
-          : [
-              { id: "1", bankName: "CIMB Bank", accountNumber: "1234-5678-9012", accountHolder: "Aiko Nakamura" },
-            ],
-        pendingBalance: pendingBalance || 3600,
+        payouts: payoutRows.map((p) => ({
+          id: String(p.id),
+          amount: p.amount,
+          status: p.status,
+          createdAt: p.createdAt?.toISOString() || "",
+          updatedAt: p.updatedAt?.toISOString() || undefined,
+        })),
+        bankAccounts: bankRows.map((b) => ({
+          id: String(b.id),
+          bankName: b.bankName,
+          accountNumber: b.accountNumber,
+          accountHolder: b.accountHolder,
+        })),
+        pendingBalance,
       });
     }
 

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Users, Building2, DollarSign, BarChart3, TrendingUp,
   Calendar, Star, Shield, Palette, Store, UserCheck,
   BookOpen, CreditCard, RefreshCw, CheckCircle, XCircle,
-  Search, Trash2, ExternalLink,
+  Search, Trash2, ExternalLink, Settings, Flag, FileText,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -66,16 +68,27 @@ export default function DashboardAdmin() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [fetchError, setFetchError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
+  const pageSize = 20;
+  const [page, setPage] = useState<Record<Tab, number>>({
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, overview: 1,
+  });
+  const [total, setTotal] = useState<Record<Tab, number>>({
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, overview: 0,
+  });
 
-  const fetchData = async (t: Tab) => {
+  const fetchData = useCallback(async (t: Tab, p?: number) => {
     setLoading(true);
+    setFetchError("");
+    const currentPage = p ?? page[t];
     try {
       if (t === "overview") {
         const res = await fetch("/api/admin");
         if (res.ok) setStats(await res.json());
+        else setFetchError("Failed to load overview data");
       } else {
-        const res = await fetch(`/api/admin?action=${t}`);
+        const res = await fetch(`/api/admin?action=${t}&page=${currentPage}&pageSize=${pageSize}`);
         if (res.ok) {
           const data = await res.json();
           if (t === "artists") setArtists(data.artists || []);
@@ -83,19 +96,33 @@ export default function DashboardAdmin() {
           else if (t === "users") setUsers(data.users || []);
           else if (t === "bookings") setBookings(data.bookings || []);
           else if (t === "payments") setPayments(data.payments || []);
+          setTotal((prev) => ({ ...prev, [t]: data.total || 0 }));
+        } else {
+          setFetchError(`Failed to load ${t} data`);
         }
       }
     } catch (err) {
       console.error("Admin fetch failed:", err);
+      setFetchError("Network error — check your connection");
     }
     setLoading(false);
-  };
+  }, [page]);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     fetchData(tab);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [tab]);
+    /* eslint-disable react-hooks/set-state-in-effect */
+  }, [tab, fetchData]);
+
+  const goToPage = (t: Tab, p: number) => {
+    setPage((prev) => ({ ...prev, [t]: p }));
+    fetchData(t, p);
+  };
+
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    setSearch("");
+    setPage((prev) => ({ ...prev, [t]: 1 }));
+  };
 
   const toggleVerify = async (artistId: string, verified: boolean) => {
     setActionLoading(artistId);
@@ -144,12 +171,28 @@ export default function DashboardAdmin() {
           </div>
         </div>
 
-        <div className="flex gap-1 mb-6 overflow-x-auto pb-2">
+        {fetchError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-sm text-red-600 dark:text-red-400">
+            {fetchError}
+          </div>
+        )}
+
+        <div className="flex gap-1 mb-2 overflow-x-auto pb-2">
           {tabs.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
+            <button key={key} onClick={() => switchTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
               <Icon className="w-4 h-4" />{label}
             </button>
           ))}
+          <span className="w-px h-6 bg-gray-200 dark:bg-neutral-700 mx-1 self-center" />
+          <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <Flag className="w-4 h-4" />Moderation
+          </Link>
+          <Link href="/dashboard/admin/reports" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <FileText className="w-4 h-4" />Reports
+          </Link>
+          <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <Settings className="w-4 h-4" />Settings
+          </Link>
         </div>
 
         {tab !== "overview" && (
@@ -251,6 +294,9 @@ export default function DashboardAdmin() {
                 ))}
               </tbody>
             </table>
+            {total.artists > pageSize && (
+              <Pagination page={page.artists} total={total.artists} pageSize={pageSize} onPage={(p) => goToPage("artists", p)} />
+            )}
           </div>
         )}
 
@@ -274,6 +320,9 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            {total.studios > pageSize && (
+              <Pagination page={page.studios} total={total.studios} pageSize={pageSize} onPage={(p) => goToPage("studios", p)} />
+            )}
           </div>
         )}
 
@@ -298,6 +347,9 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            {total.users > pageSize && (
+              <Pagination page={page.users} total={total.users} pageSize={pageSize} onPage={(p) => goToPage("users", p)} />
+            )}
           </div>
         )}
 
@@ -327,6 +379,9 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            {total.bookings > pageSize && (
+              <Pagination page={page.bookings} total={total.bookings} pageSize={pageSize} onPage={(p) => goToPage("bookings", p)} />
+            )}
           </div>
         )}
 
@@ -375,10 +430,43 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            {total.payments > pageSize && (
+              <Pagination page={page.payments} total={total.payments} pageSize={pageSize} onPage={(p) => goToPage("payments", p)} />
+            )}
           </div>
         )}
       </div>
     </div>
     </ProtectedRoute>
+  );
+}
+
+function Pagination({ page, total, pageSize, onPage }: { page: number; total: number; pageSize: number; onPage: (p: number) => void }) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+  return (
+    <div className="px-4 sm:px-5 py-4 border-t border-gray-100 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+        Page {page} of {totalPages} ({total} total)
+      </p>
+      <div className="flex items-center justify-center gap-1.5">
+        <button onClick={() => onPage(page - 1)} disabled={page <= 1} className="px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+          const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+          const p = start + i;
+          if (p > totalPages) return null;
+          return (
+            <button key={p} onClick={() => onPage(p)} className={`min-w-[2.25rem] h-9 text-sm font-medium rounded-xl transition-all ${p === page ? "bg-rose-500 text-white shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30" : "text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"}`}>
+              {p}
+            </button>
+          );
+        })}
+        <button onClick={() => onPage(page + 1)} disabled={page >= totalPages} className="px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }

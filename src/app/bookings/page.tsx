@@ -28,34 +28,8 @@ export default function BookingsPage() {
       try {
         const res = await fetch("/api/bookings");
         const data = await res.json();
-        if (data.bookings && data.bookings.length > 0) {
+        if (data.bookings) {
           setBookings(data.bookings);
-        } else {
-          // Add some realistic demo bookings if empty
-          setBookings([
-            {
-              id: 101,
-              artistId: "aiko-nakamura",
-              clientName: user?.name || "Siti Nurhaliza",
-              clientEmail: user?.email || "siti@example.my",
-              service: "Bridal Makeup & Styling",
-              date: "2026-06-18",
-              time: "10:00 AM",
-              status: "confirmed",
-              notes: "Soft glam Korean look for morning ceremony.",
-            },
-            {
-              id: 102,
-              artistId: "sarah-ahmad",
-              clientName: user?.name || "Siti Nurhaliza",
-              clientEmail: user?.email || "siti@example.my",
-              service: "Hijab Styling + Evening Glam",
-              date: "2026-05-24",
-              time: "4:00 PM",
-              status: "confirmed",
-              notes: "Annual gala dinner look.",
-            },
-          ]);
         }
       } catch (err) {
         console.error("Failed to load bookings:", err);
