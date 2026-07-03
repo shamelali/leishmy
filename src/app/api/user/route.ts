@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -257,6 +258,9 @@ export async function POST(request: NextRequest) {
             userId,
           });
         }
+
+      const roleForEmail = role === "customer" ? "client" : (role as "client" | "artist" | "studio");
+      sendWelcomeEmail({ email: body.email, name: body.name, role: roleForEmail }).catch(() => {});
 
       return NextResponse.json({ success: true });
     }

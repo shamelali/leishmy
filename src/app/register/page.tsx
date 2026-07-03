@@ -6,13 +6,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { UserCheck, Palette, Store, User, Mail, Phone, MapPin, Lock, ArrowRight, Check } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
+import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
 
 export default function RegisterPage() {
   const [role, setRole] = useState<"customer" | "artist" | "studio">("customer");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("Kuala Lumpur");
+  const [state, setState] = useState("Kuala Lumpur");
+  const [district, setDistrict] = useState("");
   const [password, setPassword] = useState("");
   const [specialties, setSpecialties] = useState<string[]>(["Bridal Makeup", "Soft Glam"]);
   const [agree, setAgree] = useState(true);
@@ -48,6 +50,7 @@ export default function RegisterPage() {
       }
 
       if (data?.user) {
+        const fullLocation = district ? `${district}, ${state}` : state;
         await fetch("/api/user?action=create-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -57,7 +60,7 @@ export default function RegisterPage() {
             email,
             role,
             phone,
-            location,
+            location: fullLocation,
             specialties: role === "artist" ? specialties : [],
           }),
         });
@@ -211,20 +214,32 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  City / Area
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <MapPin className="w-4 h-4 inline-block mr-1" /> Location
                 </label>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Kuala Lumpur, Bangsar..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-                  />
-                </div>
+                <select
+                  value={state}
+                  onChange={(e) => { setState(e.target.value); setDistrict(""); }}
+                  className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
+                >
+                  <option value="">Select State</option>
+                  {malaysiaStates.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                {state && malaysiaDistricts[state] && (
+                  <select
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
+                  >
+                    <option value="">Select District / Area</option>
+                    {malaysiaDistricts[state].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 

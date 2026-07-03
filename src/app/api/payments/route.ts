@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, muaBankAccounts, webhookEvents } from "@/db/schema";
+import { payments, payouts, muaBankAccounts, webhookEvents, bookings, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
+import { prefixedEnvReader } from "@/lib/env-prefix";
+import { sendPaymentReceiptEmail } from "@/lib/email";
 
-const BILLPLZ_API = process.env.BILLPLZ_API_URL;
+const billplz = prefixedEnvReader("BILLPLZ_");
+const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
+
+const BILLPLZ_API = billplz.get("API_URL");
+const BASE_URL = publicEnv.get("URL") || "https://leish.my";
 
 function billplzAuth() {
-  return `Basic ${Buffer.from(process.env.BILLPLZ_API_KEY + ":").toString("base64")}`;
+  return `Basic ${Buffer.from(billplz.require("API_KEY") + ":").toString("base64")}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -113,14 +119,14 @@ export async function POST(request: NextRequest) {
       }
 
       const billplzBody = new URLSearchParams({
-        collection_id: process.env.BILLPLZ_COLLECTION_ID!,
+        collection_id: billplz.require("COLLECTION_ID"),
         description: description || "Beauty booking payment",
         amount: String(Math.round(Number(amount) * 100)),
         name: name || "Customer",
         email: email || "",
         phone: phone || "",
-        callback_url: `${process.env.NEXT_PUBLIC_URL}/api/payments?action=webhook`,
-        redirect_url: `${process.env.NEXT_PUBLIC_URL}/bookings/${bookingId}/success`,
+        callback_url: `${BASE_URL}/api/payments?action=webhook`,
+        redirect_url: `${BASE_URL}/bookings/${bookingId}/success`,
       });
 
       const billplzResponse = await fetch(`${BILLPLZ_API}/bills`, {
@@ -241,7 +247,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "webhook") {
       const rawBody = await request.text();
-      const signatureKey = process.env.BILLPLZ_SIGNATURE_KEY;
+      const signatureKey = billplz.get("SIGNATURE_KEY");
 
       if (signatureKey) {
         const signatureHeader = request.headers.get("x-signature") || "";
@@ -267,10 +273,47 @@ export async function POST(request: NextRequest) {
       });
 
       if (webhookBody.id && webhookBody.paid_at) {
+        const [payment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.billplzId, webhookBody.id))
+          .limit(1);
+
         await db
           .update(payments)
           .set({ status: "paid", updatedAt: new Date() })
           .where(eq(payments.billplzId, webhookBody.id));
+
+        if (payment?.bookingId) {
+          const [booking] = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.id, payment.bookingId))
+            .limit(1);
+
+          if (booking?.userId) {
+            const [user] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, booking.userId))
+              .limit(1);
+
+            if (user) {
+              const paidDate = new Date(webhookBody.paid_at).toLocaleDateString("en-MY", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric",
+              });
+
+              sendPaymentReceiptEmail({
+                email: user.email,
+                customerName: user.name || "Valued Customer",
+                bookingId: String(payment.bookingId),
+                amount: Number(payment.amount),
+                paymentMethod: "Billplz",
+                date: paidDate,
+              }).catch(() => {});
+            }
+          }
+        }
       }
 
       return NextResponse.json({ success: true });

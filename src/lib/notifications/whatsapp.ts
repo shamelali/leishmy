@@ -1,5 +1,9 @@
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+import { prefixedEnvReader } from "@/lib/env-prefix";
+
+const whatsappEnv = prefixedEnvReader("WHATSAPP_");
+
+const WHATSAPP_PHONE_NUMBER_ID = whatsappEnv.get("PHONE_NUMBER_ID");
+const WHATSAPP_ACCESS_TOKEN = whatsappEnv.get("ACCESS_TOKEN");
 const WHATSAPP_BASE_URL = "https://graph.facebook.com/v20.0";
 
 function getAuthHeaders() {

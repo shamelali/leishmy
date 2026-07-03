@@ -1,8 +1,11 @@
 import { createNeonAuth } from "@neondatabase/auth/next/server";
+import { prefixedEnvReader } from "@/lib/env-prefix";
+
+const neauth = prefixedEnvReader("NEON_AUTH_");
 
 const authConfig = {
-  baseUrl: process.env.NEON_AUTH_BASE_URL!,
-  cookieSecret: process.env.NEON_AUTH_COOKIE_SECRET!,
+  baseUrl: neauth.require("BASE_URL"),
+  cookieSecret: neauth.require("COOKIE_SECRET"),
 } as const;
 
 let _auth: ReturnType<typeof createNeonAuth> | null = null;
