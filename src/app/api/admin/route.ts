@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, artists, studios, bookings, payments } from "@/db/schema";
+import { users, artists, studios, bookings, payments, adminSettings } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/auth";
 
@@ -222,6 +222,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ activity: activity.slice(0, 6) });
     }
 
+    if (action === "settings") {
+      const rows = await db.select().from(adminSettings);
+      const settings: Record<string, string> = {};
+      for (const row of rows) {
+        settings[row.key] = row.value;
+      }
+      return NextResponse.json({ settings });
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("Admin GET error:", error);
@@ -278,6 +287,24 @@ export async function POST(request: NextRequest) {
           .delete(artists)
           .where(eq(artists.id, Number(artistId)));
       }
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "settings") {
+      const entries = body.settings as Record<string, string>;
+      if (!entries) {
+        return NextResponse.json({ error: "settings object required" }, { status: 400 });
+      }
+
+      await db.transaction(async (tx) => {
+        for (const [key, value] of Object.entries(entries)) {
+          await tx
+            .insert(adminSettings)
+            .values({ key, value })
+            .onConflictDoUpdate({ target: adminSettings.key, set: { value, updatedAt: new Date() } });
+        }
+      });
+
       return NextResponse.json({ success: true });
     }
 

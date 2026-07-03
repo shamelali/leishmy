@@ -356,3 +356,24 @@ export const contacts = pgTable("contacts", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
+
+export const studioInventory = pgTable("studio_inventory", {
+  id: serial("id").primaryKey(),
+  studioId: integer("studio_id")
+    .notNull()
+    .references(() => studios.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  quantity: integer("quantity").default(0),
+  lowStockThreshold: integer("low_stock_threshold").default(5),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).unique().notNull(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+});

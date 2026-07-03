@@ -1,17 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Settings, Bell, Shield, Globe, ArrowLeft, Save } from "lucide-react";
+import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2 } from "lucide-react";
 
 export default function AdminSettings() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [form, setForm] = useState({
+    platform_name: "",
+    support_email: "",
+    commission_rate: "",
+  });
+  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetch("/api/admin?action=settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.settings) {
+          setForm({
+            platform_name: data.settings.platform_name || "",
+            support_email: data.settings.support_email || "",
+            commission_rate: data.settings.commission_rate || "",
+          });
+          try {
+            setNotifications(JSON.parse(data.settings.notifications || "{}"));
+          } catch {
+            setNotifications({});
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    try {
+      await fetch("/api/admin?action=settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            ...form,
+            notifications: JSON.stringify(notifications),
+          },
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+      </div>
+    );
+  }
+
+  const notifLabels = [
+    "new_user", "new_artist", "new_booking", "payment_received", "report_submitted",
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
@@ -31,15 +86,15 @@ export default function AdminSettings() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Platform Name</label>
-                <input defaultValue="Leish!" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                <input value={form.platform_name} onChange={(e) => setForm({ ...form, platform_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Support Email</label>
-                <input type="email" defaultValue="support@leish.my" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                <input type="email" value={form.support_email} onChange={(e) => setForm({ ...form, support_email: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Commission Rate (%)</label>
-                <input type="number" defaultValue="15" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                <input type="number" value={form.commission_rate} onChange={(e) => setForm({ ...form, commission_rate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
               </div>
             </div>
           </div>
@@ -50,17 +105,23 @@ export default function AdminSettings() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Notifications</h2>
             </div>
             <div className="space-y-3">
-              {["New user registration", "New artist application", "New booking", "Payment received", "Report submitted"].map((n) => (
-                <label key={n} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{n}</span>
-                  <input type="checkbox" defaultChecked className="rounded text-rose-500 focus:ring-rose-400" />
+              {notifLabels.map((key) => (
+                <label key={key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{key.replace(/_/g, " ")}</span>
+                  <input
+                    type="checkbox"
+                    checked={notifications[key] ?? true}
+                    onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
+                    className="rounded text-rose-500 focus:ring-rose-400"
+                  />
                 </label>
               ))}
             </div>
           </div>
 
-          <button type="submit" className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">
-            <Save className="w-4 h-4" /> {saved ? "Saved!" : "Save Settings"}
+          <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saved ? "Saved!" : "Save Settings"}
           </button>
         </form>
       </div>

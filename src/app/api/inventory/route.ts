@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { studioInventory } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const studioId = searchParams.get("studioId");
+
+    if (!studioId) {
+      return NextResponse.json({ error: "studioId required" }, { status: 400 });
+    }
+
+    const rows = await db
+      .select()
+      .from(studioInventory)
+      .where(eq(studioInventory.studioId, Number(studioId)))
+      .orderBy(studioInventory.name);
+
+    return NextResponse.json({ items: rows });
+  } catch (error) {
+    console.error("Inventory GET error:", error);
+    return NextResponse.json({ error: "Failed to fetch inventory" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { studioId, name, category, quantity, notes } = body;
+
+    if (!studioId || !name) {
+      return NextResponse.json({ error: "studioId and name required" }, { status: 400 });
+    }
+
+    const [item] = await db
+      .insert(studioInventory)
+      .values({
+        studioId: Number(studioId),
+        name,
+        category: category || null,
+        quantity: quantity != null ? Number(quantity) : 0,
+        notes: notes || null,
+      })
+      .returning();
+
+    return NextResponse.json({ success: true, item }, { status: 201 });
+  } catch (error) {
+    console.error("Inventory POST error:", error);
+    return NextResponse.json({ error: "Failed to create item" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    await db.delete(studioInventory).where(eq(studioInventory.id, Number(id)));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Inventory DELETE error:", error);
+    return NextResponse.json({ error: "Failed to delete item" }, { status: 500 });
+  }
+}
