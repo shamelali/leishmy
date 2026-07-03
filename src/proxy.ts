@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { limiter } from "@/lib/rate-limit";
+import { limit } from "@/lib/rate-limit";
 
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -20,13 +20,13 @@ function withSecurityHeaders(res: NextResponse) {
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (pathname.startsWith("/api") && pathname !== "/api/health" && limiter) {
+  if (pathname.startsWith("/api") && pathname !== "/api/health") {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "127.0.0.1";
 
-    const { success, remaining, reset } = await limiter.limit(ip);
+    const { success, remaining, reset } = await limit(ip);
 
     if (!success) {
       const res = new NextResponse(

@@ -81,8 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message || "Login failed" };
       }
       return { success: true };
-    } catch {
-      return { success: false, error: "Network error during login" };
+    } catch (err: any) {
+      console.error("[Auth] Login error:", err);
+      return { success: false, error: err?.message || "Login failed" };
     }
   };
 
@@ -97,8 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message || "Registration failed" };
       }
       return { success: true };
-    } catch {
-      return { success: false, error: "Network error during registration" };
+    } catch (err: any) {
+      console.error("[Auth] Registration error:", err);
+      return { success: false, error: err?.message || "Registration failed" };
     }
   };
 

@@ -139,8 +139,8 @@ export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    const userId = searchParams.get("userId");
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const userId = searchParams.get("userId") || body.userId;
 
     if (!userId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });

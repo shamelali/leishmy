@@ -64,8 +64,8 @@ export default function RegisterPage() {
       }
 
       router.push("/");
-    } catch {
-      setError("Network error during registration");
+    } catch (err: any) {
+      setError(err?.message || "Registration failed");
       setSubmitting(false);
     }
   };
