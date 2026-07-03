@@ -1,27 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Image as ImageIcon, Plus, Trash2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Image as ImageIcon, Plus, Trash2, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import NextImage from "next/image";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistPortfolio() {
-  const [images, setImages] = useState<string[]>([
-    "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400",
-    "https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400",
-  ]);
+  const { user } = useAuth();
+  const [images, setImages] = useState<string[]>([]);
   const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/user?action=artist-profile&userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.artist?.portfolio) setImages(data.artist.portfolio);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  const persistPortfolio = async (updated: string[]) => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      await fetch("/api/user?action=artist-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, portfolio: updated }),
+      });
+    } catch {}
+    setSaving(false);
+  };
 
   const handleAdd = () => {
     if (url.trim()) {
-      setImages([...images, url.trim()]);
+      const updated = [...images, url.trim()];
+      setImages(updated);
       setUrl("");
+      persistPortfolio(updated);
     }
   };
 
   const handleDelete = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    const updated = images.filter((_, i) => i !== index);
+    setImages(updated);
+    persistPortfolio(updated);
   };
 
   return (
@@ -33,6 +61,7 @@ export default function ArtistPortfolio() {
 
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
+          {saving && <span className="text-xs text-gray-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving...</span>}
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -49,7 +78,11 @@ export default function ArtistPortfolio() {
           </button>
         </div>
 
-        {images.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+          </div>
+        ) : images.length === 0 ? (
           <div className="text-center py-16">
             <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-sm text-gray-500">No portfolio images yet</p>

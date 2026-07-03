@@ -1,20 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, Clock, Check, X, ArrowLeft, AlertCircle } from "lucide-react";
-
-const demoBookings = [
-  { id: 1, client: "Nurul Huda", service: "Bridal Makeup", date: "2026-07-15", time: "10:00", status: "confirmed", amount: 800 },
-  { id: 2, client: "Farah Aminah", service: "Evening Glam", date: "2026-07-20", time: "14:00", status: "pending", amount: 450 },
-  { id: 3, client: "Sarah L.", service: "Natural Look", date: "2026-06-28", time: "09:00", status: "completed", amount: 250 },
-];
+import { Calendar, Clock, ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistBookings() {
-  const [bookings, setBookings] = useState(demoBookings);
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/user?action=bookings&userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.bookings) setBookings(data.bookings);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  const filtered = filter === "all" ? bookings : bookings.filter((b: any) => b.status === filter);
 
   const statusBadge = (status: string) => {
     switch (status) {
@@ -42,25 +50,29 @@ export default function ArtistBookings() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-sm text-gray-500">No bookings found</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((b) => (
+            {filtered.map((b: any) => (
               <div key={b.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900 dark:text-white">{b.client}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{b.client || b.userName || "Anonymous"}</span>
                   {statusBadge(b.status)}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {b.date}</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {b.time}</span>
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">MYR {b.amount}</span>
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {b.date ? new Date(b.date).toLocaleDateString("en-MY") : "—"}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {b.time || "—"}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">MYR {b.price || b.amount || 0}</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{b.service}</p>
+                <p className="text-xs text-gray-400 mt-1">{b.service || "Beauty Service"}</p>
               </div>
             ))}
           </div>
