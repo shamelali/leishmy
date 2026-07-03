@@ -66,7 +66,7 @@ export default function RegisterPage() {
         });
       }
 
-      router.push("/");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       setError(err?.message || "Registration failed");
       setSubmitting(false);
