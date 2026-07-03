@@ -20,7 +20,7 @@ interface AdminStats {
   totalArtists: number;
   totalStudios: number;
   totalBookings: number;
-  revenue: number;
+  totalRevenue: number;
   avgRating: number;
   pendingPayouts: number;
   newUsersThisMonth: number;
@@ -214,7 +214,7 @@ export default function DashboardAdmin() {
                   { icon: Users, label: "Total Users", value: stats ? stats.totalUsers.toLocaleString() : "—", sub: stats ? `+${stats.newUsersThisMonth} this month` : "", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
                   { icon: Building2, label: "Artists / Studios", value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: `${stats ? stats.totalArtists + stats.totalStudios : 0} total vendors`, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
                   { icon: Calendar, label: "Total Bookings", value: stats ? stats.totalBookings.toLocaleString() : "—", sub: "Across all services", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-                  { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.revenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
+                  { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
                   { icon: Star, label: "Average Rating", value: stats ? stats.avgRating : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
                   { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
                   { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
