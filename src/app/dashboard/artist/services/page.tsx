@@ -1,28 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Sparkles, Edit2, Trash2, ArrowLeft } from "lucide-react";
-
-const sampleServices = [
-  { id: 1, name: "Bridal Makeup", duration: "2 hrs", price: 800, popular: true },
-  { id: 2, name: "Evening Glam", duration: "1.5 hrs", price: 450, popular: true },
-  { id: 3, name: "Natural Look", duration: "1 hr", price: 250, popular: false },
-];
+import { Plus, Sparkles, Trash2, ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistServices() {
-  const [services, setServices] = useState(sampleServices);
+  const { user } = useAuth();
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [artistId, setArtistId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", duration: "", price: "" });
 
-  const handleAdd = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/user?action=artist-profile&userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.artist?.id) {
+          const id = Number(data.artist.id);
+          setArtistId(id);
+          return fetch(`/api/services?artistId=${id}`);
+        }
+        throw new Error("No artist profile");
+      })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.services) setServices(data.services);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setServices([...services, { id: Date.now(), name: form.name, duration: form.duration, price: Number(form.price), popular: false }]);
-    setForm({ name: "", duration: "", price: "" });
-    setShowForm(false);
+    if (!artistId) return;
+
+    const res = await fetch("/api/services", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artistId,
+        name: form.name,
+        duration: form.duration,
+        price: form.price,
+      }),
+    });
+
+    const data = await res.json();
+    if (data?.service) {
+      setServices([...services, data.service]);
+      setForm({ name: "", duration: "", price: "" });
+      setShowForm(false);
+    }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/services?id=${id}`, { method: "DELETE" });
     setServices(services.filter((s) => s.id !== id));
   };
 
@@ -54,25 +89,36 @@ export default function ArtistServices() {
           </form>
         )}
 
-        <div className="space-y-3">
-          {services.map((s) => (
-            <div key={s.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30">
-                  <Sparkles className="w-5 h-5 text-rose-500" />
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-16">
+            <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-sm text-gray-500">No services yet. Add your first service above.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {services.map((s: any) => (
+              <div key={s.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30">
+                    <Sparkles className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                      {s.name}
+                      {s.popular && <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded-full">Popular</span>}
+                    </p>
+                    <p className="text-xs text-gray-400">{s.duration} &middot; MYR {Number(s.price)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    {s.name}
-                    {s.popular && <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded-full">Popular</span>}
-                  </p>
-                  <p className="text-xs text-gray-400">{s.duration} &middot; MYR {s.price}</p>
-                </div>
+                <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
               </div>
-              <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
