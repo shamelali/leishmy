@@ -119,6 +119,35 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (action === "studio-profile") {
+      const [studio] = await db
+        .select()
+        .from(studios)
+        .where(eq(studios.userId, userId))
+        .limit(1);
+
+      if (!studio) {
+        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        studio: {
+          id: String(studio.id),
+          name: studio.name,
+          slug: studio.slug,
+          image: studio.image || "",
+          phone: studio.phone || "",
+          location: studio.location || "",
+          email: studio.email || "",
+          description: studio.description || "",
+          price: Number(studio.price) || 0,
+          rating: studio.rating || "0",
+          reviewCount: studio.reviewCount || 0,
+          featured: studio.featured || false,
+        },
+      });
+    }
+
     const [user] = await db
       .select()
       .from(users)
