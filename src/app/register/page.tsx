@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { UserCheck, Palette, Store, User, Mail, Phone, MapPin, Lock, ArrowRight, Check } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -76,8 +77,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 group mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/leishlogo.png" alt="Leish!" className="h-12 w-auto group-hover:scale-105 transition-transform" />
+            <Image src="/leishlogo.png" alt="Leish!" width={48} height={48} className="h-12 w-auto group-hover:scale-105 transition-transform" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 dark:text-white">
             Create Your Account

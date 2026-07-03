@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Heart } from "lucide-react";
 
 export function Footer() {
@@ -9,8 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 group mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/leishlogo.png" alt="Leish!" className="h-10 w-auto" />
+              <Image src="/leishlogo.png" alt="Leish!" width={40} height={40} className="h-10 w-auto" />
             </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               Your Beauty, Perfected. Book Malaysia&apos;s finest makeup artists and studios.

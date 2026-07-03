@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
@@ -41,8 +42,7 @@ export function Navbar() {
             href="/"
             className="flex items-center gap-2 group"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/leishlogo.png" alt="Leish!" className="h-10 w-auto group-hover:scale-105 transition-transform" />
+            <Image src="/leishlogo.png" alt="Leish!" width={40} height={40} className="h-10 w-auto group-hover:scale-105 transition-transform" />
           </Link>
 
           {/* Desktop Nav */}
@@ -76,10 +76,12 @@ export function Navbar() {
                   className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-rose-50 dark:bg-neutral-800 border border-rose-200/60 dark:border-neutral-700 hover:border-rose-400 transition-colors"
                 >
                   {user.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={user.avatar}
                       alt={user.name || "User"}
+                      width={24}
+                      height={24}
+                      unoptimized
                       className="w-6 h-6 rounded-full object-cover"
                     />
                   ) : (
@@ -203,8 +205,7 @@ export function Navbar() {
               <div className="border-t border-gray-200 dark:border-neutral-800 pt-3 mt-2 flex flex-col gap-2">
                 <div className="flex items-center gap-3 px-3 py-2">
                   {user.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.avatar} alt={user.name || "User"} className="w-8 h-8 rounded-full object-cover" />
+                    <Image src={user.avatar} alt={user.name || "User"} width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                       {(user.name || "U").charAt(0)}

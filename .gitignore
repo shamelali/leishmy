@@ -48,3 +48,4 @@ playwright-report/
 .vscode/
 *.swp
 *.swo
+.env*
