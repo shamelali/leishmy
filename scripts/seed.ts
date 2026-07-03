@@ -25,24 +25,20 @@ async function seed() {
 
   // Seed artists
   for (const a of featuredArtists) {
-    try {
-      await db.insert(artists).values({
-        name: a.name,
-        slug: a.slug,
-        image: a.image,
-        location: a.location,
-        rating: String(a.rating),
-        reviewCount: a.reviewCount,
-        bio: a.bio,
-        price: String(a.price),
-        verified: a.verified,
-        responseTime: a.responseTime,
-        languages: a.languages,
-        portfolio: a.portfolio.length > 0 ? a.portfolio : null,
-      });
-    } catch (e: any) {
-      if (!e.message?.includes("duplicate")) console.error("  artist insert failed:", a.slug, e.message);
-    }
+    await db.insert(artists).values({
+      name: a.name,
+      slug: a.slug,
+      image: a.image,
+      location: a.location,
+      rating: String(a.rating),
+      reviewCount: a.reviewCount,
+      bio: a.bio,
+      price: String(a.price),
+      verified: a.verified,
+      responseTime: a.responseTime,
+      languages: a.languages,
+      portfolio: a.portfolio.length > 0 ? a.portfolio : null,
+    }).onConflictDoNothing({ target: artists.slug });
   }
   console.log(`  ${featuredArtists.length} artists seeded`);
 
