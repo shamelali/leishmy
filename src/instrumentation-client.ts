@@ -5,19 +5,14 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://68c48652a0d5dae7bd70f0df5150e8e2@o4511387608875008.ingest.de.sentry.io/4511387629453392",
+  dsn: process.env.SENTRY_DSN || "",
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
 
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
+  enabled:
+    process.env.NODE_ENV === "production" && !!process.env.SENTRY_DSN,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
