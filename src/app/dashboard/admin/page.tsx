@@ -328,16 +328,18 @@ export default function DashboardAdmin() {
           </div>
         )}
 
-        {tab === "users" && (
+          {tab === "users" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th></tr>
+                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th><th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th></tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? <tr><td colSpan={4} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                : filterBySearch(users).length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-gray-400">No users found</td></tr>
-                : filterBySearch(users).map((user) => (
+                {loading ? <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                : filterBySearch(users).length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-gray-400">No users found</td></tr>
+                : filterBySearch(users).map((user) => {
+                    const promoting = actionLoading === `promote-${user.id}`;
+                    return (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{user.name || "—"}</td>
                       <td className="p-3 text-gray-600 dark:text-gray-300">{user.email}</td>
@@ -345,8 +347,24 @@ export default function DashboardAdmin() {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.role === "admin" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400" : user.role === "artist" ? "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400" : user.role === "studio" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400" : "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-400"}`}>{user.role}</span>
                       </td>
                       <td className="p-3 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3 text-right">
+                        {user.role !== "admin" && (
+                          <button
+                            onClick={async () => {
+                              setActionLoading(`promote-${user.id}`);
+                              await fetch("/api/admin?action=set-role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
+                              setActionLoading("");
+                              fetchData("users");
+                            }}
+                            disabled={promoting}
+                            className="px-2 py-1 text-[10px] font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40"
+                          >
+                            {promoting ? "..." : "Make Admin"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                  ))}
+                  );})}
               </tbody>
             </table>
             {total.users > pageSize && (

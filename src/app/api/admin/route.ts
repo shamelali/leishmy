@@ -280,6 +280,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === "set-role") {
+      const { userId, role } = body;
+      if (!userId || !role) {
+        return NextResponse.json({ error: "userId and role required" }, { status: 400 });
+      }
+      if (!["admin", "artist", "studio", "client"].includes(role)) {
+        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+      }
+      await db.update(users).set({ role }).where(eq(users.id, userId));
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "delete-artist") {
       const { artistId } = body;
       if (artistId) {
