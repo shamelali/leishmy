@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments } from "@/db/schema";
-import { eq, count, and, gte, avg, sql } from "drizzle-orm";
+import { eq, count, and, gte, lt, avg, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/auth";
 
 async function getAuthSession(): Promise<{ id: string; email: string; role: string } | null> {
@@ -29,20 +29,36 @@ export async function GET(request: NextRequest) {
     if (!action || action === "overview") {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-      const [userResult, artistResult, studioResult, bookingResult, paymentRows, newUsersResult, ratingResult] =
-        await Promise.all([
-          db.select({ count: count() }).from(users),
-          db.select({ count: count() }).from(artists),
-          db.select({ count: count() }).from(studios),
-          db.select({ count: count() }).from(bookings),
-          db.select().from(payments),
-          db.select({ count: count() }).from(users).where(gte(users.createdAt, startOfMonth)),
-          db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
-        ]);
+      const [
+        userResult, artistResult, studioResult, bookingResult, paymentRows,
+        newUsersResult, newArtistsResult, newBookingsResult,
+        newUsersLastMonthResult, newArtistsLastMonthResult, newBookingsLastMonthResult,
+        ratingResult,
+      ] = await Promise.all([
+        db.select({ count: count() }).from(users),
+        db.select({ count: count() }).from(artists),
+        db.select({ count: count() }).from(studios),
+        db.select({ count: count() }).from(bookings),
+        db.select().from(payments),
+        db.select({ count: count() }).from(users).where(gte(users.createdAt, startOfMonth)),
+        db.select({ count: count() }).from(artists).where(gte(artists.createdAt, startOfMonth)),
+        db.select({ count: count() }).from(bookings).where(gte(bookings.createdAt, startOfMonth)),
+        db.select({ count: count() }).from(users).where(and(gte(users.createdAt, startOfLastMonth), lt(users.createdAt, startOfMonth))),
+        db.select({ count: count() }).from(artists).where(and(gte(artists.createdAt, startOfLastMonth), lt(artists.createdAt, startOfMonth))),
+        db.select({ count: count() }).from(bookings).where(and(gte(bookings.createdAt, startOfLastMonth), lt(bookings.createdAt, startOfMonth))),
+        db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
+      ]);
 
-      const revenue = paymentRows
-        .filter((p) => p.status === "paid" || p.status === "released")
+      const paidPayments = paymentRows.filter((p) => p.status === "paid" || p.status === "released");
+
+      const totalRevenue = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const revenueThisMonth = paidPayments
+        .filter((p) => p.createdAt && p.createdAt >= startOfMonth)
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      const revenueLastMonth = paidPayments
+        .filter((p) => p.createdAt && p.createdAt >= startOfLastMonth && p.createdAt < startOfMonth)
         .reduce((sum, p) => sum + (p.amount || 0), 0);
 
       const totalPendingPayouts = paymentRows
@@ -56,10 +72,18 @@ export async function GET(request: NextRequest) {
         totalArtists: artistResult[0]?.count || 0,
         totalStudios: studioResult[0]?.count || 0,
         totalBookings: bookingResult[0]?.count || 0,
-        revenue,
+        totalRevenue,
+        revenueThisMonth,
+        revenueLastMonth,
         avgRating,
         pendingPayouts: totalPendingPayouts,
         newUsersThisMonth: newUsersResult[0]?.count || 0,
+        newUsersLastMonth: newUsersLastMonthResult[0]?.count || 0,
+        newArtistsThisMonth: newArtistsResult[0]?.count || 0,
+        newArtistsLastMonth: newArtistsLastMonthResult[0]?.count || 0,
+        newBookingsThisMonth: newBookingsResult[0]?.count || 0,
+        newBookingsLastMonth: newBookingsLastMonthResult[0]?.count || 0,
+        commissionRate: 0.15,
       });
     }
 
