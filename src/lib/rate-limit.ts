@@ -11,7 +11,7 @@ const limiter = redis
   ? new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(60, "60 s"),
-      prefix: "ratelimit",
+      prefix: "leish:rl",
       analytics: true,
     })
   : null;
