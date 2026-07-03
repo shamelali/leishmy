@@ -6,4 +6,6 @@ Sentry.init({
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1,
   environment: process.env.NODE_ENV || "development",
+  enabled:
+    process.env.NODE_ENV === "production" && !!process.env.SENTRY_DSN,
 });
