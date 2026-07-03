@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, muaBankAccounts, webhookEvents, bookings, users } from "@/db/schema";
+import { payments, payouts, muaBankAccounts, webhookEvents, bookings, users, artists } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
@@ -22,6 +22,36 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
     const userId = searchParams.get("userId");
     const paymentId = searchParams.get("paymentId");
+
+    if (action === "history" && userId) {
+      const rows = await db
+        .select({
+          id: payments.id,
+          amount: payments.amount,
+          status: payments.status,
+          method: payments.method,
+          createdAt: payments.createdAt,
+          bookingId: payments.bookingId,
+          artistName: artists.name,
+        })
+        .from(payments)
+        .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+        .leftJoin(artists, eq(bookings.artistId, artists.id))
+        .where(eq(bookings.userId, userId))
+        .orderBy(payments.createdAt);
+
+      return NextResponse.json({
+        payments: rows.map((p) => ({
+          id: String(p.id),
+          amount: p.amount,
+          status: p.status || "pending",
+          method: p.method || "billplz",
+          createdAt: p.createdAt?.toISOString() || "",
+          bookingId: String(p.bookingId || ""),
+          artistName: p.artistName || "",
+        })),
+      });
+    }
 
     if (action === "payouts" && userId) {
       const [payoutRows, bankRows] = await Promise.all([
