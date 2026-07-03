@@ -111,6 +111,9 @@ export const artists = pgTable(
     responseTime: varchar("response_time", { length: 50 }),
     price: decimal("price", { precision: 10, scale: 2 }).default("0"),
     userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    studioId: integer("studio_id").references(() => studios.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
   },

@@ -1,25 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, Plus, Mail, Phone, Trash2, ArrowLeft, BadgeCheck } from "lucide-react";
-
-const initialStaff = [
-  { id: 1, name: "Aiko Nakamura", role: "Senior MUA", email: "aiko@studio.com", phone: "+60 12-345 6789", verified: true },
-  { id: 2, name: "Sarah Ahmad", role: "MUA", email: "sarah@studio.com", phone: "+60 13-456 7890", verified: true },
-];
+import { Users, ArrowLeft, Loader2, BadgeCheck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function StudioStaff() {
-  const [staff, setStaff] = useState(initialStaff);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", role: "", email: "", phone: "" });
+  const { user } = useAuth();
+  const [staff, setStaff] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStaff([...staff, { ...form, id: Date.now(), verified: false }]);
-    setForm({ name: "", role: "", email: "", phone: "" });
-    setShowForm(false);
-  };
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const profileRes = await fetch(`/api/user?action=studio-profile&userId=${user.id}`);
+        const profile = await profileRes.json();
+        if (!profile?.studio?.id) return;
+        const res = await fetch(`/api/user?action=studio-staff&studioId=${profile.studio.id}`);
+        const data = await res.json();
+        if (data?.staff) setStaff(data.staff);
+      } catch {}
+      setLoading(false);
+    })();
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
@@ -30,45 +34,39 @@ export default function StudioStaff() {
 
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Staff</h1>
-          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600">
-            <Plus className="w-4 h-4" /> Add Staff
-          </button>
         </div>
 
-        {showForm && (
-          <form onSubmit={handleAdd} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-6 space-y-3">
-            <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" required />
-            <input placeholder="Role (e.g. Senior MUA)" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" required />
-            <div className="grid grid-cols-2 gap-3">
-              <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" />
-              <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600">Save</button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
-            </div>
-          </form>
-        )}
-
-        <div className="space-y-3">
-          {staff.map((s) => (
-            <div key={s.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30"><Users className="w-5 h-5 text-violet-500" /></div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
-                    {s.name} {s.verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
-                  </p>
-                  <p className="text-xs text-gray-400">{s.role}</p>
-                  <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400">
-                    <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {s.email}</span>
-                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {s.phone}</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+          </div>
+        ) : staff.length === 0 ? (
+          <div className="text-center py-16">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-sm text-gray-500">No staff members yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {staff.map((s: any) => (
+              <div key={s.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30"><Users className="w-5 h-5 text-violet-500" /></div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                      {s.name} {s.verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
+                    </p>
+                    <p className="text-xs text-gray-400">{s.location || "No location set"}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400">
+                      {s.email && <span>{s.email}</span>}
+                      {s.phone && <span>{s.phone}</span>}
+                      {s.rating !== "0" && <span>★ {s.rating}</span>}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

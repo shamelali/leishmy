@@ -148,6 +148,33 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (action === "studio-staff") {
+      const studioId = searchParams.get("studioId");
+      if (!studioId) {
+        return NextResponse.json({ error: "studioId required" }, { status: 400 });
+      }
+
+      const rows = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.studioId, Number(studioId)));
+
+      return NextResponse.json({
+        staff: rows.map((a) => ({
+          id: String(a.id),
+          name: a.name,
+          email: a.email || "",
+          phone: a.phone || "",
+          image: a.image || "",
+          location: a.location || "",
+          rating: a.rating || "0",
+          reviewCount: a.reviewCount || 0,
+          verified: a.verified || false,
+          available: a.available ?? true,
+        })),
+      });
+    }
+
     const [user] = await db
       .select()
       .from(users)
