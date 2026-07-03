@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments } from "@/db/schema";
 import { eq, count, and, gte, avg, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth/server";
+import { getSession } from "@/lib/auth/auth";
 
-async function getSession() {
-  const { data: session } = await auth.getSession();
+async function getAuthSession(): Promise<{ id: string; email: string; role: string } | null> {
+  const session = await getSession();
   if (!session?.user) return null;
   const [dbUser] = await db
     .select()
@@ -18,7 +18,7 @@ async function getSession() {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getAuthSession();
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -227,7 +227,7 @@ function parseTimeAgo(time: string): number {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getAuthSession();
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

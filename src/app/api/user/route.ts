@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ user: null });
     }
 
     return NextResponse.json({ user });
@@ -155,12 +155,21 @@ export async function POST(request: NextRequest) {
         .where(eq(users.id, userId))
         .limit(1);
 
-      if (!existing) {
-        const avatar = `https://images.unsplash.com/photo-${
-          role === "artist" ? "1534528741775-53994a69daeb" : "1544005313-94ddf0286df2"
-        }?w=150&h=150&fit=crop`;
+      if (existing) {
+        await db
+          .update(users)
+          .set({ name: body.name, email: body.email.toLowerCase(), role: role || "customer", phone: phone || "", location: location || "Kuala Lumpur, Malaysia" })
+          .where(eq(users.id, userId));
+        return NextResponse.json({ success: true });
+      }
 
-        await db.insert(users).values({
+      const avatar = `https://images.unsplash.com/photo-${
+        role === "artist" ? "1534528741775-53994a69daeb" : "1544005313-94ddf0286df2"
+      }?w=150&h=150&fit=crop`;
+
+      await db
+        .insert(users)
+        .values({
           id: userId,
           name: body.name,
           email: body.email.toLowerCase(),
@@ -168,9 +177,10 @@ export async function POST(request: NextRequest) {
           phone: phone || "",
           location: location || "Kuala Lumpur, Malaysia",
           avatar,
-        });
+        })
+        .onConflictDoNothing({ target: users.email });
 
-        if (role === "artist") {
+      if (role === "artist") {
           const slug =
             body.name
               .toLowerCase()
@@ -247,7 +257,6 @@ export async function POST(request: NextRequest) {
             userId,
           });
         }
-      }
 
       return NextResponse.json({ success: true });
     }
