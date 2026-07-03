@@ -3,24 +3,73 @@ import { db } from "@/db";
 import { bookings, users, artists } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import crypto from "crypto";
+
+function resolveCustomerId(body: any): string | null {
+  if (body.userId) return body.userId;
+  if (body.clientEmail) return "guest_" + crypto.randomUUID();
+  return null;
+}
+
+async function ensureCustomer(body: any): Promise<{ id: string; name: string | null; email: string } | null> {
+  const email = body.clientEmail || body.email;
+  if (!email) return null;
+
+  const existing = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.email, email.toLowerCase()))
+    .limit(1)
+    .then((r) => r[0]);
+
+  if (existing) return existing;
+
+  const newId = body.userId || "guest_" + crypto.randomUUID();
+  await db.insert(users).values({
+    id: newId,
+    name: body.clientName || body.name || "Guest",
+    email: email.toLowerCase(),
+    role: "customer",
+    location: body.location || "",
+  }).onConflictDoNothing({ target: users.email });
+
+  return { id: newId, name: body.clientName || body.name || "Guest", email: email.toLowerCase() };
+}
+
+async function resolveAmount(body: any, artistId: number | null): Promise<string> {
+  if (body.amount) return String(body.amount);
+  if (artistId) {
+    const [artist] = await db
+      .select({ price: artists.price })
+      .from(artists)
+      .where(eq(artists.id, artistId))
+      .limit(1);
+    if (artist?.price) return String(artist.price);
+  }
+  return "0";
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, artistId, studioId, serviceId, date, time, amount, status } = body;
+    const { artistId, studioId, serviceId, date, time, status } = body;
+    const artistIdNum = artistId ? Number(artistId) : null;
 
-    if (!userId || !date || !amount) {
+    const customer = await ensureCustomer(body);
+    if (!customer || !date) {
       return NextResponse.json(
-        { error: "userId, date, and amount are required" },
+        { error: "clientEmail and date are required" },
         { status: 400 }
       );
     }
 
+    const amount = await resolveAmount(body, artistIdNum);
+
     const [booking] = await db
       .insert(bookings)
       .values({
-        userId,
-        artistId: artistId || null,
+        userId: customer.id,
+        artistId: artistIdNum,
         studioId: studioId || null,
         serviceId: serviceId || null,
         date: new Date(date),
@@ -30,41 +79,38 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    const [customer, artist] = await Promise.all([
-      db.select().from(users).where(eq(users.id, userId)).limit(1).then((r) => r[0]),
-      artistId
-        ? db.select().from(artists).where(eq(artists.id, artistId)).limit(1).then((r) => r[0])
-        : Promise.resolve(undefined),
-    ]);
+    const artist = artistIdNum
+      ? await db.select().from(artists).where(eq(artists.id, artistIdNum)).limit(1).then((r) => r[0])
+      : undefined;
 
-    if (customer) {
-      const formattedDate = typeof date === "string"
-        ? new Date(date).toLocaleDateString("en-MY", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
-        : new Date(date).toLocaleDateString("en-MY", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const formattedDate = new Date(date).toLocaleDateString("en-MY", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
 
-      sendBookingConfirmationEmail({
-        email: customer.email,
-        customerName: customer.name || "Valued Customer",
+    const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
+
+    sendBookingConfirmationEmail({
+      email: customer.email,
+      customerName: customer.name || "Valued Customer",
+      bookingId: String(booking.id),
+      serviceName,
+      providerName: artist?.name || "Your Provider",
+      date: formattedDate,
+      time: time || "To be confirmed",
+      amount: Number(amount),
+      paymentType: "full",
+    }).catch(() => {});
+
+    if (artist?.email) {
+      sendProviderNewBookingEmail({
+        email: artist.email,
+        providerName: artist.name,
+        customerName: customer.name || "A customer",
         bookingId: String(booking.id),
-        serviceName: serviceId ? `Service #${serviceId}` : "Beauty Service",
-        providerName: artist?.name || "Your Provider",
+        serviceName,
         date: formattedDate,
         time: time || "To be confirmed",
-        amount: Number(amount),
-        paymentType: "full",
       }).catch(() => {});
-
-      if (artist) {
-        sendProviderNewBookingEmail({
-          email: artist.email || "",
-          providerName: artist.name,
-          customerName: customer.name || "A customer",
-          bookingId: String(booking.id),
-          serviceName: serviceId ? `Service #${serviceId}` : "Beauty Service",
-          date: formattedDate,
-          time: time || "To be confirmed",
-        }).catch(() => {});
-      }
     }
 
     return NextResponse.json({ success: true, booking });
