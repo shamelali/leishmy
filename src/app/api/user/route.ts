@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, favorites, notifications, bookings, artists, studios } from "@/db/schema";
+import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -144,6 +144,112 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (action === "create-profile") {
+      const { role, phone, location } = body as { role?: string; phone?: string; location?: string };
+
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!existing) {
+        const avatar = `https://images.unsplash.com/photo-${
+          role === "artist" ? "1534528741775-53994a69daeb" : "1544005313-94ddf0286df2"
+        }?w=150&h=150&fit=crop`;
+
+        await db.insert(users).values({
+          id: userId,
+          name: body.name,
+          email: body.email.toLowerCase(),
+          role: role || "customer",
+          phone: phone || "",
+          location: location || "Kuala Lumpur, Malaysia",
+          avatar,
+        });
+
+        if (role === "artist") {
+          const slug =
+            body.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "") +
+            "-" +
+            userId.slice(-5);
+
+          const [newArtist] = await db
+            .insert(artists)
+            .values({
+              name: body.name,
+              slug,
+              email: body.email.toLowerCase(),
+              image: avatar,
+              phone: phone || "",
+              location: location || "Kuala Lumpur, Malaysia",
+              bio: "",
+              available: true,
+              verified: false,
+              userId,
+            })
+            .returning();
+
+          const specialties: string[] = body.specialties || [];
+          const specialtyToSlug: Record<string, string> = {
+            "Bridal Makeup": "bridal",
+            "Soft Glam": "event",
+            "Editorial / Photoshoot": "editorial",
+            "Hijab Styling": "hijab",
+            "Airbrush Makeup": "airbrush",
+            "SFX / Creative": "sfx",
+            Hairstyling: "hair",
+          };
+
+          const categorySlugs = specialties
+            .map((s: string) => specialtyToSlug[s])
+            .filter(Boolean);
+
+          if (categorySlugs.length > 0) {
+            const matchedCategories = await db
+              .select({ id: categories.id })
+              .from(categories)
+              .where(inArray(categories.slug, categorySlugs));
+
+            if (matchedCategories.length > 0) {
+              await db.insert(artistCategories).values(
+                matchedCategories.map((c) => ({
+                  artistId: newArtist.id,
+                  categoryId: c.id,
+                })),
+              );
+            }
+          }
+        }
+
+        if (role === "studio") {
+          const slug =
+            body.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "") +
+            "-" +
+            userId.slice(-5);
+
+          await db.insert(studios).values({
+            name: body.name,
+            slug,
+            email: body.email.toLowerCase(),
+            image: avatar,
+            phone: phone || "",
+            location: location || "Kuala Lumpur, Malaysia",
+            description: "",
+            userId,
+          });
+        }
+      }
+
+      return NextResponse.json({ success: true });
     }
 
     if (action === "favorites") {

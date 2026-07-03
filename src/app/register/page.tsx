@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { UserCheck, Palette, Store, User, Mail, Phone, MapPin, Lock, ArrowRight, Check } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { authClient } from "@/lib/auth/client";
 
 export default function RegisterPage() {
   const [role, setRole] = useState<"customer" | "artist" | "studio">("customer");
@@ -19,7 +19,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { register } = useAuth();
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -35,20 +34,38 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError("");
 
-    const res = await register({
-      name,
-      email,
-      role,
-      phone,
-      location,
-      password,
-      specialties: role === "artist" ? specialties : [],
-    });
+    try {
+      const { data, error: signUpError } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+      });
 
-    if (res.success) {
+      if (signUpError) {
+        setError(signUpError.message || "Registration failed");
+        setSubmitting(false);
+        return;
+      }
+
+      if (data?.user) {
+        await fetch("/api/user?action=create-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: data.user.id,
+            name,
+            email,
+            role,
+            phone,
+            location,
+            specialties: role === "artist" ? specialties : [],
+          }),
+        });
+      }
+
       router.push("/");
-    } else {
-      setError(res.error || "Registration failed");
+    } catch {
+      setError("Network error during registration");
       setSubmitting(false);
     }
   };

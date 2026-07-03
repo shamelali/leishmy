@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { authClient, useSession } from "@/lib/auth/client";
 
 export interface UserProfile {
   id: string;
@@ -26,38 +27,59 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: session, isPending } = useSession();
+  const [profile, setProfile] = useState<{
+    role: string | null;
+    phone: string | null;
+    location: string | null;
+    avatar: string | null;
+    bio: string | null;
+    specialties?: string[];
+  }>({ role: null, phone: null, location: null, avatar: null, bio: null, specialties: [] });
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/auth/session");
-        const data = await res.json();
-        if (!cancelled) setUser(data.user || null);
-      } catch {
-        if (!cancelled) setUser(null);
-      } finally {
-        if (!cancelled) setLoading(false);
+    if (!session?.user?.id) return;
+
+    fetch(`/api/user?userId=${session.user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.user) {
+          setProfile({
+            role: data.user.role || null,
+            phone: data.user.phone || null,
+            location: data.user.location || null,
+            avatar: data.user.avatar || null,
+            bio: data.user.bio || null,
+            specialties: data.user.specialties || [],
+          });
+        }
+      })
+      .catch(() => {});
+  }, [session?.user?.id]);
+
+  const user: UserProfile | null = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email,
+        role: profile.role,
+        phone: profile.phone,
+        location: profile.location,
+        avatar: profile.avatar,
+        bio: profile.bio,
+        specialties: profile.specialties,
       }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
+    : null;
 
   const login = async (email: string, password?: string) => {
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const { error } = await authClient.signIn.email({
+        email,
+        password: password ?? "",
       });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || "Login failed" };
+      if (error) {
+        return { success: false, error: error.message || "Login failed" };
       }
-      setUser(data.user);
       return { success: true };
     } catch {
       return { success: false, error: "Network error during login" };
@@ -66,16 +88,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: Partial<UserProfile> & { password?: string }) => {
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const { error } = await authClient.signUp.email({
+        email: data.email!,
+        password: data.password ?? "",
+        name: data.name ?? "",
       });
-      const resData = await res.json();
-      if (!res.ok) {
-        return { success: false, error: resData.error || "Registration failed" };
+      if (error) {
+        return { success: false, error: error.message || "Registration failed" };
       }
-      setUser(resData.user);
       return { success: true };
     } catch {
       return { success: false, error: "Network error during registration" };
@@ -83,24 +103,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+    await authClient.signOut();
   };
 
   const updateProfile = (data: Partial<UserProfile>) => {
-    if (!user) return;
-    fetch("/api/user", {
+    if (!user?.id) return;
+    fetch("/api/user?action=profile&userId=" + user.id, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "profile", userId: user.id, ...data }),
-    });
+      body: JSON.stringify(data),
+    }).catch(() => {});
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        loading,
+        loading: isPending,
         login,
         register,
         logout,
