@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
@@ -124,6 +124,14 @@ export function Navbar() {
                       <Calendar className="w-3.5 h-3.5 text-rose-500" /> My Bookings
                     </Link>
 
+                    <Link
+                      href="/favorites"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                    >
+                      <Heart className="w-3.5 h-3.5 text-rose-500" /> Favorites
+                    </Link>
+
                     {(user.role === "artist" || user.role === "studio") && (
                       <Link
                         href={user.role === "artist" ? "/dashboard/artist" : "/dashboard/studio"}
@@ -229,6 +237,13 @@ export function Navbar() {
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
                   <Calendar className="w-4 h-4 text-rose-500" /> My Bookings
+                </Link>
+                <Link
+                  href="/favorites"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                >
+                  <Heart className="w-4 h-4 text-rose-500" /> Favorites
                 </Link>
                 {(user.role === "artist" || user.role === "studio") && (
                   <Link
