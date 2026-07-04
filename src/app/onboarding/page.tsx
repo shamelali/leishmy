@@ -99,7 +99,8 @@ export default function OnboardingPage() {
         return;
       }
 
-      router.push("/");
+      const target = role === "artist" ? "/dashboard/artist" : role === "studio" ? "/dashboard/studio" : "/";
+      router.push(target);
     } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
