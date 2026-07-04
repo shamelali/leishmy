@@ -333,7 +333,7 @@ export default function RegisterPage() {
           {/* Google OAuth */}
           <button
             type="button"
-            onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/onboarding" })}
+            onClick={() => authClient.signIn.social({ provider: "google", callbackURL: window.location.origin + "/onboarding" })}
             className="w-full py-3 flex items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-neutral-700 transition-all text-sm"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
