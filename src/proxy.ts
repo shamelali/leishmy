@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
 
 function withSecurityHeaders(res: NextResponse) {
@@ -17,10 +18,24 @@ function withSecurityHeaders(res: NextResponse) {
   return res;
 }
 
+const authMiddleware = auth.middleware({
+  loginUrl: "/login",
+});
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (pathname.startsWith("/api") && pathname !== "/api/health") {
+  if (
+    pathname.startsWith("/dashboard/") &&
+    !pathname.startsWith("/api/auth/")
+  ) {
+    const response = await authMiddleware(request);
+    if (response) {
+      return withSecurityHeaders(response);
+    }
+  }
+
+  if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth/") && pathname !== "/api/health") {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
