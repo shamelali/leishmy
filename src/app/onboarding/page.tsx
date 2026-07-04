@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserCheck, Palette, Store, Heart, Mail, Phone, MapPin, Check, ArrowRight, Loader2 } from "lucide-react";
 import { authClient, useSession } from "@/lib/auth/client";
+import { useAuth } from "@/context/AuthContext";
 import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
 
 const specialtiesList = [
@@ -19,6 +20,7 @@ const specialtiesList = [
 
 export default function OnboardingPage() {
   const { data: session, isPending } = useSession();
+  const { refreshProfile } = useAuth();
   const router = useRouter();
 
   const [checking, setChecking] = useState(true);
@@ -100,6 +102,7 @@ export default function OnboardingPage() {
       }
 
       const target = role === "artist" ? "/dashboard/artist" : role === "studio" ? "/dashboard/studio" : "/";
+      await refreshProfile();
       router.push(target);
     } catch {
       setError("Something went wrong. Please try again.");

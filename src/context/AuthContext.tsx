@@ -22,6 +22,7 @@ interface AuthContextType {
   register: (data: Partial<UserProfile> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,24 +38,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     specialties?: string[];
   }>({ role: null, phone: null, location: null, avatar: null, bio: null, specialties: [] });
 
-  useEffect(() => {
-    if (!session?.user?.id) return;
+  const fetchProfile = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/user?userId=${userId}`);
+      const data = await res.json();
+      if (data?.user) {
+        setProfile({
+          role: data.user.role || null,
+          phone: data.user.phone || null,
+          location: data.user.location || null,
+          avatar: data.user.avatar || null,
+          bio: data.user.bio || null,
+          specialties: data.user.specialties || [],
+        });
+      }
+    } catch {}
+  };
 
-    fetch(`/api/user?userId=${session.user.id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.user) {
-          setProfile({
-            role: data.user.role || null,
-            phone: data.user.phone || null,
-            location: data.user.location || null,
-            avatar: data.user.avatar || null,
-            bio: data.user.bio || null,
-            specialties: data.user.specialties || [],
-          });
-        }
-      })
-      .catch(() => {});
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchProfile(session.user.id);
+    }
   }, [session?.user?.id]);
 
   const user: UserProfile | null = session?.user
@@ -117,6 +121,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
   };
 
+  const refreshProfile = async () => {
+    if (!session?.user?.id) return;
+    await fetchProfile(session.user.id);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -126,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         updateProfile,
+        refreshProfile,
       }}
     >
       {children}
