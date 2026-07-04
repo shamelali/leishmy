@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/artists", label: "Artists" },
   { href: "/studios", label: "Studios" },
+  { href: "/community/apply", label: "Community" },
 ];
 
 export function Navbar() {

@@ -377,3 +377,21 @@ export const adminSettings = pgTable("admin_settings", {
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });
+
+export const communityApplications = pgTable("community_applications", {
+  id: serial("id").primaryKey(),
+  firstName: varchar("first_name", { length: 255 }).notNull(),
+  lastName: varchar("last_name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  city: varchar("city", { length: 255 }).notNull(),
+  state: varchar("state", { length: 255 }).notNull(),
+  yearsOfExperience: text("years_of_experience").notNull(),
+  expertiseAreas: jsonb("expertise_areas").$type<string[]>().notNull(),
+  portfolioImageUrl: text("portfolio_image_url"),
+  portfolioLinks: text("portfolio_links"),
+  certifications: text("certifications"),
+  socialProfiles: text("social_profiles"),
+  availability: text("availability").notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
