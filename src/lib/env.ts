@@ -19,7 +19,6 @@ const envSchema = z.object({
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_KEY: z.string().optional(),
-  AUTH_SECRET: z.string().optional(),
   NEON_AUTH_BASE_URL: z.string().min(1, "NEON_AUTH_BASE_URL is required").optional(),
   NEON_AUTH_COOKIE_SECRET: z.string().min(32, "NEON_AUTH_COOKIE_SECRET must be at least 32 characters").optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
