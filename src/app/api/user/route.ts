@@ -204,119 +204,128 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "create-profile") {
-      const { role, phone, location } = body as { role?: string; phone?: string; location?: string };
+      const name = body.name || "";
+      const email = (body.email || "").toLowerCase();
+      const userRole = body.role || "customer";
+      const userPhone = body.phone || "";
+      const userLocation = body.location || "Kuala Lumpur, Malaysia";
 
-      const [existing] = await db
+      if (!email) {
+        return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      }
+
+      const [existingById] = await db
         .select({ id: users.id })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
 
-      if (existing) {
+      if (existingById) {
         await db
           .update(users)
-          .set({ name: body.name, email: body.email.toLowerCase(), role: role || "customer", phone: phone || "", location: location || "Kuala Lumpur, Malaysia" })
+          .set({ name, email, role: userRole, phone: userPhone, location: userLocation })
           .where(eq(users.id, userId));
         return NextResponse.json({ success: true });
       }
 
+      const [existingByEmail] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (existingByEmail) {
+        return NextResponse.json({ error: "Email already registered. Please sign in." }, { status: 409 });
+      }
+
       const avatar = `https://images.unsplash.com/photo-${
-        role === "artist" ? "1534528741775-53994a69daeb" : "1544005313-94ddf0286df2"
+        userRole === "artist" ? "1534528741775-53994a69daeb" : "1544005313-94ddf0286df2"
       }?w=150&h=150&fit=crop`;
 
-      await db
-        .insert(users)
-        .values({
-          id: userId,
-          name: body.name,
-          email: body.email.toLowerCase(),
-          role: role || "customer",
-          phone: phone || "",
-          location: location || "Kuala Lumpur, Malaysia",
-          avatar,
-        })
-        .onConflictDoNothing({ target: users.email });
+      await db.insert(users).values({
+        id: userId,
+        name,
+        email,
+        role: userRole,
+        phone: userPhone,
+        location: userLocation,
+        avatar,
+      });
 
-      if (role === "artist") {
-          const slug =
-            body.name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "") +
-            "-" +
-            userId.slice(-5);
+      if (userRole === "artist") {
+        const slug =
+          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
+          "-" +
+          userId.slice(-5);
 
-          const [newArtist] = await db
-            .insert(artists)
-            .values({
-              name: body.name,
-              slug,
-              email: body.email.toLowerCase(),
-              image: avatar,
-              phone: phone || "",
-              location: location || "Kuala Lumpur, Malaysia",
-              bio: "",
-              available: true,
-              verified: false,
-              userId,
-            })
-            .returning();
+        const [newArtist] = await db
+          .insert(artists)
+          .values({
+            name,
+            slug,
+            email,
+            image: avatar,
+            phone: userPhone,
+            location: userLocation,
+            bio: "",
+            available: true,
+            verified: false,
+            userId,
+          })
+          .returning();
 
-          const specialties: string[] = body.specialties || [];
-          const specialtyToSlug: Record<string, string> = {
-            "Bridal Makeup": "bridal",
-            "Soft Glam": "event",
-            "Editorial / Photoshoot": "editorial",
-            "Hijab Styling": "hijab",
-            "Airbrush Makeup": "airbrush",
-            "SFX / Creative": "sfx",
-            Hairstyling: "hair",
-          };
+        const specialties: string[] = body.specialties || [];
+        const specialtyToSlug: Record<string, string> = {
+          "Bridal Makeup": "bridal",
+          "Soft Glam": "event",
+          "Editorial / Photoshoot": "editorial",
+          "Hijab Styling": "hijab",
+          "Airbrush Makeup": "airbrush",
+          "SFX / Creative": "sfx",
+          Hairstyling: "hair",
+        };
 
-          const categorySlugs = specialties
-            .map((s: string) => specialtyToSlug[s])
-            .filter(Boolean);
+        const categorySlugs = specialties
+          .map((s: string) => specialtyToSlug[s])
+          .filter(Boolean);
 
-          if (categorySlugs.length > 0) {
-            const matchedCategories = await db
-              .select({ id: categories.id })
-              .from(categories)
-              .where(inArray(categories.slug, categorySlugs));
+        if (categorySlugs.length > 0) {
+          const matchedCategories = await db
+            .select({ id: categories.id })
+            .from(categories)
+            .where(inArray(categories.slug, categorySlugs));
 
-            if (matchedCategories.length > 0) {
-              await db.insert(artistCategories).values(
-                matchedCategories.map((c) => ({
-                  artistId: newArtist.id,
-                  categoryId: c.id,
-                })),
-              );
-            }
+          if (matchedCategories.length > 0) {
+            await db.insert(artistCategories).values(
+              matchedCategories.map((c) => ({
+                artistId: newArtist.id,
+                categoryId: c.id,
+              })),
+            );
           }
         }
+      }
 
-        if (role === "studio") {
-          const slug =
-            body.name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "") +
-            "-" +
-            userId.slice(-5);
+      if (userRole === "studio") {
+        const slug =
+          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
+          "-" +
+          userId.slice(-5);
 
-          await db.insert(studios).values({
-            name: body.name,
-            slug,
-            email: body.email.toLowerCase(),
-            image: avatar,
-            phone: phone || "",
-            location: location || "Kuala Lumpur, Malaysia",
-            description: "",
-            userId,
-          });
-        }
+        await db.insert(studios).values({
+          name,
+          slug,
+          email,
+          image: avatar,
+          phone: userPhone,
+          location: userLocation,
+          description: "",
+          userId,
+        });
+      }
 
-      const roleForEmail = role === "customer" ? "client" : (role as "client" | "artist" | "studio");
-      sendWelcomeEmail({ email: body.email, name: body.name, role: roleForEmail }).catch(() => {});
+      const roleForEmail = userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");
+      sendWelcomeEmail({ email, name, role: roleForEmail }).catch(() => {});
 
       return NextResponse.json({ success: true });
     }
