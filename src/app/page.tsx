@@ -16,12 +16,12 @@ async function getStats() {
       db.select({ count: count() }).from(bookings),
       db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
     ]);
-    const avgRating = ratingResult[0]?.avg ? Number(Number(ratingResult[0].avg).toFixed(1)) : 4.9;
+    const avgRating = ratingResult[0]?.avg ? Number(Number(ratingResult[0].avg).toFixed(1)) : 0;
     return [
-      { value: `${userCount[0]?.count || 0}+`, label: "Happy Clients" },
-      { value: avgRating.toString(), label: "Avg Rating" },
-      { value: `${artistCount[0]?.count || 0}+`, label: "Pro Artists" },
-      { value: `${bookingCount[0]?.count || 0}+`, label: "Bookings" },
+      { value: `${userCount[0]?.count || 0}+`.replace("0+", "0"), label: "Happy Clients" },
+      { value: avgRating > 0 ? avgRating.toString() : "0", label: "Avg Rating" },
+      { value: `${artistCount[0]?.count || 0}+`.replace("0+", "0"), label: "Pro Artists" },
+      { value: `${bookingCount[0]?.count || 0}+`.replace("0+", "0"), label: "Bookings" },
     ];
   } catch {
     return undefined;

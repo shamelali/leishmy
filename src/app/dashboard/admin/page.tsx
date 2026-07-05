@@ -71,6 +71,8 @@ export default function DashboardAdmin() {
   const [fetchError, setFetchError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
   const [recentActivity, setRecentActivity] = useState<{ action: string; detail: string; time: string; type: string }[]>([]);
+  const [showAddArtist, setShowAddArtist] = useState(false);
+  const [addArtistForm, setAddArtistForm] = useState({ name: "", email: "", phone: "", location: "", image: "", bio: "", price: "" });
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, overview: 1,
@@ -254,6 +256,75 @@ export default function DashboardAdmin() {
 
         {tab === "artists" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+            <div className="px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {total.artists} artist{total.artists !== 1 ? "s" : ""} total
+              </p>
+              <button
+                onClick={() => setShowAddArtist(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-500 text-white text-sm font-semibold rounded-xl hover:bg-rose-600 transition-all shadow-sm"
+              >
+                <UserCheck className="w-4 h-4" /> Add Artist
+              </button>
+            </div>
+
+            {showAddArtist && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAddArtist(false)}>
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 p-6 w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Artist</h3>
+                  <div className="space-y-3">
+                    {(["name", "email", "phone", "location", "image", "bio", "price"] as const).map((field) => {
+                      const isTextarea = field === "bio";
+                      const placeholder = field === "image" ? "https://images.unsplash.com/..." : `Enter ${field}`;
+                      return (
+                        <div key={field}>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">{field}</label>
+                          {isTextarea ? (
+                            <textarea
+                              rows={3}
+                              value={addArtistForm[field]}
+                              onChange={(e) => setAddArtistForm((f) => ({ ...f, [field]: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+                              placeholder={placeholder}
+                            />
+                          ) : (
+                            <input
+                              type={field === "email" ? "email" : "text"}
+                              value={addArtistForm[field]}
+                              onChange={(e) => setAddArtistForm((f) => ({ ...f, [field]: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                              placeholder={placeholder}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-end gap-2 mt-6">
+                    <button onClick={() => setShowAddArtist(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!addArtistForm.name.trim()) return;
+                        setActionLoading("create");
+                        try {
+                          await fetch("/api/admin?action=create-artist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(addArtistForm) });
+                          setShowAddArtist(false);
+                          setAddArtistForm({ name: "", email: "", phone: "", location: "", image: "", bio: "", price: "" });
+                          await fetchData("artists");
+                        } finally { setActionLoading(""); }
+                      }}
+                      disabled={actionLoading === "create" || !addArtistForm.name.trim()}
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 transition-all"
+                    >
+                      {actionLoading === "create" ? "Creating..." : "Create Artist"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>

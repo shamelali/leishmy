@@ -29,6 +29,11 @@ export function FeaturedArtistsSection() {
             >
               <Link href={`/artists/${artist.slug}`}>
                 <div className="relative aspect-[4/5] overflow-hidden">
+                  {artist.demo && (
+                    <div className="absolute top-0 left-0 z-10 px-3 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-br-xl shadow-sm">
+                      Sample Profile
+                    </div>
+                  )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={artist.image}

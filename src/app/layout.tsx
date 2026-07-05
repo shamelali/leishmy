@@ -31,13 +31,28 @@ export const metadata: Metadata = {
 import Providers from "@/components/Providers";
 import BackToTop from "@/components/BackToTop";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
+import Script from "next/script";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
         <link rel="manifest" href="/manifest.json" />
+        {gaId && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="antialiased">
         <Providers>

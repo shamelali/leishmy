@@ -11,7 +11,7 @@ const sections = [
   {
     title: "Who We Are",
     content:
-      "Duta Integra Solutions is a Sole Proprietorship registered under the Registration of Businesses Act 1956, registered address F2-22-15 Tamarind Suites, Tamarind Square, Persiaran Multimedia, Cyber 11, 63000 Cyberjaya, Selangor, Malaysia.",
+      "Duta Integra Solutions (TR0325441-K) is a Sole Proprietorship registered under the Registration of Businesses Act 1956. We operate the Leish! platform connecting clients with beauty professionals across Malaysia.",
   },
   {
     title: "Data We Collect",
@@ -90,10 +90,6 @@ export default function PrivacyPolicyPage() {
         </div>
         <div className="mt-12 text-center text-sm text-gray-500">
           <p>Duta Integra Solutions (TR0325441-K)</p>
-          <p>
-            F2-22-15 Tamarind Suites, Tamarind Square, Persiaran Multimedia,
-            Cyber 11, 63000 Cyberjaya, Selangor, Malaysia
-          </p>
           <p>
             <a
               href="mailto:support@leish.my"

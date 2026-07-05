@@ -269,6 +269,30 @@ export async function POST(request: NextRequest) {
     const action = searchParams.get("action");
     const body = await request.json();
 
+    if (action === "create-artist") {
+      const { name, slug, email, phone, location, image, bio, price, verified } = body;
+      if (!name) {
+        return NextResponse.json({ error: "name is required" }, { status: 400 });
+      }
+      const artistSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const [artist] = await db
+        .insert(artists)
+        .values({
+          name,
+          slug: artistSlug,
+          email: email || null,
+          phone: phone || null,
+          location: location || null,
+          image: image || null,
+          bio: bio || null,
+          price: price ? String(price) : "0",
+          verified: verified ?? true,
+          available: true,
+        })
+        .returning();
+      return NextResponse.json({ success: true, artist });
+    }
+
     if (action === "toggle-verify") {
       const { artistId, verified } = body;
       if (artistId) {

@@ -35,7 +35,7 @@ async function findArtist(slug: string) {
         id: String(a.id),
         name: a.name,
         slug: a.slug,
-        image: a.image || "",
+        image: a.image || "/placeholder.svg",
         location: a.location || "",
         rating: Number(a.rating) || 0,
         reviewCount: a.reviewCount || 0,

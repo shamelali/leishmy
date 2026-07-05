@@ -83,8 +83,6 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         bookings: enrichedBookings,
-        rating: 4.9,
-        reviewCount: 0,
       });
     }
 

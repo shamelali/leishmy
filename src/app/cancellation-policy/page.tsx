@@ -79,12 +79,7 @@ export default function CancellationPolicyPage() {
           ))}
         </div>
         <div className="mt-12 text-center text-sm text-gray-500">
-          <p>
-            Duta Integra Solutions (TR0325441-K)</p>
-          <p>
-            F2-22-15 Tamarind Suites, Tamarind Square, Persiaran Multimedia,
-            Cyber 11, 63000 Cyberjaya, Selangor, Malaysia
-          </p>
+          <p>Duta Integra Solutions (TR0325441-K)</p>
           <p>
             <a
               href="mailto:support@leish.my"
