@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
 
     const points = await getPointsBalance(userId);
     const transactions = await getTransactionHistory(userId);
-    const tierInfo = await getTierInfo(points.tier);
-    const nextTier = await getNextTier(points.tier);
+    const currentTier = points.tier ?? "bronze";
+    const tierInfo = await getTierInfo(currentTier);
+    const nextTier = await getNextTier(currentTier);
     const allTiers = await getAllTiers();
 
     return NextResponse.json({
