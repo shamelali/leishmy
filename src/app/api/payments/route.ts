@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { sendPaymentReceiptEmail } from "@/lib/email";
+import { getAuthSession } from "@/lib/auth/server";
+import { getSession } from "@/lib/auth/auth";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -24,6 +26,10 @@ export async function GET(request: NextRequest) {
     const paymentId = searchParams.get("paymentId");
 
     if (action === "history" && userId) {
+      const session = await getAuthSession();
+      if (!session || session.id !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       const rows = await db
         .select({
           id: payments.id,
@@ -54,6 +60,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "payouts" && userId) {
+      const session = await getAuthSession();
+      if (!session || session.id !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       const [payoutRows, bankRows] = await Promise.all([
         db.select().from(payouts).where(eq(payouts.userId, userId)),
         db
@@ -126,8 +136,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Payments GET error:", error);
     return NextResponse.json(
-      { payouts: [], bankAccounts: [], pendingBalance: 0 },
-      { status: 200 },
+      { error: "Failed to fetch payments" },
+      { status: 500 },
     );
   }
 }
@@ -189,7 +199,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "register-bank") {
+      const session = await getAuthSession();
       const { userId, bankName, accountNumber, accountHolder } = body;
+      if (!session || session.id !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       if (!userId || !bankName || !accountNumber || !accountHolder) {
         return NextResponse.json({ error: "All bank fields required" }, { status: 400 });
       }
@@ -203,6 +217,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "release") {
+      const session = await getAuthSession();
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       const { paymentId } = body;
       if (!paymentId) {
         return NextResponse.json({ error: "paymentId required" }, { status: 400 });
@@ -230,6 +248,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "refund") {
+      const session = await getAuthSession();
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       const { paymentId } = body;
       if (!paymentId) {
         return NextResponse.json({ error: "paymentId required" }, { status: 400 });
@@ -277,22 +299,16 @@ export async function POST(request: NextRequest) {
 
     if (action === "webhook") {
       const rawBody = await request.text();
-      const signatureKey = billplz.get("SIGNATURE_KEY");
+      const signatureKey = billplz.require("SIGNATURE_KEY");
+      const signatureHeader = request.headers.get("x-signature") || "";
+      const computedSignature = createHmac("sha256", signatureKey)
+        .update(rawBody)
+        .digest("hex");
+      const computedBuf = Buffer.from(computedSignature, "utf-8");
+      const headerBuf = Buffer.from(signatureHeader, "utf-8");
 
-      if (signatureKey) {
-        const signatureHeader = request.headers.get("x-signature") || "";
-        const computedSignature = createHmac("sha256", signatureKey)
-          .update(rawBody)
-          .digest("hex");
-        const computedBuf = Buffer.from(computedSignature, "utf-8");
-        const headerBuf = Buffer.from(signatureHeader, "utf-8");
-
-        if (
-          computedBuf.length !== headerBuf.length ||
-          !timingSafeEqual(computedBuf, headerBuf)
-        ) {
-          return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-        }
+      if (computedBuf.length !== headerBuf.length || !timingSafeEqual(computedBuf, headerBuf)) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
       }
 
       const webhookBody = JSON.parse(rawBody);

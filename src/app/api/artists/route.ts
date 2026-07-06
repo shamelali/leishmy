@@ -67,6 +67,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ artists: rows, categories });
   } catch (error) {
     console.error("Fetch artists error:", error);
-    return NextResponse.json({ artists: [], categories }, { status: 200 });
+    return NextResponse.json({ error: "Failed to fetch artists" }, { status: 500 });
   }
 }

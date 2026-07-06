@@ -101,6 +101,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ studios: rows });
   } catch (error) {
     console.error("Fetch studios error:", error);
-    return NextResponse.json({ studios: [] }, { status: 200 });
+    return NextResponse.json({ error: "Failed to fetch studios" }, { status: 500 });
   }
 }

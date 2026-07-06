@@ -120,10 +120,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
       <section className="bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6 px-4 py-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-sm text-amber-700 dark:text-amber-300">
-            These are sample artist profiles. Real artists joining soon!{" "}
-            <a href="/community/apply" className="font-semibold underline underline-offset-2 hover:text-amber-800 dark:hover:text-amber-200">
-              Apply as an artist
-            </a>.
+            We are currently onboarding selected makeup artists in Kuala Lumpur and Selangor.
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 dark:text-white">
             Browse Makeup Artists

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { communityApplications } from "@/db/schema";
 import { z } from "zod";
+import { limit } from "@/lib/rate-limit";
 
 const applicationSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(255),
@@ -29,6 +30,11 @@ const applicationSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await limit(`apply:${ip}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const body = await request.json();
     const parsed = applicationSchema.safeParse(body);
 

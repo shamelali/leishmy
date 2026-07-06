@@ -422,6 +422,7 @@ export default function DashboardAdmin() {
                         {user.role !== "admin" && (
                           <button
                             onClick={async () => {
+                              if (!confirm("Make this user an admin? This action is irreversible.")) return;
                               setActionLoading(`promote-${user.id}`);
                               await fetch("/api/admin?action=set-role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
                               setActionLoading("");

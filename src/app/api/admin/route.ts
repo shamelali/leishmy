@@ -2,19 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments, adminSettings } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql } from "drizzle-orm";
-import { getSession } from "@/lib/auth/auth";
-
-async function getAuthSession(): Promise<{ id: string; email: string; role: string } | null> {
-  const session = await getSession();
-  if (!session?.user) return null;
-  const [dbUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-  if (!dbUser) return null;
-  return { id: dbUser.id, email: dbUser.email, role: dbUser.role || "customer" };
-}
+import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
   try {

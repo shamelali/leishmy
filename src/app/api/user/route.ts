@@ -3,15 +3,22 @@ import { db } from "@/db";
 import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
+import { getAuthSession } from "@/lib/auth/server";
+import { getSession } from "@/lib/auth/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAuthSession();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const userId = searchParams.get("userId");
 
     if (!userId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (!session || session.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (action === "favorites") {
@@ -192,6 +199,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const body = await request.json().catch(() => ({}));
@@ -199,6 +207,10 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    if (!session?.user || session.user.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (action === "create-profile") {
