@@ -395,3 +395,126 @@ export const communityApplications = pgTable("community_applications", {
   availability: text("availability").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
+
+export const skinProfiles = pgTable(
+  "skin_profiles",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    skinType: varchar("skin_type", { length: 50 }),
+    skinConcerns: jsonb("skin_concerns").$type<string[]>().default([]),
+    undertone: varchar("undertone", { length: 50 }),
+    allergies: jsonb("allergies").$type<string[]>().default([]),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [index("skin_profiles_user_idx").on(table.userId)],
+);
+
+export const beautyPreferences = pgTable(
+  "beauty_preferences",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    preferredStyles: jsonb("preferred_styles").$type<string[]>().default([]),
+    preferredProducts: jsonb("preferred_products").$type<string[]>().default([]),
+    makeupNotes: text("makeup_notes"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [index("beauty_preferences_user_idx").on(table.userId)],
+);
+
+export const inspirationBoards = pgTable(
+  "inspiration_boards",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    coverImage: text("cover_image"),
+    isPublic: boolean("is_public").default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [index("inspiration_boards_user_idx").on(table.userId)],
+);
+
+export const savedInspiration = pgTable(
+  "saved_inspiration",
+  {
+    id: serial("id").primaryKey(),
+    boardId: integer("board_id")
+      .notNull()
+      .references(() => inspirationBoards.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
+    sourceArtistId: integer("source_artist_id").references(() => artists.id, {
+      onDelete: "set null",
+    }),
+    sourceType: varchar("source_type", { length: 50 }).default("user_upload"),
+    caption: text("caption"),
+    tags: jsonb("tags").$type<string[]>().default([]),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("saved_inspiration_board_idx").on(table.boardId),
+    index("saved_inspiration_user_idx").on(table.userId),
+  ],
+);
+
+export const loyaltyTiers = pgTable("loyalty_tiers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
+  minPoints: integer("min_points").notNull().default(0),
+  multiplier: decimal("multiplier", { precision: 3, scale: 2 }).default("1.00"),
+  perks: jsonb("perks").$type<string[]>().default([]),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const loyaltyPoints = pgTable(
+  "loyalty_points",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    balance: integer("balance").notNull().default(0),
+    lifetimeEarned: integer("lifetime_earned").notNull().default(0),
+    lifetimeRedeemed: integer("lifetime_redeemed").notNull().default(0),
+    tier: varchar("tier", { length: 50 }).default("bronze"),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [index("loyalty_points_user_idx").on(table.userId)],
+);
+
+export const loyaltyTransactions = pgTable(
+  "loyalty_transactions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    type: varchar("type", { length: 50 }).notNull(),
+    source: varchar("source", { length: 50 }).notNull(),
+    referenceId: varchar("reference_id", { length: 255 }),
+    description: text("description"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("loyalty_transactions_user_idx").on(table.userId),
+    index("loyalty_transactions_created_idx").on(table.createdAt),
+  ],
+);

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart } from "lucide-react";
+import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, Image, Award, Droplets } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
@@ -139,6 +139,30 @@ export function Navbar() {
                       <Heart className="w-3.5 h-3.5 text-rose-500" /> Favorites
                     </Link>
 
+                    <Link
+                      href="/beauty-profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                    >
+                      <Droplets className="w-3.5 h-3.5 text-rose-500" /> Beauty Profile
+                    </Link>
+
+                    <Link
+                      href="/inspiration"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                    >
+                      <Image className="w-3.5 h-3.5 text-rose-500" /> Inspiration
+                    </Link>
+
+                    <Link
+                      href="/rewards"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                    >
+                      <Award className="w-3.5 h-3.5 text-rose-500" /> Rewards
+                    </Link>
+
                     {(user.role === "artist" || user.role === "studio") && (
                       <Link
                         href={user.role === "artist" ? "/dashboard/artist" : "/dashboard/studio"}
@@ -251,6 +275,27 @@ export function Navbar() {
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
                   <Heart className="w-4 h-4 text-rose-500" /> Favorites
+                </Link>
+                <Link
+                  href="/beauty-profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                >
+                  <Droplets className="w-4 h-4 text-rose-500" /> Beauty Profile
+                </Link>
+                <Link
+                  href="/inspiration"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                >
+                  <Image className="w-4 h-4 text-rose-500" /> Inspiration
+                </Link>
+                <Link
+                  href="/rewards"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                >
+                  <Award className="w-4 h-4 text-rose-500" /> Rewards
                 </Link>
                 {(user.role === "artist" || user.role === "studio") && (
                   <Link
