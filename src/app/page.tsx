@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { users, artists, bookings, reviews } from "@/db/schema";
 import { count, avg, sql } from "drizzle-orm";
 import { HeroSection } from "@/components/home/HeroSection";
+import { RoleRedirect } from "@/components/home/RoleRedirect";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { HowItWorksSection } from "@/components/home/HowItWorksSection";
 import { FeaturedArtistsSection } from "@/components/home/FeaturedArtistsSection";
@@ -32,6 +33,7 @@ export default async function HomePage() {
   const stats = await getStats();
   return (
     <>
+      <RoleRedirect />
       <HeroSection stats={stats} />
       <CategoriesSection />
       <FeaturedArtistsSection />
