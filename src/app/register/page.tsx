@@ -37,11 +37,11 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const { data, error: signUpError } = await authClient.signUp.email({
+      const { data, error: signUpError } = (await authClient.signUp.email({
         email,
         password,
         name,
-      });
+      }) as unknown) as { data?: { user: { id: string } }; error?: { message?: string } };
 
       if (signUpError) {
         setError(signUpError.message || "Registration failed");

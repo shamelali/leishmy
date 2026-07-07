@@ -64,11 +64,11 @@ function VerifyEmailContent() {
     setError("");
 
     try {
-      const { error: verifyError } = await authClient.emailOtp.checkVerificationOtp({
+      const { error: verifyError } = (await authClient.emailOtp.checkVerificationOtp({
         email,
         otp: code,
         type: "email-verification",
-      });
+      }) as unknown) as { error?: { message?: string } };
 
       if (verifyError) {
         setError(verifyError.message || "Invalid or expired code");

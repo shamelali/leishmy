@@ -83,10 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password?: string) => {
     try {
-      const { error } = await authClient.signIn.email({
+      const { error } = (await authClient.signIn.email({
         email,
         password: password ?? "",
-      });
+      }) as unknown) as { error?: { message?: string } };
       if (error) {
         return { success: false, error: error.message || "Login failed" };
       }
@@ -99,11 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: Partial<UserProfile> & { password?: string }) => {
     try {
-      const { error } = await authClient.signUp.email({
+      const { error } = (await authClient.signUp.email({
         email: data.email!,
         password: data.password ?? "",
         name: data.name ?? "",
-      });
+      }) as unknown) as { error?: { message?: string } };
       if (error) {
         return { success: false, error: error.message || "Registration failed" };
       }

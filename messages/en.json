@@ -1,0 +1,23 @@
+{
+  "nav": {
+    "home": "Home",
+    "artists": "Artists",
+    "studios": "Studios",
+    "community": "Community",
+    "events": "Events",
+    "logoAlt": "Leish",
+    "joinAsArtist": "Join as Artist",
+    "user": "User",
+    "myProfile": "My Profile",
+    "myBookings": "My Bookings",
+    "favorites": "Favorites",
+    "beautyProfile": "Beauty Profile",
+    "inspiration": "Inspiration",
+    "rewards": "Rewards",
+    "dashboard": "Dashboard",
+    "signOut": "Sign Out",
+    "logIn": "Log In",
+    "signUpFree": "Sign Up Free",
+    "menu": "Menu"
+  }
+}

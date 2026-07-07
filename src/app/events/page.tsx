@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { Calendar, MapPin, Clock, ArrowRight } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("eventsTitle"),
-    description: t("eventsDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "Events — Leish!",
+  description:
+    "Discover beauty events, workshops, and masterclasses across Malaysia.",
+};
 
 const sampleEvents = [
   {

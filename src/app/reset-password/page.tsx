@@ -39,10 +39,10 @@ function ResetPasswordForm() {
     setSubmitting(true);
 
     try {
-      const { error: resetError } = await authClient.resetPassword({
+      const { error: resetError } = (await authClient.resetPassword({
         newPassword: password,
         token,
-      });
+      }) as unknown) as { error?: { message?: string } };
 
       if (resetError) {
         setError(resetError.message || "Failed to reset password");
