@@ -2,12 +2,16 @@ import Link from "next/link";
 import { Star, MapPin, Users, ArrowRight } from "lucide-react";
 import { db } from "@/db";
 import { studios } from "@/db/schema";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Browse Studios — Leish!",
-  description: "Discover premium beauty studios across Malaysia.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("studiosTitle"),
+    description: t("studiosDescription"),
+  };
+}
 
 async function getStudios() {
   try {

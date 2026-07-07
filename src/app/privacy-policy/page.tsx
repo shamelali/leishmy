@@ -1,11 +1,14 @@
 import { Shield } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy — Leish!",
-  description:
-    "How Leish collects, uses, and protects your personal data in accordance with Malaysia's PDPA 2010.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("privacyPolicyTitle"),
+    description: t("privacyPolicyDescription"),
+  };
+}
 
 const sections = [
   {

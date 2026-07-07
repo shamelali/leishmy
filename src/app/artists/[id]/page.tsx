@@ -13,6 +13,7 @@ import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
 type Props = {
@@ -59,10 +60,12 @@ async function findArtist(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const artist = await findArtist(id);
+  const t = await getTranslations("artistDetail");
+  const m = await getTranslations("metadata");
   if (!artist)
-    return { title: "Artist Not Found — Leish!" };
+    return { title: t("detailNotFound") };
   return {
-    title: `${artist.name} — Leish!`,
+    title: `${artist.name} — ${m("brand")}`,
     description: artist.bio,
   };
 }

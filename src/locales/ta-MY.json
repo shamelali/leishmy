@@ -297,7 +297,9 @@
     "portfolio": "போர்ட்ஃபோலியோ",
     "bookArtist": "{name} ஐ முன்பதிவு செய்யுங்கள்",
     "bookSubtitle": "MYR {price}/மணி முதல்",
-    "notFound": "ஓவியர் கிடைக்கவில்லை"
+    "notFound": "ஓவியர் கிடைக்கவில்லை",
+    "detailTitle": "{name} — Leish!",
+    "detailNotFound": "Not Found — Leish!"
   },
   "bookingForm": {
     "yourName": "உங்கள் பெயர்",
@@ -787,5 +789,62 @@
   "ui": {
     "themeToggle": "Toggle theme",
     "backToTop": "Back to top"
+  },
+  "metadata": {
+    "defaultTitle": "Leish! — Beauty Booking Marketplace",
+    "brand": "Leish!",
+    "defaultDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.",
+    "ogTitle": "Leish! — Beauty Booking Marketplace",
+    "ogDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
+    "twitterTitle": "Leish! — Beauty Booking Marketplace",
+    "twitterDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
+    "eventsTitle": "Events — Leish!",
+    "eventsDescription": "Discover beauty events, workshops, and masterclasses across Malaysia.",
+    "privacyPolicyTitle": "Privacy Policy — Leish!",
+    "privacyPolicyDescription": "How Leish collects, uses, and protects your personal data in accordance with Malaysia's PDPA 2010.",
+    "studiosTitle": "Browse Studios — Leish!",
+    "studiosDescription": "Discover premium beauty studios across Malaysia.",
+    "termsOfServiceTitle": "Terms of Service — Leish!",
+    "termsOfServiceDescription": "Terms and conditions governing your use of Leish, a beauty services marketplace.",
+    "faqTitle": "FAQ — Leish!",
+    "faqDescription": "Answers to common questions about booking makeup artists and studios on Leish.",
+    "artistsTitle": "Browse Makeup Artists — Leish!",
+    "artistsDescription": "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
+    "contactTitle": "Contact Us — Leish!",
+    "contactDescription": "Get in touch with the Leish! team.",
+    "cancellationPolicyTitle": "Cancellation & Refund Policy — Leish!",
+    "cancellationPolicyDescription": "How cancellations, no-shows, and refunds are handled for bookings made through Leish.",
+    "communityApplyTitle": "Join the MUA Community — Leish!",
+    "communityApplyDescription": "Apply to join our professional network of makeup artists. Share your experience, portfolio, and interests to become part of our community."
+  },
+  "notFound": {
+    "title": "404",
+    "heading": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go Home"
+  },
+  "artistOnboarding": {
+    "backToDashboard": "Back to Dashboard",
+    "heading": "Artist Onboarding Guide",
+    "subtitle": "Welcome to the Leish! Elite Network",
+    "intro": "Welcome to the Leish! Elite Network. As a luxury beauty marketplace, our goal is to pair Malaysia's premier artists with high-end clients. This guide is designed to help you set up a world-class profile that captures attention and secures bookings.",
+    "phase": "Phase {number}",
+    "phase1Title": "Setting Up Your Professional Identity",
+    "phase2Title": "Optimizing Your Service Suite",
+    "phase3Title": "The Booking & Payment Workflow",
+    "phase4Title": "Excellence in Communication",
+    "checklistHeading": "Onboarding Checklist",
+    "checklist1": "Profile photo uploaded (High-res, professional)",
+    "checklist2": "Bio written (Experience + Philosophy)",
+    "checklist3": "Portfolio gallery (6+ high-quality looks)",
+    "checklist4": "Services & Pricing listed clearly",
+    "checklist5": "Calendar synced and updated",
+    "checklist6": "Bank details verified for payouts",
+    "complete": "Complete!",
+    "supportHeading": "Support & Resources",
+    "supportText": "Need help perfecting your profile?",
+    "hotline": "Artist Hotline",
+    "dashboard": "Artist Dashboard",
+    "footer": "Leish! — Where Artistry Meets Luxury."
   }
 }

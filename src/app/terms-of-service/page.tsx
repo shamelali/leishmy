@@ -1,11 +1,14 @@
 import { Scale } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — Leish!",
-  description:
-    "Terms and conditions governing your use of Leish, a beauty services marketplace.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("termsOfServiceTitle"),
+    description: t("termsOfServiceDescription"),
+  };
+}
 
 const sections = [
   {

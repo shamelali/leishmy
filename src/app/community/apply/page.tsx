@@ -1,12 +1,15 @@
 import { CommunityApplicationForm } from "@/components/CommunityApplicationForm";
 import { Users, Palette, Calendar, Star } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Join the MUA Community — Leish!",
-  description:
-    "Apply to join our professional network of makeup artists. Share your experience, portfolio, and interests to become part of our community.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("communityApplyTitle"),
+    description: t("communityApplyDescription"),
+  };
+}
 
 const perks = [
   {

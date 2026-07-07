@@ -4,6 +4,7 @@ import { Star, MapPin, Users, ArrowLeft, Wifi, Car, Crown, Coffee } from "lucide
 import { db } from "@/db";
 import { studios } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
 type Props = {
@@ -47,9 +48,11 @@ async function findStudio(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const studio = await findStudio(id);
-  if (!studio) return { title: "Studio Not Found — Leish!" };
+  const t = await getTranslations("studioDetail");
+  const m = await getTranslations("metadata");
+  if (!studio) return { title: t("detailNotFound") };
   return {
-    title: `${studio.name} — Leish!`,
+    title: `${studio.name} — ${m("brand")}`,
     description: studio.description,
   };
 }
