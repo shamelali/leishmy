@@ -1,5 +1,6 @@
 import { sendEmail } from "./brevo";
 import { bookingConfirmationTemplate, providerNewBookingTemplate } from "./templates";
+import { getEmailAlias } from "@/lib/constants";
 
 export async function sendBookingConfirmationEmail(params: {
   email: string;
@@ -27,6 +28,7 @@ export async function sendBookingConfirmationEmail(params: {
     subject: template.subject,
     html: template.html,
     text: template.text,
+    from: getEmailAlias("notifications"),
   });
 }
 
@@ -52,5 +54,6 @@ export async function sendProviderNewBookingEmail(params: {
     subject: template.subject,
     html: template.html,
     text: template.text,
+    from: getEmailAlias("notifications"),
   });
 }
