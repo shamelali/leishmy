@@ -15,7 +15,6 @@ export interface Artist {
   bio: string;
   portfolio: string[];
   featured: boolean;
-  demo: boolean;
 }
 
 export interface Category {
@@ -32,8 +31,6 @@ export interface Testimonial {
   role: string;
   rating: number;
 }
-
-;
 
 export const categories: Category[] = [
   {

@@ -6,6 +6,8 @@ export {
   sendProviderNewBookingEmail,
 } from "./booking-confirmation";
 export { sendPaymentReceiptEmail } from "./payment-receipt";
+export { sendSubscriptionCreatedEmail } from "./subscription-created";
+export { sendSubscriptionCanceledEmail } from "./subscription-canceled";
 export {
   bookingConfirmationTemplate,
   bookingReminderTemplate,

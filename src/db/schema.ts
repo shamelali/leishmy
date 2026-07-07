@@ -499,6 +499,48 @@ export const loyaltyPoints = pgTable(
   (table) => [index("loyalty_points_user_idx").on(table.userId)],
 );
 
+export const subscriptionPlans = pgTable(
+  "subscription_plans",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull().unique(),
+    description: text("description"),
+    price: integer("price").notNull(),
+    currency: varchar("currency", { length: 10 }).default("MYR"),
+    durationDays: integer("duration_days").notNull().default(30),
+    features: jsonb("features").$type<string[]>().default([]),
+    popular: boolean("popular").default(false),
+    active: boolean("active").default(true),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+);
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => subscriptionPlans.id, { onDelete: "restrict" }),
+    status: varchar("status", { length: 50 }).notNull().default("pending"),
+    currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
+    currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
+    billplzBillId: varchar("billplz_bill_id", { length: 255 }),
+    cancelledAt: timestamp("cancelled_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("subscriptions_user_idx").on(table.userId),
+    index("subscriptions_status_idx").on(table.status),
+  ],
+);
+
 export const loyaltyTransactions = pgTable(
   "loyalty_transactions",
   {
