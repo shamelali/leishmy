@@ -11,6 +11,18 @@ function getConnection() {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is required");
     const pool = new Pool({ connectionString: url });
+
+    // Neon (and most serverless Postgres proxies) close idle connections
+    // server-side. Without this handler, that shows up as an *uncaught*
+    // "Connection terminated unexpectedly" error that crashes the whole
+    // function invocation instead of just failing the one query that hit
+    // the dead connection. Swallow it here, and drop the cached pool so
+    // the next request builds a fresh one instead of reusing a dead one.
+    pool.on("error", (err) => {
+      console.error("[db] idle client error:", err.message);
+      globalForDb.__db = undefined;
+    });
+
     globalForDb.__db = { pool, drizzle: drizzle(pool) };
   }
   return globalForDb.__db;
