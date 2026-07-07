@@ -23,7 +23,6 @@ const envSchema = z.object({
   NEON_AUTH_BASE_URL: z.string().min(1, "NEON_AUTH_BASE_URL is required").optional(),
   NEON_AUTH_COOKIE_SECRET: z.string().min(32, "NEON_AUTH_COOKIE_SECRET must be at least 32 characters").optional(),
   NEXT_PUBLIC_NEON_AUTH_BASE_URL: z.string().optional(),
-  NEXT_PUBLIC_NEON_DATA_API_URL: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).optional(),
