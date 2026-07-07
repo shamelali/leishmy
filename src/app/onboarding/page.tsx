@@ -61,7 +61,10 @@ export default function OnboardingPage() {
           setChecking(false);
         }
       })
-      .catch(() => setChecking(false));
+      .catch((err) => {
+        console.warn("[Onboarding] profile check failed:", err);
+        setChecking(false);
+      });
   }, [session, isPending, router]);
 
   const toggleSpecialty = (item: string) => {

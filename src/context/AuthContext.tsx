@@ -41,6 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       const res = await fetch(`/api/user?userId=${userId}`);
+      if (!res.ok) {
+        console.warn(`[Auth] fetchProfile returned ${res.status}: ${res.statusText}`);
+        return;
+      }
       const data = await res.json();
       if (data?.user) {
         setProfile({
@@ -52,7 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           specialties: data.user.specialties || [],
         });
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[Auth] fetchProfile error:", err);
+    }
   };
 
   useEffect(() => {
