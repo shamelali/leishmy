@@ -4,6 +4,10 @@ import { users, favorites, notifications, bookings, artists, studios, categories
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
+import { isAllowedImageUrl } from "@/lib/utils/upload-url";
+
+const MAX_PORTFOLIO_ITEMS = 12;
+const MAX_URL_LENGTH = 500;
 
 export async function GET(request: NextRequest) {
   try {
@@ -448,7 +452,33 @@ export async function POST(request: NextRequest) {
       }
 
       if (body.portfolio !== undefined) {
-        updateData.portfolio = Array.isArray(body.portfolio) ? body.portfolio : [];
+        if (!Array.isArray(body.portfolio)) {
+          return NextResponse.json(
+            { error: "portfolio must be an array of URLs" },
+            { status: 400 },
+          );
+        }
+        if (body.portfolio.length > MAX_PORTFOLIO_ITEMS) {
+          return NextResponse.json(
+            { error: `portfolio can contain at most ${MAX_PORTFOLIO_ITEMS} items` },
+            { status: 400 },
+          );
+        }
+        for (const url of body.portfolio) {
+          if (typeof url !== "string" || url.length > MAX_URL_LENGTH) {
+            return NextResponse.json(
+              { error: "Each portfolio item must be a string URL under 500 characters" },
+              { status: 400 },
+            );
+          }
+          if (!isAllowedImageUrl(url)) {
+            return NextResponse.json(
+              { error: "Portfolio URLs must be HTTPS and on an allowlisted host" },
+              { status: 400 },
+            );
+          }
+        }
+        updateData.portfolio = body.portfolio;
       }
 
       if (Object.keys(updateData).length > 0) {

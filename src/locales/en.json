@@ -881,6 +881,110 @@
     "supportText": "Need help perfecting your profile?",
     "hotline": "Artist Hotline",
     "dashboard": "Artist Dashboard",
-    "footer": "Leish! — Where Artistry Meets Luxury."
+    "footer": "Leish! — Where Artistry Meets Luxury.",
+    "startCta": "Start Profile Wizard",
+    "wizard": {
+      "pageTitle": "Create Your Artist Profile",
+      "pageSubtitle": "Set up your professional presence in five guided steps.",
+      "backToDashboard": "Back to dashboard",
+      "loading": "Loading your profile…",
+      "rejectedTitle": "Profile needs changes",
+      "readonlyNotice": "Your profile is currently under review or already published. Some fields are locked.",
+      "common": {
+        "next": "Continue",
+        "back": "Back",
+        "saveDraft": "Save draft",
+        "submit": "Submit for review",
+        "remove": "Remove",
+        "goToDashboard": "Go to dashboard",
+        "backToHome": "Back to home",
+        "images": "images",
+        "items": "items"
+      },
+      "stepper": {
+        "basics": { "label": "Basics" },
+        "professional": { "label": "Professional" },
+        "portfolio": { "label": "Portfolio" },
+        "services": { "label": "Services" },
+        "review": { "label": "Review" }
+      },
+      "basics": {
+        "heading": "Account & basics",
+        "subtitle": "Tell clients who you are and where you operate.",
+        "name": "Display name",
+        "email": "Email",
+        "phone": "Phone (with country code)",
+        "location": "City",
+        "area": "Area / neighborhood",
+        "district": "District",
+        "profileImage": "Profile image URL",
+        "profileImageHint": "Paste a Cloudinary (or other) URL. We recommend a square headshot."
+      },
+      "professional": {
+        "heading": "Professional details",
+        "subtitle": "Showcase your craft, languages, and the categories you serve.",
+        "bio": "Bio",
+        "bioHint": "40–1000 characters. Highlight your specialty, philosophy, and trust signals.",
+        "experience": "Years of experience",
+        "responseTime": "Typical response time",
+        "categories": "Categories",
+        "specialties": "Specialties",
+        "specialtiesPlaceholder": "e.g. Soft Glam, Airbrush, Bridal",
+        "add": "Add",
+        "languages": "Languages you speak",
+        "operatingDays": "Operating days",
+        "instagram": "Instagram URL",
+        "tiktok": "TikTok URL",
+        "willingToTravel": "I'm willing to travel to clients",
+        "travelCoverage": "Travel coverage"
+      },
+      "portfolio": {
+        "heading": "Portfolio",
+        "subtitle": "Upload 1–12 high-quality images. JPG, PNG, WEBP, or HEIC up to 10 MB each.",
+        "label": "Portfolio images",
+        "hint": "Use consistent lighting. Hero image is shown on your public profile.",
+        "dropzone": "Drag and drop, or click to browse",
+        "dropzoneHint": "Up to 12 images, 10 MB each",
+        "uploading": "Uploading {name}…",
+        "counter": "{current} of {max} images added",
+        "add": "Add",
+        "dismiss": "Dismiss",
+        "errors": {
+          "invalidType": "Only JPG, PNG, WEBP, or HEIC images are allowed.",
+          "tooLarge": "Each image must be 10 MB or smaller.",
+          "maxReached": "You can upload up to 12 images."
+        }
+      },
+      "services": {
+        "heading": "Services & pricing",
+        "subtitle": "List what you offer. At least one service is required.",
+        "serviceNumber": "Service {number}",
+        "name": "Service name",
+        "price": "Price (RM)",
+        "duration": "Duration (e.g. 90 mins)",
+        "popular": "Mark as popular",
+        "description": "Description",
+        "addService": "Add another service",
+        "startingPrice": "Starting price (RM)",
+        "startingPriceHint": "Shown on cards and search results."
+      },
+      "review": {
+        "heading": "Review & submit",
+        "subtitle": "Check the details, then send your profile for verification.",
+        "acceptTerms": "I agree to the Leish! Artist Terms and Code of Conduct.",
+        "acceptVerification": "I consent to identity and portfolio verification before my profile is published.",
+        "submittedTitle": "Profile submitted!",
+        "submittedText": "Our team typically reviews new artist profiles within 1–3 business days. We'll notify you by email.",
+        "rows": {
+          "name": "Name",
+          "email": "Email",
+          "location": "Location",
+          "experience": "Experience",
+          "bio": "Bio",
+          "portfolio": "Portfolio",
+          "services": "Services"
+        }
+      }
+    }
   }
 }

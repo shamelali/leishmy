@@ -275,6 +275,14 @@ export default function ArtistOnboarding() {
           <p className="text-white/80 text-sm mb-4">
             {t("supportText")}
           </p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <Link
+              href="/artist-onboarding/create"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-rose-600 rounded-xl text-sm font-semibold hover:bg-rose-50 transition-colors"
+            >
+              <ClipboardList className="w-4 h-4" /> {t("startCta")}
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-4">
             <a
               href="https://wa.me/601137633788"

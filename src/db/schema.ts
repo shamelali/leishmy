@@ -89,6 +89,15 @@ export const categories = pgTable(
   (table) => [uniqueIndex("categories_slug_idx").on(table.slug)],
 );
 
+export const artistStatusValues = [
+  "draft",
+  "pending_verification",
+  "verified",
+  "rejected",
+  "suspended",
+] as const;
+export type ArtistStatus = (typeof artistStatusValues)[number];
+
 export const artists = pgTable(
   "artists",
   {
@@ -100,6 +109,7 @@ export const artists = pgTable(
     phone: varchar("phone", { length: 50 }),
     location: varchar("location", { length: 255 }),
     area: varchar("area", { length: 100 }),
+    district: varchar("district", { length: 100 }),
     rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
     reviewCount: integer("review_count").default(0),
     bio: text("bio"),
@@ -110,6 +120,15 @@ export const artists = pgTable(
     languages: text("languages").array(),
     responseTime: varchar("response_time", { length: 50 }),
     price: decimal("price", { precision: 10, scale: 2 }).default("0"),
+    specialties: jsonb("specialties").$type<string[]>().default([]),
+    instagramUrl: varchar("instagram_url", { length: 500 }),
+    tiktokUrl: varchar("tiktok_url", { length: 500 }),
+    willingToTravel: boolean("willing_to_travel").default(false),
+    travelCoverage: varchar("travel_coverage", { length: 50 }),
+    operatingDays: jsonb("operating_days").$type<string[]>().default([]),
+    onboardingStep: integer("onboarding_step").default(0).notNull(),
+    status: varchar("status", { length: 32 }).default("draft").notNull(),
+    rejectionReason: text("rejection_reason"),
     userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
     studioId: integer("studio_id").references(() => studios.id, {
       onDelete: "set null",
@@ -117,6 +136,10 @@ export const artists = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
   },
+  (table) => [
+    index("artists_status_idx").on(table.status),
+    index("artists_user_id_idx").on(table.userId),
+  ],
 );
 
 export const artistCategories = pgTable(
