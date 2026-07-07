@@ -1,5 +1,6 @@
 import { sendEmail } from "./brevo";
 import { paymentReceiptTemplate } from "./templates";
+import { getEmailAlias } from "@/lib/constants";
 
 export async function sendPaymentReceiptEmail(params: {
   email: string;
@@ -21,5 +22,6 @@ export async function sendPaymentReceiptEmail(params: {
     subject: template.subject,
     html: template.html,
     text: template.text,
+    from: getEmailAlias("billing"),
   });
 }
