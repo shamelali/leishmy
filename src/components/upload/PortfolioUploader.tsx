@@ -22,7 +22,6 @@ type SignResponse = {
   timestamp: number;
   signature: string;
   folder: string;
-  eager: string;
   allowedFormats: string[];
   maxFileSize: number;
   resourceType: "image" | "video";
@@ -170,7 +169,6 @@ export function PortfolioUploader({
       form.append("timestamp", String(sign.timestamp));
       form.append("signature", sign.signature);
       form.append("folder", sign.folder);
-      form.append("eager", sign.eager);
       form.append("allowed_formats", sign.allowedFormats.join(","));
       form.append("max_file_size", String(sign.maxFileSize));
 
