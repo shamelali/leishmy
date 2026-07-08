@@ -176,7 +176,14 @@ export function PortfolioUploader({
 
       const uploadRes = await fetch(sign.uploadUrl, { method: "POST", body: form });
       if (!uploadRes.ok) {
-        throw new Error("Upload failed");
+        // Read the response body so users (and we) can see why Cloudinary
+        // rejected the upload. Without this, every failure looks the same.
+        const body = (await uploadRes.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        const msg =
+          body?.error?.message || `Upload failed (HTTP ${uploadRes.status})`;
+        throw new Error(msg);
       }
       const data = (await uploadRes.json()) as {
         secure_url: string;

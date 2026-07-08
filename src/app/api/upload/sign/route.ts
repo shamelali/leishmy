@@ -66,20 +66,20 @@ export async function POST(request: NextRequest) {
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const eagerTransforms =
-    resourceType === "image"
-      ? "f_auto,q_auto,w_1600,c_limit"
-      : "f_auto,q_auto";
 
   // Server-enforced ceiling: client may ask for a smaller cap, never larger.
   const serverCap = resourceType === "image" ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
   const effectiveCap =
     maxBytes !== undefined ? Math.min(maxBytes, serverCap) : serverCap;
 
+  // We deliberately do NOT include an `eager` transform. Eager transforms
+  // run synchronously during upload and can fail the entire upload if the
+  // source image is unusual (e.g. tiny, no width metadata, or some HEIC
+  // variants). Format/quality negotiation is handled on delivery by
+  // Cloudinary's CDN when the URL is fetched with f_auto/q_auto.
   const params: Record<string, string | number> = {
     timestamp,
     folder: userScopedFolder,
-    eager: eagerTransforms,
   };
 
   const allowedFormats =
@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
     timestamp,
     signature,
     folder: userScopedFolder,
-    eager: eagerTransforms,
     allowedFormats,
     maxFileSize: effectiveCap,
     resourceType,

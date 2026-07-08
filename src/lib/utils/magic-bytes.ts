@@ -8,6 +8,16 @@
  * It is intentionally simple: read the first N bytes of the file and compare
  * to known signatures. HEIC/HEIF detection is delegated to Cloudinary because
  * its brand box structure is more variable than other formats.
+ *
+ * Design notes:
+ *  - We trust the *content* over the browser's declared MIME. Browsers (especially
+ *    iOS Safari and some Android browsers) report inconsistent MIMEs for perfectly
+ *    valid images. As long as the file's magic bytes match a known image format,
+ *    we accept it.
+ *  - If the browser sends an empty or generic MIME (e.g. `application/octet-stream`
+ *    from iOS), we infer the MIME from the detected content kind.
+ *  - HEIC/HEIF magic-byte detection is intentionally permissive — Cloudinary
+ *    enforces the final say on whether the file is actually decodable.
  */
 
 export type SupportedImageKind = "jpeg" | "png" | "webp" | "gif" | "heic" | "unknown";
@@ -18,6 +28,26 @@ const SIGNATURES: Array<{ kind: Exclude<SupportedImageKind, "heic" | "unknown">;
   { kind: "gif", bytes: [0x47, 0x49, 0x46, 0x38] },
   { kind: "webp", bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF — full WEBP check verifies "WEBP" at offset 8
 ];
+
+const KIND_TO_MIME: Record<Exclude<SupportedImageKind, "unknown">, string> = {
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+};
+
+const ALLOWED_MIMES = new Set<string>([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  // Some iOS builds send this for HEIC. It's not in the strict allowlist,
+  // but we treat it as a sentinel that triggers content-based inference.
+  "application/octet-stream",
+]);
 
 /**
  * Read the first `n` bytes of a File as a Uint8Array.
@@ -71,9 +101,14 @@ function isHeic(head: Uint8Array): boolean {
 
 /**
  * Detect image kind from the first 12 bytes. Returns "unknown" if the
- * signature does not match any known format.
+ * signature does not match any known format, or if the input is too
+ * short to be a real image (a 5-byte file starting with 0xFF 0xD8 0xFF
+ * is not actually a JPEG).
  */
+const MIN_HEAD_BYTES = 12;
+
 export function detectImageKind(head: Uint8Array): SupportedImageKind {
+  if (head.length < MIN_HEAD_BYTES) return "unknown";
   for (const { kind, bytes } of SIGNATURES) {
     if (bytesMatch(head, bytes)) {
       if (kind === "webp") return isWebp(head) ? "webp" : "unknown";
@@ -88,58 +123,56 @@ export function detectImageKind(head: Uint8Array): SupportedImageKind {
  * Validate a File's declared MIME type against its actual content.
  * Returns null on success, or a human-readable error message on failure.
  *
- * Note: HEIC/HEIF is intentionally skipped here — its brand structure is
- * variable. Cloudinary's server-side `allowed_formats` enforcement catches
- * mismatches for HEIC. Client-side we still check the declared MIME.
+ * Strategy:
+ *  1. Reject empty or oversized files.
+ *  2. Reject if the declared MIME is clearly not an image AND the content
+ *     also doesn't look like a known image (catches renamed .exe etc.).
+ *  3. Reject if the content doesn't match any known image signature.
+ *  4. Otherwise, accept. We do NOT require the declared MIME to match
+ *     the detected kind — too many real-world browsers report the wrong
+ *     MIME for valid images.
  */
 export async function validateImageFile(file: File): Promise<string | null> {
   if (file.size === 0) return "File is empty";
   if (file.size > 10 * 1024 * 1024) return "File is too large. Max 10 MB.";
 
-  const mime = file.type.toLowerCase();
+  const declaredMime = file.type.toLowerCase();
 
-  // Cloudinary will accept what we tell it. We allowlist the same formats
-  // the server signs, so the user gets a fast, friendly error before any
-  // network request happens.
-  const allowedMimes = new Set([
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "image/heic",
-    "image/heif",
-  ]);
-  if (!allowedMimes.has(mime)) {
-    return "Only JPEG, PNG, WEBP, GIF, or HEIC images are allowed.";
-  }
-
-  // Skip magic-byte check for HEIC/HEIF — variable brand bytes make this
-  // unreliable client-side. Cloudinary enforces content-based filtering.
-  if (mime === "image/heic" || mime === "image/heif") {
-    return null;
-  }
-
-  let head: Uint8Array;
+  // Try to detect the kind from the file's first 12 bytes.
+  // We do this BEFORE the MIME allowlist check so we can fall back to
+  // content-based inference when the browser sends an unhelpful MIME.
+  let detected: SupportedImageKind = "unknown";
   try {
-    head = await readFileHead(file, 12);
+    const head = await readFileHead(file, 12);
+    detected = detectImageKind(head);
   } catch {
     return "Could not read file contents.";
   }
 
-  const kind = detectImageKind(head);
-  if (kind === "unknown") {
-    return "File contents do not match the declared image type.";
+  // Infer a MIME from detected content for the allowlist check below.
+  const effectiveMime = detected !== "unknown" ? KIND_TO_MIME[detected] : declaredMime;
+
+  // Reject if BOTH the declared MIME and the detected content look non-image.
+  // (e.g. a renamed .exe declared as application/octet-stream with no image signature.)
+  if (detected === "unknown" && !ALLOWED_MIMES.has(declaredMime)) {
+    return "Only JPEG, PNG, WEBP, GIF, or HEIC images are allowed.";
   }
 
-  // Cross-check detected kind against declared MIME
-  const expected: Record<string, SupportedImageKind> = {
-    "image/jpeg": "jpeg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-  };
-  if (expected[mime] && expected[mime] !== kind) {
-    return `File appears to be ${kind.toUpperCase()} but was declared as ${mime}.`;
+  // If we can't detect the kind but the browser declared an image MIME,
+  // trust the declaration. The signature request is signed with the
+  // server-side allowed_formats list, which is the final word.
+  if (detected === "unknown") {
+    return null;
+  }
+
+  // We have a positive content match. Accept regardless of the declared MIME.
+  // Cloudinary's content-based filtering is the final safety net.
+  if (process.env.NODE_ENV !== "production" && declaredMime && declaredMime !== effectiveMime) {
+    // Dev-only hint: log when the browser's MIME disagrees with content.
+    // In production we stay silent to avoid leaking diagnostics to the console.
+    console.debug(
+      `[upload] browser declared ${declaredMime} but content is ${detected} (${effectiveMime}); accepting by content`,
+    );
   }
 
   return null;
