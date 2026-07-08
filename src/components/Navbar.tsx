@@ -62,12 +62,6 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/community/apply"
-              className="text-sm font-semibold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-4 py-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-            >
-              {"Join as Artist"}
-            </Link>
           </nav>
 
           {/* Right Actions */}

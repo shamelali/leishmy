@@ -126,6 +126,8 @@ export const artists = pgTable(
     willingToTravel: boolean("willing_to_travel").default(false),
     travelCoverage: varchar("travel_coverage", { length: 50 }),
     operatingDays: jsonb("operating_days").$type<string[]>().default([]),
+    certifications: text("certifications"),
+    availability: text("availability"),
     onboardingStep: integer("onboarding_step").default(0).notNull(),
     status: varchar("status", { length: 32 }).default("draft").notNull(),
     rejectionReason: text("rejection_reason"),

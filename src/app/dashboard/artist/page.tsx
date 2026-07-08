@@ -18,10 +18,15 @@ import {
   User,
   Sparkles,
   Image,
+  AtSign,
+  Award,
+  Languages,
+  Tag,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
+import { ArtistProfileEditForm, type ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 
 interface Payout {
   id: string;
@@ -78,27 +83,25 @@ export default function DashboardArtist() {
 
   const [fetchError, setFetchError] = useState("");
   const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ArtistProfileEditValues>({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    area: "",
+    district: "",
     bio: "",
     experience: 0,
-    languages: [] as string[],
+    languages: [],
+    specialties: [],
+    portfolio: [],
     responseTime: "",
     price: 0,
-    portfolio: [] as string[],
-    location: "",
-    phone: "",
-  });
-  const [profileForm, setProfileForm] = useState({
-    bio: "",
-    experience: 0,
-    languages: "",
-    responseTime: "",
-    price: 0,
-    portfolio: "",
-    location: "",
-    phone: "",
+    certifications: "",
+    availability: "",
+    availabilityNotes: "",
+    socialProfiles: "",
   });
 
   useEffect(() => {
@@ -142,16 +145,29 @@ export default function DashboardArtist() {
           const profileData = await profileRes.json();
           const a = profileData.artist;
           if (a) {
-            setProfile(a);
-            setProfileForm({
+            const social = [
+              a.instagramUrl || "",
+              a.tiktokUrl || "",
+            ].filter(Boolean).join("\n");
+
+            setProfile({
+              name: a.name || user.name || "",
+              email: a.email || user.email || "",
+              phone: a.phone || "",
+              location: a.location || "",
+              area: a.area || "",
+              district: a.district || "",
               bio: a.bio || "",
               experience: a.experience || 0,
-              languages: (a.languages || []).join(", "),
+              languages: a.languages || [],
+              specialties: a.specialties || [],
+              portfolio: a.portfolio || [],
               responseTime: a.responseTime || "",
               price: a.price || 0,
-              portfolio: (a.portfolio || []).join("\n"),
-              location: a.location || "",
-              phone: a.phone || "",
+              certifications: a.certifications || "",
+              availability: a.availability || "",
+              availabilityNotes: a.availability || "",
+              socialProfiles: social,
             });
           }
         }
@@ -218,52 +234,10 @@ export default function DashboardArtist() {
     );
   };
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id) return;
-    setProfileSaving(true);
-    setProfileMsg("");
-    try {
-      const res = await fetch(`/api/user?action=artist-profile&userId=${user.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bio: profileForm.bio,
-          experience: Number(profileForm.experience) || 0,
-          languages: profileForm.languages
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          responseTime: profileForm.responseTime,
-          price: Number(profileForm.price) || 0,
-          portfolio: profileForm.portfolio
-            .split("\n")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          location: profileForm.location,
-          phone: profileForm.phone,
-        }),
-      });
-      if (res.ok) {
-        setProfileMsg("Profile updated successfully");
-        setShowProfileEdit(false);
-        setProfile({
-          bio: profileForm.bio,
-          experience: Number(profileForm.experience) || 0,
-          languages: profileForm.languages.split(",").map((s) => s.trim()).filter(Boolean),
-          responseTime: profileForm.responseTime,
-          price: Number(profileForm.price) || 0,
-          portfolio: profileForm.portfolio.split("\n").map((s) => s.trim()).filter(Boolean),
-          location: profileForm.location,
-          phone: profileForm.phone,
-        });
-      } else {
-        setProfileMsg("Failed to update profile");
-      }
-    } catch {
-      setProfileMsg("Failed to update profile");
-    }
-    setProfileSaving(false);
+  const handleProfileSaved = (values: ArtistProfileEditValues) => {
+    setProfile(values);
+    setProfileMsg("Profile updated successfully");
+    setTimeout(() => setShowProfileEdit(false), 1200);
   };
 
   if (loading) {
@@ -360,142 +334,125 @@ export default function DashboardArtist() {
           )}
 
           {!showProfileEdit ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Bio</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio || "Not set"}</p>
+            <div className="space-y-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Display Name</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.name || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Email</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 break-all">{profile.email || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Phone</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.phone || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Location</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {[profile.district, profile.area, profile.location].filter(Boolean).join(", ") || "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Experience</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.experience} years</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Hourly Rate</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">MYR {profile.price}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Response Time</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.responseTime || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Availability</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {profile.availability
+                      ? profile.availability
+                          .replace(/weekdays/gi, "Weekdays")
+                          .replace(/weekends/gi, "Weekends")
+                          .replace(/both/gi, "Weekdays & Weekends")
+                          .replace(/evenings/gi, "Evenings only")
+                          .replace(/flexible/gi, "Flexible / By appointment")
+                          .replace(/custom/gi, "Custom")
+                      : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Portfolio Items</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.portfolio.length} item(s)</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Experience</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{profile.experience} years</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Hourly Rate</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">MYR {profile.price}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Response Time</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{profile.responseTime || "Not set"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Languages</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{profile.languages.join(", ") || "Not set"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Portfolio Items</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{profile.portfolio.length} images</p>
-              </div>
+
+              {profile.bio && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Bio</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{profile.bio}</p>
+                </div>
+              )}
+
+              {(profile.languages.length > 0 || profile.specialties.length > 0) && (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {profile.languages.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
+                        <Languages className="w-3.5 h-3.5" /> Languages
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.languages.map((l) => (
+                          <span key={l} className="px-2 py-0.5 text-xs font-medium rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-100 dark:border-rose-900/50">
+                            {l}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {profile.specialties.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5" /> Specialties
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.specialties.map((s) => (
+                          <span key={s} className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/50">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {profile.certifications && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5" /> Certifications & Training
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{profile.certifications}</p>
+                </div>
+              )}
+
+              {profile.socialProfiles && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                    <AtSign className="w-3.5 h-3.5" /> Social Profiles
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line break-all">{profile.socialProfiles}</p>
+                </div>
+              )}
             </div>
           ) : (
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Bio</label>
-                <textarea
-                  value={profileForm.bio}
-                  onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  placeholder="Tell clients about yourself..."
-                />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Experience (years)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={profileForm.experience}
-                    onChange={(e) => setProfileForm({ ...profileForm, experience: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Hourly Rate (MYR)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={profileForm.price}
-                    onChange={(e) => setProfileForm({ ...profileForm, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Response Time</label>
-                  <select
-                    value={profileForm.responseTime}
-                    onChange={(e) => setProfileForm({ ...profileForm, responseTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  >
-                    <option value="">Select...</option>
-                    <option value="< 1hr">{"< 1hr"}</option>
-                    <option value="< 2hr">{"< 2hr"}</option>
-                    <option value="< 3hr">{"< 3hr"}</option>
-                    <option value="< 6hr">{"< 6hr"}</option>
-                    <option value="< 24hr">{"< 24hr"}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Languages (comma-separated)</label>
-                  <input
-                    type="text"
-                    value={profileForm.languages}
-                    onChange={(e) => setProfileForm({ ...profileForm, languages: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                    placeholder="English, Malay, Mandarin"
-                  />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</label>
-                  <input
-                    type="text"
-                    value={profileForm.location}
-                    onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                    placeholder="Kuala Lumpur, Malaysia"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                    placeholder="+60 12-345 6789"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Portfolio URLs (one per line)</label>
-                <textarea
-                  value={profileForm.portfolio}
-                  onChange={(e) => setProfileForm({ ...profileForm, portfolio: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={profileSaving}
-                  className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors disabled:opacity-50"
-                >
-                  {profileSaving ? "Saving..." : "Save Profile"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowProfileEdit(false)}
-                  className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            <ArtistProfileEditForm
+              initial={profile}
+              onSaved={handleProfileSaved}
+              onCancel={() => {
+                setShowProfileEdit(false);
+                setProfileMsg("");
+              }}
+            />
           )}
         </div>
 

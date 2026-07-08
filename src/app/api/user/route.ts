@@ -97,32 +97,47 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "artist-profile") {
-      const [artist] = await db
-        .select()
+      const [row] = await db
+        .select({
+          artist: artists,
+          userName: users.name,
+          userEmail: users.email,
+        })
         .from(artists)
+        .leftJoin(users, eq(users.id, artists.userId))
         .where(eq(artists.userId, userId))
         .limit(1);
 
-      if (!artist) {
+      if (!row || !row.artist) {
         return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
       }
+
+      const artist = row.artist;
 
       return NextResponse.json({
         artist: {
           id: String(artist.id),
-          name: artist.name,
+          name: row.userName || artist.name,
+          email: row.userEmail || artist.email || "",
           slug: artist.slug,
           image: artist.image || "",
           phone: artist.phone || "",
           location: artist.location || "",
+          area: artist.area || "",
+          district: artist.district || "",
           bio: artist.bio || "",
           experience: artist.experience || 0,
           languages: artist.languages || [],
+          specialties: (artist.specialties as string[] | null) || [],
           responseTime: artist.responseTime || "",
           price: Number(artist.price) || 0,
           portfolio: artist.portfolio || [],
           verified: artist.verified || false,
           available: artist.available ?? true,
+          instagramUrl: artist.instagramUrl || "",
+          tiktokUrl: artist.tiktokUrl || "",
+          certifications: artist.certifications || "",
+          availability: artist.availability || "",
         },
       });
     }
@@ -446,9 +461,71 @@ export async function POST(request: NextRequest) {
         "price",
         "location",
         "phone",
+        "area",
+        "district",
+        "specialties",
+        "instagramUrl",
+        "tiktokUrl",
+        "certifications",
+        "availability",
       ];
       for (const field of allowedFields) {
         if (body[field] !== undefined) updateData[field] = body[field];
+      }
+
+      if (body.specialties !== undefined) {
+        if (!Array.isArray(body.specialties)) {
+          return NextResponse.json(
+            { error: "specialties must be an array of strings" },
+            { status: 400 },
+          );
+        }
+        if (
+          body.specialties.some(
+            (s: unknown) => typeof s !== "string" || s.length > 60,
+          )
+        ) {
+          return NextResponse.json(
+            { error: "Each specialty must be a string under 60 characters" },
+            { status: 400 },
+          );
+        }
+        updateData.specialties = body.specialties;
+      }
+
+      if (body.languages !== undefined) {
+        if (!Array.isArray(body.languages)) {
+          return NextResponse.json(
+            { error: "languages must be an array of strings" },
+            { status: 400 },
+          );
+        }
+        if (
+          body.languages.some(
+            (s: unknown) => typeof s !== "string" || s.length > 40,
+          )
+        ) {
+          return NextResponse.json(
+            { error: "Each language must be a string under 40 characters" },
+            { status: 400 },
+          );
+        }
+        updateData.languages = body.languages;
+      }
+
+      for (const urlField of ["instagramUrl", "tiktokUrl"] as const) {
+        if (body[urlField] !== undefined && body[urlField] !== "") {
+          if (
+            typeof body[urlField] !== "string" ||
+            body[urlField].length > MAX_URL_LENGTH ||
+            !isAllowedImageUrl(body[urlField])
+          ) {
+            return NextResponse.json(
+              { error: `${urlField} must be a valid HTTPS URL on an allowlisted host` },
+              { status: 400 },
+            );
+          }
+        }
       }
 
       if (body.portfolio !== undefined) {
@@ -481,12 +558,31 @@ export async function POST(request: NextRequest) {
         updateData.portfolio = body.portfolio;
       }
 
+      const userUpdateData: Record<string, unknown> = {};
+      if (typeof body.name === "string" && body.name.trim()) {
+        userUpdateData.name = body.name.trim().slice(0, 255);
+      }
+      if (
+        typeof body.email === "string" &&
+        body.email.trim() &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())
+      ) {
+        userUpdateData.email = body.email.trim().toLowerCase().slice(0, 255);
+      }
+
       if (Object.keys(updateData).length > 0) {
         updateData.updatedAt = new Date();
         await db
           .update(artists)
           .set(updateData)
           .where(eq(artists.userId, userId));
+      }
+
+      if (Object.keys(userUpdateData).length > 0) {
+        await db
+          .update(users)
+          .set(userUpdateData)
+          .where(eq(users.id, userId));
       }
 
       return NextResponse.json({ success: true });

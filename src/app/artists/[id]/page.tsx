@@ -8,10 +8,14 @@ import {
   ArrowLeft,
   Languages,
   Palette,
+  AtSign,
+  Award,
+  CalendarDays,
+  ExternalLink,
 } from "lucide-react";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
@@ -19,6 +23,19 @@ import type { Metadata } from "next";
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+function formatAvailability(value: string): string {
+  if (!value) return "";
+  const map: Record<string, string> = {
+    weekdays: "Weekdays only",
+    weekends: "Weekends only",
+    both: "Weekdays & Weekends",
+    evenings: "Evenings only",
+    flexible: "Flexible / By appointment",
+    custom: "Custom schedule",
+  };
+  return map[value.toLowerCase()] || value;
+}
 
 async function findArtist(slug: string) {
   try {
@@ -38,16 +55,22 @@ async function findArtist(slug: string) {
         slug: a.slug,
         image: a.image || "/placeholder.svg",
         location: a.location || "",
+        area: a.area || "",
+        district: a.district || "",
         rating: Number(a.rating) || 0,
         reviewCount: a.reviewCount || 0,
         price: Number(a.price) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
         categories: categoryLinks.map((l) => l.categoryName),
-        specialties: [] as string[],
+        specialties: ((a.specialties as string[] | null) || []) as string[],
         languages: (a.languages || []) as string[],
         bio: a.bio || "",
         portfolio: (a.portfolio || []) as string[],
+        instagramUrl: a.instagramUrl || "",
+        tiktokUrl: a.tiktokUrl || "",
+        certifications: a.certifications || "",
+        availability: a.availability || "",
         featured: false,
       };
     }
@@ -122,61 +145,114 @@ export default async function ArtistDetailPage({ params }: Props) {
             </div>
 
             {/* Info cards */}
-            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <MapPin className="w-5 h-5 text-rose-500 mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
-                <p className="font-semibold text-gray-900 dark:text-white">{artist.location}</p>
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  {[artist.district, artist.area, artist.location].filter(Boolean).join(", ") || "—"}
+                </p>
               </div>
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <Clock className="w-5 h-5 text-rose-500 mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">Response Time</p>
-                <p className="font-semibold text-gray-900 dark:text-white">{artist.responseTime}</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{artist.responseTime || "—"}</p>
               </div>
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <Palette className="w-5 h-5 text-rose-500 mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">Starting From</p>
                 <p className="font-semibold text-gray-900 dark:text-white">MYR {artist.price}/hr</p>
               </div>
+              <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
+                <CalendarDays className="w-5 h-5 text-rose-500 mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">Availability</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{formatAvailability(artist.availability) || "—"}</p>
+              </div>
             </div>
 
             {/* Bio */}
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">About</h2>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{artist.bio}</p>
-            </div>
+            {artist.bio && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">About</h2>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{artist.bio}</p>
+              </div>
+            )}
 
             {/* Specialties */}
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Specialties</h2>
-              <div className="flex flex-wrap gap-2">
-                {artist.specialties.map((s) => (
-                  <span
-                    key={s}
-                    className="px-4 py-2 text-sm font-medium bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-100 dark:border-rose-900/50"
-                  >
-                    {s}
-                  </span>
-                ))}
+            {artist.specialties.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Specialties</h2>
+                <div className="flex flex-wrap gap-2">
+                  {artist.specialties.map((s) => (
+                    <span
+                      key={s}
+                      className="px-4 py-2 text-sm font-medium bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-100 dark:border-rose-900/50"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Languages */}
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Languages className="w-5 h-5 text-rose-500" /> Languages
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {artist.languages.map((lang) => (
-                  <span
-                    key={lang}
-                    className="px-4 py-2 text-sm font-medium bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-neutral-700"
-                  >
-                    {lang}
-                  </span>
-                ))}
+            {artist.languages.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Languages className="w-5 h-5 text-rose-500" /> Languages
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {artist.languages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="px-4 py-2 text-sm font-medium bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-neutral-700"
+                    >
+                      {lang}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Certifications */}
+            {artist.certifications && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-rose-500" /> Certifications & Training
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {artist.certifications}
+                </p>
+              </div>
+            )}
+
+            {/* Social */}
+            {(artist.instagramUrl || artist.tiktokUrl) && (
+              <div className="mb-8 flex flex-wrap gap-3">
+                {artist.instagramUrl && (
+                  <a
+                    href={artist.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <AtSign className="w-4 h-4" /> Instagram
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                  </a>
+                )}
+                {artist.tiktokUrl && (
+                  <a
+                    href={artist.tiktokUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    TikTok
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Portfolio */}
             {artist.portfolio.length > 0 && (
