@@ -10,7 +10,7 @@ import { Cloudinary } from "@cloudinary/url-gen";
 import { fill, scale, fit } from "@cloudinary/url-gen/actions/resize";
 import { format, quality } from "@cloudinary/url-gen/actions/delivery";
 import { autoGravity } from "@cloudinary/url-gen/qualifiers/gravity";
-import RoundCornersAction from "@cloudinary/transformation-builder-sdk/actions/roundCorners/RoundCornersAction";
+import { byRadius, max as maxRadius } from "@cloudinary/url-gen/actions/roundCorners";
 
 let _cld: Cloudinary | null = null;
 
@@ -73,7 +73,7 @@ export function cldImage(publicId: string, options: CldImageOptions = {}): strin
   }
 
   if (radius) {
-    img = img.roundCorners(new RoundCornersAction().max());
+    img = img.roundCorners(byRadius(radius));
   }
 
   if (effect) {

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
+import { limit } from "@/lib/rate-limit";
 
-const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
 
 const MAGIC_BYTES: Record<string, number[][]> = {
   "image/jpeg": [[0xff, 0xd8, 0xff]],
   "image/png": [[0x89, 0x50, 0x4e, 0x47]],
   "image/webp": [[0x52, 0x49, 0x46, 0x46]],
+  "image/gif": [[0x47, 0x49, 0x46, 0x38]],
   "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
 };
 
@@ -29,6 +31,15 @@ export async function POST(request: NextRequest) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     if (!cloudName || !apiKey || !apiSecret) {
       return jsonError("Upload service is not configured", 500);
+    }
+
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+    const rl = await limit(`community-upload:${ip}`);
+    if (!rl.success) {
+      return jsonError("Too many uploads. Please try again later.", 429);
     }
 
     const formData = await request.formData();

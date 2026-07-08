@@ -136,21 +136,54 @@ export function ArtistProfileEditForm({
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/community/upload", {
+      const signRes = await fetch("/api/upload/sign", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: "portfolio",
+          publicIdPrefix: "prof",
+          resourceType: "image",
+        }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Upload failed");
+      if (!signRes.ok) {
+        const err = (await signRes.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error || "Could not start upload");
       }
 
-      const data = await res.json();
-      setPortfolio((prev) => [...prev, data.url]);
+      const sign = (await signRes.json()) as {
+        apiKey: string;
+        timestamp: number;
+        signature: string;
+        folder: string;
+        allowedFormats: string[];
+        maxFileSize: number;
+        uploadUrl: string;
+        publicId?: string;
+      };
+
+      const form = new FormData();
+      form.append("file", file);
+      form.append("api_key", sign.apiKey);
+      form.append("timestamp", String(sign.timestamp));
+      form.append("signature", sign.signature);
+      form.append("folder", sign.folder);
+      form.append("allowed_formats", sign.allowedFormats.join(","));
+      form.append("max_file_size", String(sign.maxFileSize));
+      if (sign.publicId) {
+        form.append("public_id", sign.publicId);
+      }
+
+      const uploadRes = await fetch(sign.uploadUrl, { method: "POST", body: form });
+      if (!uploadRes.ok) {
+        const body = (await uploadRes.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        throw new Error(body?.error?.message || "Upload failed");
+      }
+
+      const data = (await uploadRes.json()) as { secure_url: string };
+      setPortfolio((prev) => [...prev, data.secure_url]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {

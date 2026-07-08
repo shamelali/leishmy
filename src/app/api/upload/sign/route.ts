@@ -97,9 +97,11 @@ export async function POST(request: NextRequest) {
     resourceType === "image" ? ALLOWED_IMAGE_FORMATS : ALLOWED_VIDEO_FORMATS;
   params.allowed_formats = allowedFormats.join(",");
 
+  let publicId: string | undefined;
   if (publicIdPrefix) {
     const safePrefix = publicIdPrefix.replace(/[^a-zA-Z0-9_\-]/g, "");
-    params.public_id = `${safePrefix}_${timestamp}`;
+    publicId = `${safePrefix}_${timestamp}`;
+    params.public_id = publicId;
   }
 
   // Use the Cloudinary SDK's signing helper. It defaults to SHA-1 with
@@ -118,5 +120,6 @@ export async function POST(request: NextRequest) {
     maxFileSize: effectiveCap,
     resourceType,
     uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+    publicId,
   });
 }

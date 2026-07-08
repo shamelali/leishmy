@@ -26,6 +26,7 @@ type SignResponse = {
   maxFileSize: number;
   resourceType: "image" | "video";
   uploadUrl: string;
+  publicId?: string;
 };
 
 type PendingUpload = {
@@ -108,6 +109,7 @@ export function PortfolioUploader({
 }: PortfolioUploaderProps) {
   const t = useTranslations("artistOnboarding.wizard.portfolio");
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const [pending, setPending] = useState<PendingUpload[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -127,8 +129,10 @@ export function PortfolioUploader({
   const addUrlInvalid = labels?.addUrlInvalid ?? DEFAULT_LABELS.addUrlInvalid;
 
   useEffect(() => {
+    const controllers = abortControllersRef.current;
     return () => {
       pending.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      controllers.forEach((controller) => controller.abort());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -153,6 +157,8 @@ export function PortfolioUploader({
 
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const previewUrl = URL.createObjectURL(file);
+    const controller = new AbortController();
+    abortControllersRef.current.set(id, controller);
     setPending((p) => [...p, { id, previewUrl, name: file.name, status: "uploading" }]);
     setProgress(file.name);
 
@@ -165,6 +171,7 @@ export function PortfolioUploader({
           publicIdPrefix: "p",
           resourceType: "image",
         }),
+        signal: controller.signal,
       });
       if (!signRes.ok) {
         const err = (await signRes.json().catch(() => ({}))) as { error?: string };
@@ -180,11 +187,16 @@ export function PortfolioUploader({
       form.append("folder", sign.folder);
       form.append("allowed_formats", sign.allowedFormats.join(","));
       form.append("max_file_size", String(sign.maxFileSize));
+      if (sign.publicId) {
+        form.append("public_id", sign.publicId);
+      }
 
-      const uploadRes = await fetch(sign.uploadUrl, { method: "POST", body: form });
+      const uploadRes = await fetch(sign.uploadUrl, {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
       if (!uploadRes.ok) {
-        // Read the response body so users (and we) can see why Cloudinary
-        // rejected the upload. Without this, every failure looks the same.
         const body = (await uploadRes.json().catch(() => ({}))) as {
           error?: { message?: string };
         };
@@ -205,12 +217,18 @@ export function PortfolioUploader({
       setPending((p) => p.filter((x) => x.id !== id));
       onChange([...value, next]);
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        URL.revokeObjectURL(previewUrl);
+        setPending((p) => p.filter((x) => x.id !== id));
+        return;
+      }
       const message = e instanceof Error ? e.message : "Upload failed";
       setPending((p) =>
         p.map((x) => (x.id === id ? { ...x, status: "error", error: message } : x)),
       );
       onError?.(message);
     } finally {
+      abortControllersRef.current.delete(id);
       setProgress(null);
     }
   }
@@ -231,6 +249,11 @@ export function PortfolioUploader({
   }
 
   function dismissPending(id: string) {
+    const controller = abortControllersRef.current.get(id);
+    if (controller) {
+      controller.abort();
+      abortControllersRef.current.delete(id);
+    }
     setPending((p) => {
       const target = p.find((x) => x.id === id);
       if (target) URL.revokeObjectURL(target.previewUrl);
