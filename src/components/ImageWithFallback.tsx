@@ -40,6 +40,31 @@ function withCloudinaryTransform(
   return src;
 }
 
+/**
+ * Strip any existing Cloudinary transformation so we can retry with the
+ * bare delivery URL. If the original URL is `.../upload/f_auto,q_auto/v123/abc.png`
+ * this returns `.../upload/v123/abc.png`. Non-Cloudinary URLs pass through.
+ *
+ * Used as the second-stage fallback in ImageWithFallback: if a stored URL
+ * has a transform that Cloudinary now rejects (e.g. corrupt source, format
+ * drift), we retry without the transform before giving up.
+ */
+function stripCloudinaryTransform(src: string): string {
+  if (!isCloudinaryUrl(src)) return src;
+  const parts = src.split("/upload/");
+  if (parts.length !== 2) return src;
+  const tail = parts[1];
+  // The first segment after /upload/ is the transformation (contains
+  // commas) when present. If it doesn't contain a comma, there's no
+  // transform to strip.
+  const firstSlash = tail.indexOf("/");
+  if (firstSlash < 0) return src;
+  const first = tail.slice(0, firstSlash);
+  if (!first.includes(",")) return src;
+  const rest = tail.slice(firstSlash + 1);
+  return `${parts[0]}/upload/${rest}`;
+}
+
 export default function ImageWithFallback({
   src,
   alt,
@@ -61,7 +86,8 @@ export default function ImageWithFallback({
     [src, width, height, aspectRatio],
   );
 
-  const activeSrc = errorStage === 1 ? src : optimizedSrc;
+  const activeSrc =
+    errorStage === 1 ? stripCloudinaryTransform(src) : optimizedSrc;
 
   return (
     <div className={`relative ${className}`}>
