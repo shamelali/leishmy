@@ -12,10 +12,17 @@ import {
   Award,
   CalendarDays,
   ExternalLink,
+  Scissors,
+  Clock as ClockIcon,
 } from "lucide-react";
 import { db } from "@/db";
-import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  artists,
+  artistCategories,
+  categories as categoriesTable,
+  services as servicesTable,
+} from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
@@ -43,11 +50,25 @@ async function findArtist(slug: string) {
     if (rows.length > 0) {
       const a = rows[0];
 
-      const categoryLinks = await db
-        .select({ categoryName: categoriesTable.name })
-        .from(artistCategories)
-        .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
-        .where(eq(artistCategories.artistId, a.id));
+      const [categoryLinks, serviceRows] = await Promise.all([
+        db
+          .select({ categoryName: categoriesTable.name })
+          .from(artistCategories)
+          .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
+          .where(eq(artistCategories.artistId, a.id)),
+        db
+          .select({
+            id: servicesTable.id,
+            name: servicesTable.name,
+            description: servicesTable.description,
+            duration: servicesTable.duration,
+            price: servicesTable.price,
+            popular: servicesTable.popular,
+          })
+          .from(servicesTable)
+          .where(eq(servicesTable.artistId, a.id))
+          .orderBy(desc(servicesTable.popular), servicesTable.name),
+      ]);
 
       return {
         id: String(a.id),
@@ -71,6 +92,14 @@ async function findArtist(slug: string) {
         tiktokUrl: a.tiktokUrl || "",
         certifications: a.certifications || "",
         availability: a.availability || "",
+        services: serviceRows.map((s) => ({
+          id: String(s.id),
+          name: s.name,
+          description: s.description || "",
+          duration: s.duration || "",
+          price: Number(s.price) || 0,
+          popular: Boolean(s.popular),
+        })),
         featured: false,
       };
     }
@@ -251,6 +280,51 @@ export default async function ArtistDetailPage({ params }: Props) {
                     <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                   </a>
                 )}
+              </div>
+            )}
+
+            {/* Services */}
+            {artist.services.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Scissors className="w-5 h-5 text-rose-500" /> Services
+                </h2>
+                <div className="space-y-3">
+                  {artist.services.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-start justify-between gap-4 p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-rose-200 dark:hover:border-rose-800 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {s.name}
+                          </h3>
+                          {s.popular && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        {s.description && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            {s.description}
+                          </p>
+                        )}
+                        {s.duration && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 inline-flex items-center gap-1">
+                            <ClockIcon className="w-3 h-3" /> {s.duration}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                          MYR {s.price}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

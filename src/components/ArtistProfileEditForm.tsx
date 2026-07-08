@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle, Upload, X, Save, Loader2 } from "lucide-react";
 import { malaysiaDistricts, initialStates } from "@/data/malaysia-districts";
+import { useAuth } from "@/context/AuthContext";
 
 export interface ArtistProfileEditValues {
   name: string;
@@ -74,6 +75,7 @@ export function ArtistProfileEditForm({
   onSaved,
   onCancel,
 }: ArtistProfileEditFormProps) {
+  const { user } = useAuth();
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
   const [phone, setPhone] = useState(initial.phone);
@@ -192,32 +194,39 @@ export function ArtistProfileEditForm({
       availability === "custom" ? availabilityNotes.trim() : availability;
 
     try {
-      const res = await fetch(`/api/user?action=artist-profile`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          location: location.trim(),
-          area,
-          district,
-          bio: bio.trim(),
-          experience: Number(experience) || 0,
-          languages: languagesText
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          specialties,
-          responseTime,
-          price: Number(price) || 0,
-          portfolio: allPortfolio,
-          certifications: certifications.trim(),
-          availability: availabilityValue,
-          instagramUrl: extractSocialUrl(socialProfiles, "instagram\\.com"),
-          tiktokUrl: extractSocialUrl(socialProfiles, "tiktok\\.com"),
-        }),
-      });
+      if (!user?.id) {
+        throw new Error("Not signed in");
+      }
+      const res = await fetch(
+        `/api/user?action=artist-profile&userId=${encodeURIComponent(user.id)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            name: name.trim(),
+            email: email.trim(),
+            phone: phone.trim(),
+            location: location.trim(),
+            area,
+            district,
+            bio: bio.trim(),
+            experience: Number(experience) || 0,
+            languages: languagesText
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+            specialties,
+            responseTime,
+            price: Number(price) || 0,
+            portfolio: allPortfolio,
+            certifications: certifications.trim(),
+            availability: availabilityValue,
+            instagramUrl: extractSocialUrl(socialProfiles, "instagram\\.com"),
+            tiktokUrl: extractSocialUrl(socialProfiles, "tiktok\\.com"),
+          }),
+        },
+      );
 
       const data = await res.json();
 
