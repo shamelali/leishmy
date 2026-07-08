@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { saveStepBasics, type ActionResult } from "../actions";
 import type { StepBasicsInput } from "@/lib/validations/artist";
 import { Field, FormError, NavButtons } from "./FormBits";
+import { ProfilePictureUploader } from "@/components/upload";
 
 export type StepBasicsData = Partial<StepBasicsInput>;
 
@@ -146,22 +147,26 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
         </Field>
       </div>
 
-      <Field
-        id="image"
-        label={t("profileImage")}
-        error={fieldErrors.image?.[0]}
-        hint={t("profileImageHint")}
-      >
-        <input
-          id="image"
-          type="url"
-          maxLength={500}
+      <div>
+        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
+          {t("profileImage")}
+        </span>
+        <ProfilePictureUploader
           value={form.image ?? ""}
-          onChange={(e) => update("image", e.target.value)}
-          className="form-input"
-          placeholder="https://res.cloudinary.com/..."
+          onChange={(url) => update("image", url)}
+          onError={(msg) => setFieldErrors((prev) => ({ ...prev, image: [msg] }))}
+          folder="profile"
+          size="md"
         />
-      </Field>
+        {fieldErrors.image?.[0] && (
+          <p className="mt-2 text-xs text-rose-600 dark:text-rose-400 text-center">
+            {fieldErrors.image[0]}
+          </p>
+        )}
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+          {t("profileImageHint")}
+        </p>
+      </div>
 
       <NavButtons
         isPending={isPending}

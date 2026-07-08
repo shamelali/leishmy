@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CheckCircle, Upload, X, Save, Loader2 } from "lucide-react";
 import { malaysiaDistricts, initialStates } from "@/data/malaysia-districts";
 import { useAuth } from "@/context/AuthContext";
+import { ProfilePictureUploader } from "@/components/upload";
 
 export interface ArtistProfileEditValues {
   name: string;
@@ -23,6 +24,7 @@ export interface ArtistProfileEditValues {
   availability: string;
   availabilityNotes: string;
   socialProfiles: string;
+  image: string;
 }
 
 interface ArtistProfileEditFormProps {
@@ -79,6 +81,7 @@ export function ArtistProfileEditForm({
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
   const [phone, setPhone] = useState(initial.phone);
+  const [image, setImage] = useState(initial.image || "");
   const [location, setLocation] = useState(initial.location);
   const [area, setArea] = useState(initial.area);
   const [district, setDistrict] = useState(initial.district);
@@ -240,6 +243,7 @@ export function ArtistProfileEditForm({
             name: name.trim(),
             email: email.trim(),
             phone: phone.trim(),
+            image,
             location: location.trim(),
             area,
             district,
@@ -283,6 +287,7 @@ export function ArtistProfileEditForm({
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
+        image,
         location: location.trim(),
         area,
         district,
@@ -324,6 +329,19 @@ export function ArtistProfileEditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <div className="flex flex-col items-center pb-4 border-b border-gray-100 dark:border-neutral-800">
+        <ProfilePictureUploader
+          value={image}
+          onChange={setImage}
+          onError={(msg) => setError(msg)}
+          folder="profile"
+          size="md"
+        />
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Profile photo (square headshot recommended)
+        </p>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">

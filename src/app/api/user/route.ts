@@ -454,6 +454,7 @@ export async function POST(request: NextRequest) {
 
       const updateData: Record<string, unknown> = {};
       const allowedFields = [
+        "image",
         "bio",
         "experience",
         "languages",
