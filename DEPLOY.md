@@ -1,36 +1,38 @@
 # Production Deployment
 
-The project uses a two-branch deployment model:
-
-| Branch | Environment |
-|--------|-------------|
-| `main` | Development / staging |
-| `opencode/sunny-mountain` | **Production** (Vercel) |
+The project deploys directly from `main` via Vercel's git integration.
+Production: **https://leish.my** (Vercel project: `migrate-leishmy-to-nextjs`).
 
 ## Deploy to Production
 
 ```bash
-# 1. Switch to production branch
-git checkout opencode/sunny-mountain
+# 1. Commit changes to main
+git add -A
+git commit -m "<message>"
 
-# 2. Cherry-pick the commit(s) from main
-git cherry-pick <commit-hash>
+# 2. Push to origin (Vercel auto-builds a preview from the push)
+git push origin main
 
-# 3. Resolve conflicts if any (usually in src/proxy.ts or src/db/index.ts)
-#    Keep the production version when in doubt.
+# 3. Verify the preview via the Vercel dashboard
+#    https://vercel.com/shamelalis-projects/migrate-leishmy-to-nextjs
 
-# 4. Deploy preview and verify
-vercel deploy --preview
-
-# 5. Promote to production
-vercel promote
+# 4. Promote to production once verified
+vercel promote <preview-deployment-url>
 ```
 
-## Cherry-Pick Tips
+Or, to deploy a local commit without pushing first:
 
-- If `proxy.ts` conflicts: keep both CSP additions (the wildcard removal safety + any new domains from production).
-- If `db/index.ts` conflicts: ensure the `pool.on("error")` handler is present.
-- If `Navbar.tsx` conflicts: ensure no `next-intl` imports survive.
+```bash
+# Creates a preview from the current local state
+vercel deploy --yes
+
+# Verify, then promote
+vercel promote <preview-url>
+```
+
+The previous `opencode/sunny-mountain` branch and its associated Vercel
+project have been removed. The current model is single-branch: `main` is
+the source of truth, and Vercel manages previews + production deploys.
 
 ## CSP Reminder
 
