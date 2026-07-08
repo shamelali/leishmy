@@ -14,15 +14,17 @@ export async function GET(request: NextRequest) {
     const session = await getSession();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    const userId = searchParams.get("userId");
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId required" }, { status: 400 });
+    // The session is the single source of truth for which user this request
+    // operates on. Any userId in the URL or body is ignored — it was previously
+    // a redundant "second source of truth" that caused 400/403 mismatches
+    // when the client and session drifted out of sync. All known flows
+    // (signup, onboarding, profile edit, dashboard) operate on the session
+    // user, so dropping the parameter is safe and eliminates an attack surface.
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    if (!session?.user || session.user.id !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const userId = session.user.id;
 
     if (action === "favorites") {
       const rows = await db
@@ -221,15 +223,13 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const body = await request.json().catch(() => ({}));
-    const userId = searchParams.get("userId") || body.userId;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId required" }, { status: 400 });
+    // See GET handler. Session is the single source of truth. Any userId
+    // in the URL or body is ignored.
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    if (!session?.user || session.user.id !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const userId = session.user.id;
 
     if (action === "create-profile") {
       const name = body.name || "";
