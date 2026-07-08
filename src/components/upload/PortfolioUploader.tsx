@@ -90,7 +90,7 @@ export function PortfolioUploader({
   onError,
   disabled,
   maxItems = 12,
-  folder = "portfolio",
+  folder = "leish/portfolio",
   labels,
   enableUrlPaste = false,
   allowRemove = true,

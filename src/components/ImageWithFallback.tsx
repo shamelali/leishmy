@@ -50,16 +50,22 @@ export default function ImageWithFallback({
   aspectRatio,
   sizes = "(max-width: 768px) 100vw, 50vw",
 }: ImageWithFallbackProps) {
-  const [error, setError] = useState(false);
+  // Two-stage fallback: try the transformed URL first; if Cloudinary
+  // rejects the transform (e.g. unsupported format, broken original),
+  // fall back to the untransformed URL. Only if THAT also fails do we
+  // show the gradient placeholder.
+  const [errorStage, setErrorStage] = useState<0 | 1 | 2>(0);
 
   const optimizedSrc = useMemo(
     () => withCloudinaryTransform(src, width, height, aspectRatio),
     [src, width, height, aspectRatio],
   );
 
+  const activeSrc = errorStage === 1 ? src : optimizedSrc;
+
   return (
     <div className={`relative ${className}`}>
-      {error ? (
+      {errorStage === 2 ? (
         <div
           className={`${fallbackColor} w-full h-full flex items-center justify-center`}
         >
@@ -79,11 +85,13 @@ export default function ImageWithFallback({
         </div>
       ) : (
         <Image
-          src={optimizedSrc}
+          src={activeSrc}
           alt={alt}
           fill
           className="object-cover"
-          onError={() => setError(true)}
+          onError={() => {
+            setErrorStage((s) => (s === 0 ? 1 : 2) as 0 | 1 | 2);
+          }}
           loading="lazy"
           unoptimized
           sizes={sizes}

@@ -58,9 +58,13 @@ export async function POST(request: NextRequest) {
 
   const { folder, publicIdPrefix, resourceType, maxBytes } = parsed.data;
 
-  const userScopedFolder = `leish/users/${session.id}/artist/${folder
-    .replace(/^leish\//, "")
-    .replace(/[^a-z0-9_\-/]/gi, "")}`;
+  // Accept either "leish/portfolio" (with prefix) or "portfolio" (bare).
+  // Strip and sanitize. The resulting folder is always prefixed with the
+  // current user's id, so no user can write to another user's namespace.
+  const strippedFolder = folder
+    .replace(/^leish\//i, "")
+    .replace(/[^a-z0-9_\-/]/gi, "");
+  const userScopedFolder = `leish/users/${session.id}/artist/${strippedFolder}`;
   if (!userScopedFolder.startsWith(`leish/users/${session.id}/`)) {
     return jsonError("Folder must be scoped to the current user", 400);
   }

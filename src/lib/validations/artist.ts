@@ -100,11 +100,19 @@ export const stepReviewSchema = z.object({
 export type StepReviewInput = z.infer<typeof stepReviewSchema>;
 
 export const uploadSignSchema = z.object({
+  /**
+   * Client-supplied sub-namespace within the user's artist folder.
+   * Server always rewrites to `leish/users/{userId}/artist/{stripped}` —
+   * client input here is advisory only. We accept the convention
+   * `leish/<sub>` (which the server will strip) OR a bare `<sub>` and
+   * prepend the prefix server-side. The server is the source of truth.
+   */
   folder: z
     .string()
     .trim()
-    .regex(/^leish\/[a-z0-9_\-/]+$/i, "Invalid folder")
-    .max(120),
+    .min(1, "Folder is required")
+    .max(120)
+    .regex(/^[a-z0-9_\-/]+$/i, "Folder may only contain letters, numbers, _, -, /"),
   publicIdPrefix: z
     .string()
     .trim()
