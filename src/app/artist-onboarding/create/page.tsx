@@ -14,6 +14,7 @@ import { StepPortfolio } from "../components/StepPortfolio";
 import { StepServices } from "../components/StepServices";
 import { StepReview } from "../components/StepReview";
 import type { ArtistStatus } from "@/db/schema";
+import { extractPublicId, isCloudinaryUrl } from "@/lib/cloudinary-client";
 
 export const dynamic = "force-dynamic";
 
@@ -89,11 +90,14 @@ export default async function WizardCreatePage({
     artistServices = await listArtistServices(profile.id);
   }
   if (requested === "portfolio" || requested === "review") {
-    portfolioItems = (profile.portfolio ?? []).map((url, i) => ({
-      url,
-      publicId: `existing-${i}`,
-      alt: "",
-    }));
+    portfolioItems = (profile.portfolio ?? []).map((url, i) => {
+      const publicId = isCloudinaryUrl(url) ? extractPublicId(url) : null;
+      return {
+        url,
+        publicId: publicId ?? `existing-${i}`,
+        alt: "",
+      };
+    });
   }
 
   const stepHref = (n: number) => `/artist-onboarding/create?step=${n}`;

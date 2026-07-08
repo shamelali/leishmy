@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "node:crypto";
+import cloudinary from "@/lib/cloudinary";
 import { getAuthSession } from "@/lib/auth/server";
 import { limit } from "@/lib/rate-limit";
 import { uploadSignSchema } from "@/lib/validations/artist";
@@ -81,6 +81,13 @@ export async function POST(request: NextRequest) {
   // source image is unusual (e.g. tiny, no width metadata, or some HEIC
   // variants). Format/quality negotiation is handled on delivery by
   // Cloudinary's CDN when the URL is fetched with f_auto/q_auto.
+  //
+  // `max_file_size` is a Cloudinary client hint (controls upload size limit)
+  // but is NOT part of the signed to_sign — Cloudinary strips it before
+  // computing the expected signature. We send it in the response so the
+  // client can include it in the form body, but we must NOT include it
+  // in the params passed to api_sign_request, or the signature will
+  // mismatch and Cloudinary will reject the upload with 401.
   const params: Record<string, string | number> = {
     timestamp,
     folder: userScopedFolder,
@@ -89,23 +96,17 @@ export async function POST(request: NextRequest) {
   const allowedFormats =
     resourceType === "image" ? ALLOWED_IMAGE_FORMATS : ALLOWED_VIDEO_FORMATS;
   params.allowed_formats = allowedFormats.join(",");
-  params.max_file_size = effectiveCap;
 
   if (publicIdPrefix) {
     const safePrefix = publicIdPrefix.replace(/[^a-zA-Z0-9_\-]/g, "");
     params.public_id = `${safePrefix}_${timestamp}`;
   }
 
-  const toSign = Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== "")
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
-
-  const signature = crypto
-    .createHash("sha256")
-    .update(toSign + apiSecret)
-    .digest("hex");
+  // Use the Cloudinary SDK's signing helper. It defaults to SHA-1 with
+  // signature version 2 (param encoding), which matches the account's
+  // expected algo. The previous manual implementation used SHA-256,
+  // which Cloudinary rejected.
+  const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
   return NextResponse.json({
     cloudName,

@@ -39,4 +39,22 @@ if (!parsed.success) {
   }
 }
 
+if (parsed.success && parsed.data.NODE_ENV === "production") {
+  const required = [
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME",
+  ] as const;
+  const missing = required.filter(
+    (k) => !parsed.data[k as keyof typeof parsed.data],
+  );
+  if (missing.length > 0) {
+    console.warn(
+      `[env] Cloudinary env vars missing in production: ${missing.join(", ")}. ` +
+        "Uploads, delivery, and the sweep cron will fail until these are set.",
+    );
+  }
+}
+
 export const env = parsed.success ? parsed.data : ({} as z.infer<typeof envSchema>);

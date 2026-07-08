@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import NextImage from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { PortfolioUploader, type PortfolioItem } from "@/components/upload";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
+import { deleteCloudinaryAssets, isSyntheticPublicId } from "@/lib/cloudinary-delete-client";
 
 const MAX_PORTFOLIO_ITEMS = 12;
 
@@ -16,6 +17,12 @@ export default function ArtistPortfolio() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousRef = useRef<PortfolioItem[]>([]);
+
+  function isCloudinaryPublicId(pid: string): boolean {
+    if (!pid || isSyntheticPublicId(pid)) return false;
+    return /^leish\//.test(pid);
+  }
 
   useEffect(() => {
     if (!user?.id) return;
@@ -56,6 +63,26 @@ export default function ArtistPortfolio() {
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error || "Failed to save portfolio");
+      }
+
+      const removed = previousRef.current.filter(
+        (p) => !updated.some((n) => n.publicId === p.publicId),
+      );
+      const deletable = removed
+        .map((p) => p.publicId)
+        .filter(isCloudinaryPublicId);
+
+      previousRef.current = updated;
+
+      if (deletable.length > 0) {
+        try {
+          await deleteCloudinaryAssets(deletable);
+        } catch (e) {
+          console.error("Cloudinary delete failed (will be cleaned by sweep):", e);
+          setError(
+            `Saved locally, but ${deletable.length} file(s) could not be deleted from Cloudinary. They will be cleaned up automatically.`,
+          );
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save portfolio");
@@ -106,6 +133,16 @@ export default function ArtistPortfolio() {
             value={items}
             onChange={handleChange}
             onError={setError}
+            onRemove={(removed) => {
+              const pid = removed.publicId;
+              if (!isCloudinaryPublicId(pid)) return;
+              deleteCloudinaryAssets([pid]).catch((e) => {
+                console.error("Cloudinary delete failed (will be cleaned by sweep):", e);
+                setError(
+                  "Item removed locally, but the file could not be deleted from Cloudinary. It will be cleaned up automatically.",
+                );
+              });
+            }}
             maxItems={MAX_PORTFOLIO_ITEMS}
             folder="portfolio"
             enableUrlPaste

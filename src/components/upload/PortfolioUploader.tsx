@@ -40,6 +40,14 @@ export interface PortfolioUploaderProps {
   value: PortfolioItem[];
   onChange: (items: PortfolioItem[]) => void;
   onError?: (message: string) => void;
+  /**
+   * Fired AFTER the local state update when an item is removed via the
+   * trash button. The parent can use this to call the delete API and
+   * persist the change server-side. The uploader itself does NOT call
+   * the delete API — separation of concerns keeps the upload widget
+   * decoupled from the parent's persistence flow.
+   */
+  onRemove?: (removed: PortfolioItem) => void;
   disabled?: boolean;
   maxItems?: number;
   folder?: string;
@@ -87,6 +95,7 @@ export function PortfolioUploader({
   value,
   onChange,
   onError,
+  onRemove,
   disabled,
   maxItems = 12,
   folder = "leish/portfolio",
@@ -215,7 +224,10 @@ export function PortfolioUploader({
   }
 
   function removeItem(publicId: string) {
+    const removed = value.find((item) => item.publicId === publicId);
+    if (!removed) return;
     onChange(value.filter((item) => item.publicId !== publicId));
+    onRemove?.(removed);
   }
 
   function dismissPending(id: string) {

@@ -20,6 +20,11 @@ import {
   stepServicesSchema,
 } from "@/lib/validations/artist";
 import { safeSlug, withSuffix } from "@/lib/utils/slug";
+import { extractPublicId } from "@/lib/cloudinary-client";
+import {
+  deleteAssets,
+  isOwnerScopedPublicId,
+} from "@/lib/cloudinary-server";
 
 export type ActionResult<T = unknown> =
   | { ok: true; data: T }
@@ -225,6 +230,17 @@ export async function saveStepPortfolio(input: unknown): Promise<ActionResult<{ 
     return { ok: false, error: "Please complete the previous step first." };
   }
 
+  const previousUrls = current.portfolio ?? [];
+  const nextSet = new Set(urls);
+  const removedPublicIds: string[] = [];
+  for (const oldUrl of previousUrls) {
+    if (nextSet.has(oldUrl)) continue;
+    const publicId = extractPublicId(oldUrl);
+    if (publicId && isOwnerScopedPublicId(publicId, session.id)) {
+      removedPublicIds.push(publicId);
+    }
+  }
+
   await db
     .update(artists)
     .set({
@@ -234,8 +250,20 @@ export async function saveStepPortfolio(input: unknown): Promise<ActionResult<{ 
     })
     .where(eq(artists.id, current.id));
 
+  if (removedPublicIds.length > 0) {
+    void deleteAssets(removedPublicIds).catch((err) => {
+      console.error(
+        `[onboarding:portfolio] cloudinary delete failed for user ${session.id}:`,
+        err,
+      );
+    });
+  }
+
   revalidatePath("/artist-onboarding/create");
-  return { ok: true, data: { step: 3, count: urls.length } };
+  return {
+    ok: true,
+    data: { step: 3, count: urls.length },
+  };
 }
 
 export async function saveStepServices(input: unknown): Promise<ActionResult<{ step: number; count: number }>> {
