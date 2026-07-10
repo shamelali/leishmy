@@ -618,14 +618,4 @@ export const loyaltyTransactions = pgTable(
   ],
 );
 
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
-  description: text("description"),
-  date: timestamp("date", { mode: "date" }).notNull(),
-  time: varchar("time", { length: 50 }),
-  location: varchar("location", { length: 255 }),
-  category: varchar("category", { length: 100 }),
-  image: text("image"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-});
+

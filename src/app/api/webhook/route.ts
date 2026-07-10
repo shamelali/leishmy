@@ -6,6 +6,8 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { sendPaymentReceiptEmail } from "@/lib/email";
 
+export const runtime = "nodejs";
+
 const billplz = prefixedEnvReader("BILLPLZ_");
 
 export async function POST(request: NextRequest) {

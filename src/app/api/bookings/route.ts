@@ -6,6 +6,8 @@ import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib
 import { getAuthSession } from "@/lib/auth/server";
 import crypto from "crypto";
 
+export const runtime = "nodejs";
+
 function resolveCustomerId(body: any): string | null {
   if (body.userId) return body.userId;
   if (body.clientEmail) return "guest_" + crypto.randomUUID();

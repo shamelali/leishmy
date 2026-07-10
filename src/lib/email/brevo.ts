@@ -1,5 +1,6 @@
 import { BrevoClient } from "@getbrevo/brevo";
 import { prefixedEnvReader } from "@/lib/env-prefix";
+import * as Sentry from "@sentry/nextjs";
 
 const brevoEnv = prefixedEnvReader("BREVO_");
 
@@ -54,6 +55,9 @@ export async function sendEmail(payload: EmailPayload) {
     return { success: true, data: response };
   } catch (err) {
     console.error("Email send exception:", err);
+    Sentry.captureException(err, {
+      extra: { to: payload.to, subject: payload.subject },
+    });
     return { success: false, error: err };
   }
 }
