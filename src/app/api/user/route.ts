@@ -7,6 +7,8 @@ import { getSession } from "@/lib/auth/auth";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
 import { awardPoints } from "@/lib/loyalty";
 
+const MAX_URL_LENGTH = 500;
+
 export async function GET(_request: NextRequest) {
   try {
     const session = await getSession();
