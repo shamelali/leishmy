@@ -295,10 +295,10 @@ export default function DashboardArtist() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {([
-            { icon: Calendar, label: "Total Bookings", value: stats.bookings, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+            { icon: Calendar, label: "Total Bookings", value: String(stats.bookings), color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
             { icon: DollarSign, label: "Revenue", value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-            { icon: Star, label: "Rating", value: stats.rating, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-            { icon: TrendingUp, label: "Reviews", value: stats.reviews, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
+            { icon: Star, label: "Rating", value: String(stats.rating), color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
+            { icon: TrendingUp, label: "Reviews", value: String(stats.reviews), color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
           ] as const).map((props) => (
             <StatCard key={props.label} {...props} />
           ))}
