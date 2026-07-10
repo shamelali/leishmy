@@ -8,6 +8,7 @@ import { isAllowedImageUrl } from "@/lib/utils/upload-url";
 import { awardPoints } from "@/lib/loyalty";
 
 const MAX_URL_LENGTH = 500;
+const MAX_PORTFOLIO_ITEMS = 20;
 
 export async function GET(_request: NextRequest) {
   try {
