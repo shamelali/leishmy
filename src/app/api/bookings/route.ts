@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, artists } from "@/db/schema";
+import { bookings, users, artists, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import crypto from "crypto";
@@ -90,6 +90,16 @@ export async function POST(request: NextRequest) {
     });
 
     const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
+
+    if (artist?.userId) {
+      await db.insert(notifications).values({
+        userId: artist.userId,
+        type: "booking_confirmed",
+        title: "New Booking Received",
+        body: `${customer.name || "A customer"} booked "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}.`,
+        data: { link: "/dashboard/bookings", bookingId: String(booking.id) },
+      }).catch(() => {});
+    }
 
     sendBookingConfirmationEmail({
       email: customer.email,

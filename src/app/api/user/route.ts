@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
@@ -617,6 +617,15 @@ export async function POST(request: NextRequest) {
         .update(bookings)
         .set({ status: "confirmed", updatedAt: new Date() })
         .where(eq(bookings.id, Number(bookingId)));
+
+      await db.insert(notifications).values({
+        userId: booking.userId,
+        type: "booking_confirmed",
+        title: "Booking Confirmed",
+        body: `Your booking #${bookingId} has been confirmed by ${artist.name}.`,
+        data: { link: "/dashboard" },
+      }).catch(() => {});
+
       return NextResponse.json({ success: true });
     }
 
@@ -648,6 +657,15 @@ export async function POST(request: NextRequest) {
         .update(bookings)
         .set({ status: "cancelled", updatedAt: new Date() })
         .where(eq(bookings.id, Number(bookingId)));
+
+      await db.insert(notifications).values({
+        userId: booking.userId,
+        type: "booking_cancelled",
+        title: "Booking Cancelled",
+        body: `Your booking #${bookingId} has been cancelled by ${artist.name}.`,
+        data: { link: "/dashboard" },
+      }).catch(() => {});
+
       return NextResponse.json({ success: true });
     }
 
