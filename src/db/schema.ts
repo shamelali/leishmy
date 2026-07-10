@@ -238,6 +238,8 @@ export const bookings = pgTable("bookings", {
   }),
   date: timestamp("date", { mode: "date" }).notNull(),
   time: varchar("time", { length: 50 }),
+  service: varchar("service", { length: 255 }),
+  notes: text("notes"),
   status: varchar("status", { length: 50 }).default("pending"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, artists, studios, bookings, payments, adminSettings } from "@/db/schema";
-import { eq, count, and, gte, lt, avg, sql } from "drizzle-orm";
+import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
       const [
         userResult, artistResult, studioResult, bookingResult, paymentRows,
         newUsersResult, newArtistsResult, newBookingsResult,
-        newUsersLastMonthResult, newArtistsLastMonthResult, newBookingsLastMonthResult,
+        newUsersLastMonthResult, newArtistsLastMonthResult,         newBookingsLastMonthResult,
         ratingResult,
+        pendingVerificationResult,
       ] = await Promise.all([
         db.select({ count: count() }).from(users),
         db.select({ count: count() }).from(artists),
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
         db.select({ count: count() }).from(artists).where(and(gte(artists.createdAt, startOfLastMonth), lt(artists.createdAt, startOfMonth))),
         db.select({ count: count() }).from(bookings).where(and(gte(bookings.createdAt, startOfLastMonth), lt(bookings.createdAt, startOfMonth))),
         db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
+        db.select({ count: count() }).from(artists).where(eq(artists.status, "pending_verification")),
       ]);
 
       const paidPayments = paymentRows.filter((p) => p.status === "paid" || p.status === "released");
@@ -71,6 +73,7 @@ export async function GET(request: NextRequest) {
         newArtistsLastMonth: newArtistsLastMonthResult[0]?.count || 0,
         newBookingsThisMonth: newBookingsResult[0]?.count || 0,
         newBookingsLastMonth: newBookingsLastMonthResult[0]?.count || 0,
+        pendingVerification: pendingVerificationResult[0]?.count || 0,
         commissionRate: 0.15,
       });
     }
@@ -210,6 +213,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ activity: activity.slice(0, 6) });
     }
 
+    if (action === "pending-artists") {
+      const [rows, [{ count: total }]] = await Promise.all([
+        db.select().from(artists).where(eq(artists.status, "pending_verification")).orderBy(desc(artists.createdAt)).limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(artists).where(eq(artists.status, "pending_verification")),
+      ]);
+      return NextResponse.json({
+        artists: rows.map((a) => ({
+          id: String(a.id),
+          name: a.name,
+          slug: a.slug,
+          email: a.email || "",
+          phone: a.phone || "",
+          location: a.location || "",
+          image: a.image || "",
+          bio: a.bio || "",
+          rating: a.rating || "0",
+          price: a.price || "0",
+          specialties: a.specialties || [],
+          languages: a.languages || [],
+          experience: a.experience || 0,
+          verified: a.verified || false,
+          createdAt: a.createdAt?.toISOString() || "",
+        })),
+        total, page, pageSize,
+      });
+    }
+
     if (action === "settings") {
       const rows = await db.select().from(adminSettings);
       const settings: Record<string, string> = {};
@@ -279,6 +309,30 @@ export async function POST(request: NextRequest) {
         })
         .returning();
       return NextResponse.json({ success: true, artist });
+    }
+
+    if (action === "approve-artist") {
+      const { artistId } = body;
+      if (!artistId) {
+        return NextResponse.json({ error: "artistId required" }, { status: 400 });
+      }
+      await db
+        .update(artists)
+        .set({ status: "verified", verified: true, rejectionReason: null })
+        .where(eq(artists.id, Number(artistId)));
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reject-artist") {
+      const { artistId, reason } = body;
+      if (!artistId) {
+        return NextResponse.json({ error: "artistId required" }, { status: 400 });
+      }
+      await db
+        .update(artists)
+        .set({ status: "rejected", verified: false, rejectionReason: reason || null })
+        .where(eq(artists.id, Number(artistId)));
+      return NextResponse.json({ success: true });
     }
 
     if (action === "toggle-verify") {
