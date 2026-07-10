@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, muaBankAccounts, webhookEvents, bookings, users, artists } from "@/db/schema";
+import { payments, payouts, muaBankAccounts, bookings, artists } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
-import { sendPaymentReceiptEmail } from "@/lib/email";
 import { getAuthSession } from "@/lib/auth/server";
-import { getSession } from "@/lib/auth/auth";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -125,7 +122,7 @@ export async function GET(request: NextRequest) {
 
           result.billplz = billplzData;
         } catch {
-          // Billplz check failed, return what we have
+          console.error("Billplz check failed for payment", paymentId);
         }
       }
 
@@ -165,7 +162,7 @@ export async function POST(request: NextRequest) {
         name: name || "Customer",
         email: email || "",
         phone: phone || "",
-        callback_url: `${BASE_URL}/api/payments?action=webhook`,
+        callback_url: `${BASE_URL}/api/webhook`,
         redirect_url: `${BASE_URL}/bookings/${bookingId}/success`,
       });
 
@@ -293,74 +290,6 @@ export async function POST(request: NextRequest) {
         .update(payments)
         .set({ status: "refunded", updatedAt: new Date() })
         .where(eq(payments.id, Number(paymentId)));
-
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "webhook") {
-      const rawBody = await request.text();
-      const signatureKey = billplz.require("SIGNATURE_KEY");
-      const signatureHeader = request.headers.get("x-signature") || "";
-      const computedSignature = createHmac("sha256", signatureKey)
-        .update(rawBody)
-        .digest("hex");
-      const computedBuf = Buffer.from(computedSignature, "utf-8");
-      const headerBuf = Buffer.from(signatureHeader, "utf-8");
-
-      if (computedBuf.length !== headerBuf.length || !timingSafeEqual(computedBuf, headerBuf)) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-      }
-
-      const webhookBody = JSON.parse(rawBody);
-
-      await db.insert(webhookEvents).values({
-        event: "billplz.payment",
-        payload: webhookBody,
-      });
-
-      if (webhookBody.id && webhookBody.paid_at) {
-        const [payment] = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.billplzId, webhookBody.id))
-          .limit(1);
-
-        await db
-          .update(payments)
-          .set({ status: "paid", updatedAt: new Date() })
-          .where(eq(payments.billplzId, webhookBody.id));
-
-        if (payment?.bookingId) {
-          const [booking] = await db
-            .select()
-            .from(bookings)
-            .where(eq(bookings.id, payment.bookingId))
-            .limit(1);
-
-          if (booking?.userId) {
-            const [user] = await db
-              .select()
-              .from(users)
-              .where(eq(users.id, booking.userId))
-              .limit(1);
-
-            if (user) {
-              const paidDate = new Date(webhookBody.paid_at).toLocaleDateString("en-MY", {
-                weekday: "long", year: "numeric", month: "long", day: "numeric",
-              });
-
-              sendPaymentReceiptEmail({
-                email: user.email,
-                customerName: user.name || "Valued Customer",
-                bookingId: String(payment.bookingId),
-                amount: Number(payment.amount),
-                paymentMethod: "Billplz",
-                date: paidDate,
-              }).catch(() => {});
-            }
-          }
-        }
-      }
 
       return NextResponse.json({ success: true });
     }

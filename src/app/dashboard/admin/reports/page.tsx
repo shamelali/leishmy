@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 
 function pct(num: number, denom: number): string {
   if (denom <= 0) return num > 0 ? "+100%" : "0%";
@@ -18,21 +19,17 @@ export default function AdminReports() {
     fetch("/api/admin?action=overview")
       .then((r) => r.json())
       .then((json) => { if (json?.totalUsers !== undefined) setData(json); })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-      </div>
-    );
+    return <DashboardLoading fullPage />;
   }
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-sm text-gray-500">No data available.</p>
       </div>
     );
@@ -54,8 +51,7 @@ export default function AdminReports() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/admin" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
@@ -126,7 +122,6 @@ export default function AdminReports() {
             ))}
           </div>
         </div>
-      </div>
     </div>
   );
 }

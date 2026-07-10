@@ -24,7 +24,7 @@ export default function SubscriptionPage() {
     fetch(`/api/subscriptions?action=my`)
       .then((r) => r.json())
       .then((data) => setSubscription(data.subscription))
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 
@@ -41,6 +41,7 @@ export default function SubscriptionPage() {
         setSubscription((prev: any) => ({ ...prev, status: "cancelled" }));
       }
     } catch {
+      console.error("Failed to cancel subscription");
       alert("Failed to cancel subscription");
     } finally {
       setCancelling(false);
@@ -173,7 +174,7 @@ export default function SubscriptionPage() {
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Your benefits will remain active until the end of the current billing period.
-                    You won't be charged again.
+                    You won&apos;t be charged again.
                   </p>
                   <button
                     onClick={() => setShowConfirm(true)}

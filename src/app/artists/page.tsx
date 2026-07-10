@@ -115,7 +115,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
       }
     }
   } catch {
-    // fall through
+    console.error("Failed to fetch artists");
   }
   if (!displayArtists) displayArtists = [];
 

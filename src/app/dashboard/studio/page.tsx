@@ -7,7 +7,7 @@ import {
   Calendar, Clock, Wallet, Store, Package, Briefcase,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
 
 interface StudioStats {
@@ -81,9 +81,7 @@ export default function DashboardStudio() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["studio"]}>
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">{studioName}</h1>
 
         {fetchError && (
@@ -120,14 +118,8 @@ export default function DashboardStudio() {
             { icon: BarChart3, label: "Bookings", value: stats.bookings, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
             { icon: DollarSign, label: "Revenue", value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
             { icon: Star, label: "Rating", value: stats.rating, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
-          ] as const).map(({ icon: Icon, label, value, color, bg }) => (
-            <div key={label} className={`p-4 sm:p-6 ${bg} rounded-2xl border border-gray-100 dark:border-neutral-800`}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2 rounded-lg ${bg}`}><Icon className={`w-5 h-5 ${color}`} /></div>
-                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{label}</span>
-              </div>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-            </div>
+          ] as const).map((props) => (
+            <StatCard key={props.label} {...props} />
           ))}
         </div>
 
@@ -171,8 +163,6 @@ export default function DashboardStudio() {
             </div>
           )}
         </div>
-      </div>
     </div>
-    </ProtectedRoute>
   );
 }

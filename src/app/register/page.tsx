@@ -51,7 +51,7 @@ export default function RegisterPage() {
 
       if (data?.user) {
         const fullLocation = district ? `${district}, ${state}` : state;
-        await fetch("/api/user?action=create-profile", {
+        await fetch("/api/user/create-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

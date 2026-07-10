@@ -2,32 +2,56 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { DollarSign, TrendingUp, ArrowLeft, Wallet, Banknote, Download, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, ArrowLeft, Wallet, Banknote, Download, CheckCircle, Clock, XCircle } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
+
+interface Payout {
+  id: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+const payoutStatusIcon: Record<string, typeof Clock> = {
+  paid: CheckCircle,
+  pending: Clock,
+  failed: XCircle,
+};
+
+const payoutStatusColor: Record<string, string> = {
+  paid: "text-green-600 bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50",
+  pending: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50",
+  failed: "text-red-600 bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50",
+};
 
 export default function StudioFinance() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
-    Promise.all([
-      fetch(`/api/payments?action=payouts&userId=${user.id}`).then((r) => r.json()),
-      fetch(`/api/studios?action=dashboard&userId=${user.id}`).then((r) => r.json()),
-    ])
-      .then(([paymentsData, studioData]) => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [paymentsData, studioData] = await Promise.all([
+          fetch(`/api/payments?action=payouts&userId=${user.id}`).then((r) => r.json()),
+          fetch(`/api/studios?action=dashboard&userId=${user.id}`).then((r) => r.json()),
+        ]);
         if (paymentsData?.pendingBalance !== undefined) setPendingBalance(paymentsData.pendingBalance);
+        if (paymentsData?.payouts) setPayouts(paymentsData.payouts);
         if (studioData?.stats?.revenue !== undefined) setRevenue(studioData.stats.revenue);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch { console.error("Failed to load finance data"); }
+      setLoading(false);
+    })();
   }, [user?.id]);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
@@ -35,9 +59,7 @@ export default function StudioFinance() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Finance</h1>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-          </div>
+          <DashboardLoading />
         ) : (
           <>
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
@@ -58,14 +80,36 @@ export default function StudioFinance() {
 
             <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Transaction History</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Payout History</h2>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50"><Download className="w-3.5 h-3.5" /> Export</button>
               </div>
-              <p className="text-sm text-gray-400">No transactions yet. Bookings with completed payments will appear here.</p>
+              {payouts.length === 0 ? (
+                <p className="text-sm text-gray-400">No transactions yet. Bookings with completed payments will appear here.</p>
+              ) : (
+                <div className="space-y-2">
+                  {payouts.map((p) => {
+                    const Icon = payoutStatusIcon[p.status] || Clock;
+                    const colorClass = payoutStatusColor[p.status] || "";
+                    return (
+                      <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border ${colorClass}`}>
+                        <div className="flex items-center gap-2.5">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold capitalize">{p.status}</p>
+                            <p className="text-xs opacity-70">
+                              {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold">MYR {Number(p.amount).toLocaleString()}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}
-      </div>
     </div>
   );
 }

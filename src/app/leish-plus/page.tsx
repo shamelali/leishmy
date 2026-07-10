@@ -65,7 +65,7 @@ export default function LeishPlusPage() {
         const popular = data.plans?.find((p: any) => p.popular);
         setPlan(popular || data.plans?.[0] || null);
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
@@ -96,6 +96,7 @@ export default function LeishPlusPage() {
         window.location.href = data.bill.url;
       }
     } catch {
+      console.error("Failed to initiate subscription");
       alert("Failed to initiate subscription");
     } finally {
       setSubscribing(false);

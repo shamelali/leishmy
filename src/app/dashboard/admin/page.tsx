@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
 
 type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events";
@@ -175,9 +175,7 @@ export default function DashboardAdmin() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={["admin"]}>
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
@@ -235,15 +233,8 @@ export default function DashboardAdmin() {
                   { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
                   { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
                   { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
-                ].map(({ icon: Icon, label, value, sub, color, bg }) => (
-                  <div key={label} className={`p-6 ${bg} rounded-2xl border border-gray-100 dark:border-neutral-800`}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${bg}`}><Icon className={`w-5 h-5 ${color}`} /></div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-                    <p className="text-xs text-gray-400 mt-1">{sub}</p>
-                  </div>
+                ].map((props) => (
+                  <StatCard key={props.label} {...props} size="lg" />
                 ))
               )}
             </div>
@@ -698,9 +689,7 @@ export default function DashboardAdmin() {
             )}
           </div>
         )}
-      </div>
     </div>
-    </ProtectedRoute>
   );
 }
 

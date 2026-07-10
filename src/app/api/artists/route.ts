@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql } from "drizzle-orm";
+import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count } from "drizzle-orm";
 import { categories } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
@@ -13,9 +13,12 @@ export async function GET(request: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const sort = searchParams.get("sort") || "rating";
-    const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
+    const pageSize = Math.min(Number(searchParams.get("limit")) || 50, 100);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const offset = (page - 1) * pageSize;
 
     let rows: typeof artists.$inferSelect[] = [];
+    let total = 0;
 
     const baseFilters = [];
 
@@ -70,6 +73,8 @@ export async function GET(request: NextRequest) {
           .from(artistCategories)
           .where(eq(artistCategories.categoryId, categoryRow[0].id));
 
+        total = matchingArtistIds.length;
+
         if (matchingArtistIds.length > 0) {
           const ids = matchingArtistIds.map((r) => r.artistId);
           const catFilters = [inArray(artists.id, ids), ...baseFilters];
@@ -78,21 +83,34 @@ export async function GET(request: NextRequest) {
             .from(artists)
             .where(and(...catFilters))
             .orderBy(orderBy)
-            .limit(limit);
+            .limit(pageSize)
+            .offset(offset);
         }
       }
     } else {
-      const query = db.select().from(artists);
+      let query = db.select().from(artists);
+      let countQuery = db.select({ count: count() }).from(artists);
 
       if (baseFilters.length > 0) {
-        query.where(and(...baseFilters));
+        const where = and(...baseFilters);
+        query.where(where);
+        countQuery.where(where);
       }
 
-      query.orderBy(orderBy).limit(limit);
-      rows = await query;
+      const [totalResult] = await countQuery;
+      total = totalResult?.count ?? 0;
+
+      rows = await query.orderBy(orderBy).limit(pageSize).offset(offset);
     }
 
-    return NextResponse.json({ artists: rows, categories });
+    return NextResponse.json({
+      artists: rows,
+      categories,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    });
   } catch (error) {
     console.error("Fetch artists error:", error);
     return NextResponse.json({ error: "Failed to fetch artists" }, { status: 500 });

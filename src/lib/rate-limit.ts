@@ -34,6 +34,7 @@ async function limit(identifier: string): Promise<RateLimitResult> {
 
     return { success, remaining, reset };
   } catch {
+    console.error("Rate limiter error");
     return { success: true, remaining: 999, reset: 0 };
   }
 }

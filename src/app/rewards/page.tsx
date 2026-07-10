@@ -40,7 +40,7 @@ export default function RewardsPage() {
         setNextTier(data.nextTier);
         setAllTiers(data.allTiers || []);
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users, artists, notifications } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { getAuthSession } from "@/lib/auth/server";
 import crypto from "crypto";
 
 function resolveCustomerId(body: any): string | null {
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       time: time || "To be confirmed",
       amount: Number(amount),
       paymentType: "full",
-    }).catch(() => {});
+    }).catch((err) => console.error("sendBookingConfirmationEmail failed:", err));
 
     if (artist?.email) {
       sendProviderNewBookingEmail({
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
         serviceName,
         date: formattedDate,
         time: time || "To be confirmed",
-      }).catch(() => {});
+      }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
     }
 
     return NextResponse.json({ success: true, booking });
@@ -137,8 +138,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const userId = searchParams.get("userId");
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(Number(searchParams.get("limit")) || 20, 100);
+    const offset = (page - 1) * pageSize;
 
     if (id) {
       const [booking] = await db
@@ -149,6 +159,10 @@ export async function GET(request: NextRequest) {
 
       if (!booking) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+
+      if (session.role !== "admin" && booking.userId !== session.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
       const [user] = await db
@@ -178,7 +192,42 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const rawBookings = await db.select().from(bookings);
+    if (userId) {
+      if (session.role !== "admin" && session.id !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      const [totalResult] = await db
+        .select({ count: count() })
+        .from(bookings)
+        .where(eq(bookings.userId, userId));
+      const total = totalResult?.count ?? 0;
+      const userBookings = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.userId, userId))
+        .limit(pageSize)
+        .offset(offset);
+      return NextResponse.json({
+        bookings: userBookings,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize) || 1,
+      });
+    }
+
+    if (session.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const [totalResult] = await db.select({ count: count() }).from(bookings);
+    const total = totalResult?.count ?? 0;
+    const rawBookings = await db
+      .select()
+      .from(bookings)
+      .limit(pageSize)
+      .offset(offset);
+
     const allBookings = await Promise.all(
       rawBookings.map(async (b) => {
         let clientName = "Anonymous";
@@ -212,7 +261,14 @@ export async function GET(request: NextRequest) {
         };
       }),
     );
-    return NextResponse.json({ bookings: allBookings });
+
+    return NextResponse.json({
+      bookings: allBookings,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    });
   } catch (error) {
     console.error("Fetch bookings error:", error);
     return NextResponse.json(

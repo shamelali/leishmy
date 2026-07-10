@@ -34,7 +34,7 @@ export default function InspirationPage() {
           setActiveBoardId(data.boards[0].id);
         }
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [user, authLoading, router, activeBoardId]);
 

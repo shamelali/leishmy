@@ -25,6 +25,7 @@ async function getStats() {
       { value: `${bookingCount[0]?.count || 0}+`.replace("0+", "0"), label: "Bookings" },
     ];
   } catch {
+    console.error("Failed to load homepage stats");
     return undefined;
   }
 }

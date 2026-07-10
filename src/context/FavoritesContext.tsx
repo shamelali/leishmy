@@ -59,7 +59,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const serverRes = await fetch(
-          `/api/user?action=favorites&userId=${currentUserId}`,
+          `/api/user/favorites`,
         );
         const serverData = serverRes.ok
           ? await serverRes.json()
@@ -72,11 +72,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
         if (serverIds.length === 0 && localIds.length > 0) {
           for (const id of localIds) {
-            fetch(`/api/user?action=favorites&userId=${currentUserId}`, {
+            fetch(`/api/user/favorites`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ artistId: id }),
-            }).catch(() => {});
+            }).catch(console.error);
           }
         } else if (serverIds.length > 0) {
           const merged = [...new Set([...serverIds, ...localIds])];
@@ -84,15 +84,15 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
           for (const id of merged) {
             if (!serverIds.includes(id)) {
-              fetch(`/api/user?action=favorites&userId=${currentUserId}`, {
+fetch(`/api/user/favorites`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ artistId: id }),
-              }).catch(() => {});
+              }).catch(console.error);
             }
           }
         }
-      } catch {}
+      } catch { console.error("Failed to sync favorites from server"); }
     })();
   }, [user, prevUserId]);
 
@@ -105,12 +105,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     async (artistId: string, add: boolean) => {
       if (!user?.id) return;
       try {
-        await fetch(`/api/user?action=favorites&userId=${user.id}`, {
+        await fetch(`/api/user/favorites`, {
           method: add ? "POST" : "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ artistId }),
         });
-      } catch {}
+      } catch { console.error("Failed to sync favorite"); }
     },
     [user],
   );

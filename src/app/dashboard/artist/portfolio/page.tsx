@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import NextImage from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { PortfolioUploader, type PortfolioItem } from "@/components/upload";
@@ -27,7 +28,7 @@ export default function ArtistPortfolio() {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    fetch(`/api/user?action=artist-profile&userId=${user.id}`)
+    fetch(`/api/user/artist-profile`)
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
@@ -38,7 +39,7 @@ export default function ArtistPortfolio() {
             .map((url, i) => ({ url, publicId: `existing-${i}` })),
         );
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -52,7 +53,7 @@ export default function ArtistPortfolio() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/user?action=artist-profile", {
+      const res = await fetch("/api/user/artist-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -97,8 +98,7 @@ export default function ArtistPortfolio() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link
           href="/dashboard/artist"
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6"
@@ -125,9 +125,7 @@ export default function ArtistPortfolio() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-          </div>
+          <DashboardLoading />
         ) : (
           <PortfolioUploader
             value={items}
@@ -185,7 +183,6 @@ export default function ArtistPortfolio() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

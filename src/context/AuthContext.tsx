@@ -38,33 +38,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     specialties?: string[];
   }>({ role: null, phone: null, location: null, avatar: null, bio: null, specialties: [] });
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/user?userId=${userId}`);
-      if (!res.ok) {
-        console.warn(`[Auth] fetchProfile returned ${res.status}: ${res.statusText}`);
-        return;
-      }
-      const data = await res.json();
-      if (data?.user) {
-        setProfile({
-          role: data.user.role || null,
-          phone: data.user.phone || null,
-          location: data.user.location || null,
-          avatar: data.user.avatar || null,
-          bio: data.user.bio || null,
-          specialties: data.user.specialties || [],
-        });
-      }
-    } catch (err) {
-      console.warn("[Auth] fetchProfile error:", err);
-    }
-  };
-
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchProfile(session.user.id);
-    }
+    if (!session?.user?.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/user?userId=${session.user.id}`);
+        if (!res.ok) {
+          console.warn(`[Auth] fetchProfile returned ${res.status}: ${res.statusText}`);
+          return;
+        }
+        const data = await res.json();
+        if (data?.user) {
+          setProfile({
+            role: data.user.role || null,
+            phone: data.user.phone || null,
+            location: data.user.location || null,
+            avatar: data.user.avatar || null,
+            bio: data.user.bio || null,
+            specialties: data.user.specialties || [],
+          });
+        }
+      } catch (err) {
+        console.warn("[Auth] fetchProfile error:", err);
+      }
+    })();
   }, [session?.user?.id]);
 
   const user: UserProfile | null = session?.user
@@ -120,16 +117,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = (data: Partial<UserProfile>) => {
     if (!user?.id) return;
-    fetch("/api/user?action=profile&userId=" + user.id, {
+    fetch("/api/user/profile" + user.id, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-    }).catch(() => {});
+    }).catch(console.error);
   };
 
   const refreshProfile = async () => {
     if (!session?.user?.id) return;
-    await fetchProfile(session.user.id);
+    try {
+      const res = await fetch(`/api/user?userId=${session.user.id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.user) {
+        setProfile({
+          role: data.user.role || null,
+          phone: data.user.phone || null,
+          location: data.user.location || null,
+          avatar: data.user.avatar || null,
+          bio: data.user.bio || null,
+          specialties: data.user.specialties || [],
+        });
+      }
+    } catch { console.error("Failed to fetch user profile"); }
   };
 
   return (

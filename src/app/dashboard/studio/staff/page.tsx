@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, ArrowLeft, Loader2, BadgeCheck } from "lucide-react";
+import { Users, ArrowLeft, BadgeCheck } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 export default function StudioStaff() {
@@ -14,20 +15,19 @@ export default function StudioStaff() {
     if (!user?.id) return;
     (async () => {
       try {
-        const profileRes = await fetch(`/api/user?action=studio-profile&userId=${user.id}`);
+        const profileRes = await fetch(`/api/user/studio-profile`);
         const profile = await profileRes.json();
         if (!profile?.studio?.id) return;
-        const res = await fetch(`/api/user?action=studio-staff&studioId=${profile.studio.id}`);
+        const res = await fetch(`/api/user/studio-staff?studioId=${profile.studio.id}`);
         const data = await res.json();
         if (data?.staff) setStaff(data.staff);
-      } catch {}
+      } catch { console.error("Failed to load staff"); }
       setLoading(false);
     })();
   }, [user?.id]);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
@@ -37,9 +37,7 @@ export default function StudioStaff() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-          </div>
+          <DashboardLoading />
         ) : staff.length === 0 ? (
           <div className="text-center py-16">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -67,7 +65,6 @@ export default function StudioStaff() {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

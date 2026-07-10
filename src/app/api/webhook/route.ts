@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
               amount: Number(payment.amount),
               paymentMethod: "Billplz",
               date: paidDate,
-            }).catch(() => {});
+            }).catch((err) => console.error("sendPaymentReceiptEmail failed:", err));
           }
         }
       }

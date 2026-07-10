@@ -1,47 +1,219 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
-import { awardPoints } from "@/lib/loyalty";
+import { revalidatePath } from "next/cache";
 
-export async function GET(_request: NextRequest) {
+const MAX_PORTFOLIO_ITEMS = 12;
+const MAX_URL_LENGTH = 500;
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
   try {
     const session = await getSession();
+    const { searchParams } = new URL(request.url);
+    const { action } = await params;
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    if (action === "favorites") {
+      const rows = await db
+        .select()
+        .from(favorites)
+        .where(eq(favorites.userId, userId));
 
-    if (!user) {
-      return NextResponse.json({ user: null });
+      return NextResponse.json({ favorites: rows });
     }
 
-    return NextResponse.json({ user });
+    if (action === "notifications") {
+      const rows = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(notifications.createdAt);
+
+      return NextResponse.json({ notifications: rows });
+    }
+
+    if (action === "bookings") {
+      let rows;
+
+      const [artist] = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.userId, userId))
+        .limit(1);
+
+      if (artist) {
+        rows = await db
+          .select()
+          .from(bookings)
+          .where(eq(bookings.artistId, artist.id));
+      } else {
+        const [studio] = await db
+          .select()
+          .from(studios)
+          .where(eq(studios.userId, userId))
+          .limit(1);
+
+        if (studio) {
+          rows = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.studioId, studio.id));
+        } else {
+          rows = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.userId, userId));
+        }
+      }
+
+      const clientUserIds = (rows || []).map((b) => b.userId).filter(Boolean);
+      const clientRows = clientUserIds.length > 0
+        ? await db.select().from(users).where(inArray(users.id, clientUserIds))
+        : [];
+      const clientNameMap = new Map(clientRows.map((u) => [u.id, u.name || "Anonymous"]));
+
+      const enrichedBookings = (rows || []).map((b) => ({
+        ...b,
+        id: String(b.id),
+        client: clientNameMap.get(b.userId) || "Anonymous",
+        userName: clientNameMap.get(b.userId) || "Anonymous",
+        price: Number(b.amount) || 0,
+      }));
+
+      return NextResponse.json({
+        bookings: enrichedBookings,
+      });
+    }
+
+    if (action === "artist-profile") {
+      const [row] = await db
+        .select({
+          artist: artists,
+          userName: users.name,
+          userEmail: users.email,
+        })
+        .from(artists)
+        .leftJoin(users, eq(users.id, artists.userId))
+        .where(eq(artists.userId, userId))
+        .limit(1);
+
+      if (!row || !row.artist) {
+        return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
+      }
+
+      const artist = row.artist;
+
+      return NextResponse.json({
+        artist: {
+          id: String(artist.id),
+          name: row.userName || artist.name,
+          email: row.userEmail || artist.email || "",
+          slug: artist.slug,
+          image: artist.image || "",
+          phone: artist.phone || "",
+          location: artist.location || "",
+          area: artist.area || "",
+          district: artist.district || "",
+          bio: artist.bio || "",
+          experience: artist.experience || 0,
+          languages: artist.languages || [],
+          specialties: (artist.specialties as string[] | null) || [],
+          responseTime: artist.responseTime || "",
+          price: Number(artist.price) || 0,
+          portfolio: artist.portfolio || [],
+          verified: artist.verified || false,
+          available: artist.available ?? true,
+          instagramUrl: artist.instagramUrl || "",
+          tiktokUrl: artist.tiktokUrl || "",
+          certifications: artist.certifications || "",
+          availability: artist.availability || "",
+        },
+      });
+    }
+
+    if (action === "studio-profile") {
+      const [studio] = await db
+        .select()
+        .from(studios)
+        .where(eq(studios.userId, userId))
+        .limit(1);
+
+      if (!studio) {
+        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        studio: {
+          id: String(studio.id),
+          name: studio.name,
+          slug: studio.slug,
+          image: studio.image || "",
+          phone: studio.phone || "",
+          location: studio.location || "",
+          email: studio.email || "",
+          description: studio.description || "",
+          price: Number(studio.price) || 0,
+          rating: studio.rating || "0",
+          reviewCount: studio.reviewCount || 0,
+          featured: studio.featured || false,
+        },
+      });
+    }
+
+    if (action === "studio-staff") {
+      const studioId = searchParams.get("studioId");
+      if (!studioId) {
+        return NextResponse.json({ error: "studioId required" }, { status: 400 });
+      }
+
+      const rows = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.studioId, Number(studioId)));
+
+      return NextResponse.json({
+        staff: rows.map((a) => ({
+          id: String(a.id),
+          name: a.name,
+          email: a.email || "",
+          phone: a.phone || "",
+          image: a.image || "",
+          location: a.location || "",
+          rating: a.rating || "0",
+          reviewCount: a.reviewCount || 0,
+          verified: a.verified || false,
+          available: a.available ?? true,
+        })),
+      });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("User GET error:", error);
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
   try {
     const session = await getSession();
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
     const body = await request.json().catch(() => ({}));
+    const { action } = await params;
 
-    // See GET handler. Session is the single source of truth. Any userId
-    // in the URL or body is ignored.
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -169,7 +341,7 @@ export async function POST(request: NextRequest) {
       }
 
       const roleForEmail = userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");
-      sendWelcomeEmail({ email, name, role: roleForEmail }).catch(() => {});
+      sendWelcomeEmail({ email, name, role: roleForEmail }).catch((err) => console.error("sendWelcomeEmail failed:", err));
 
       return NextResponse.json({ success: true });
     }
@@ -177,7 +349,7 @@ export async function POST(request: NextRequest) {
     if (action === "favorites") {
       const { artistId } = body;
 
-      if (body.add === false || request.method === "DELETE") {
+      if (body.add === false) {
         await db
           .delete(favorites)
           .where(
@@ -406,9 +578,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "confirm-booking") {
-      const { bookingId, userId: actionUserId } = body;
-      if (!bookingId || !actionUserId) {
-        return NextResponse.json({ error: "bookingId and userId required" }, { status: 400 });
+      const { bookingId } = body;
+      if (!bookingId) {
+        return NextResponse.json({ error: "bookingId required" }, { status: 400 });
       }
       const [booking] = await db
         .select()
@@ -424,7 +596,7 @@ export async function POST(request: NextRequest) {
       const [artist] = await db
         .select()
         .from(artists)
-        .where(eq(artists.userId, actionUserId))
+        .where(eq(artists.userId, userId))
         .limit(1);
       if (!artist || booking.artistId !== artist.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -433,22 +605,14 @@ export async function POST(request: NextRequest) {
         .update(bookings)
         .set({ status: "confirmed", updatedAt: new Date() })
         .where(eq(bookings.id, Number(bookingId)));
-
-      await db.insert(notifications).values({
-        userId: booking.userId,
-        type: "booking_confirmed",
-        title: "Booking Confirmed",
-        body: `Your booking #${bookingId} has been confirmed by ${artist.name}.`,
-        data: { link: "/dashboard" },
-      }).catch(() => {});
-
+      revalidatePath("/dashboard/artist");
       return NextResponse.json({ success: true });
     }
 
     if (action === "reject-booking") {
-      const { bookingId, userId: actionUserId } = body;
-      if (!bookingId || !actionUserId) {
-        return NextResponse.json({ error: "bookingId and userId required" }, { status: 400 });
+      const { bookingId } = body;
+      if (!bookingId) {
+        return NextResponse.json({ error: "bookingId required" }, { status: 400 });
       }
       const [booking] = await db
         .select()
@@ -464,7 +628,7 @@ export async function POST(request: NextRequest) {
       const [artist] = await db
         .select()
         .from(artists)
-        .where(eq(artists.userId, actionUserId))
+        .where(eq(artists.userId, userId))
         .limit(1);
       if (!artist || booking.artistId !== artist.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -473,57 +637,7 @@ export async function POST(request: NextRequest) {
         .update(bookings)
         .set({ status: "cancelled", updatedAt: new Date() })
         .where(eq(bookings.id, Number(bookingId)));
-
-      await db.insert(notifications).values({
-        userId: booking.userId,
-        type: "booking_cancelled",
-        title: "Booking Cancelled",
-        body: `Your booking #${bookingId} has been cancelled by ${artist.name}.`,
-        data: { link: "/dashboard" },
-      }).catch(() => {});
-
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "complete-booking") {
-      const { bookingId, userId: actionUserId } = body;
-      if (!bookingId || !actionUserId) {
-        return NextResponse.json({ error: "bookingId and userId required" }, { status: 400 });
-      }
-      const [booking] = await db
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, Number(bookingId)))
-        .limit(1);
-      if (!booking) {
-        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-      }
-      if (booking.status !== "confirmed") {
-        return NextResponse.json({ error: "Only confirmed bookings can be completed" }, { status: 400 });
-      }
-      const [artist] = await db
-        .select()
-        .from(artists)
-        .where(eq(artists.userId, actionUserId))
-        .limit(1);
-      if (!artist || booking.artistId !== artist.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-      }
-      await db
-        .update(bookings)
-        .set({ status: "completed", updatedAt: new Date() })
-        .where(eq(bookings.id, Number(bookingId)));
-
-      await awardPoints(booking.userId, "booking_completed", String(bookingId), `Booking #${bookingId} completed`);
-
-      await db.insert(notifications).values({
-        userId: booking.userId,
-        type: "booking_confirmed",
-        title: "Booking Completed",
-        body: `Your booking #${bookingId} with ${artist.name} has been completed. You earned 100 loyalty points!`,
-        data: { link: "/rewards" },
-      }).catch(() => {});
-
+      revalidatePath("/dashboard/artist");
       return NextResponse.json({ success: true });
     }
 
@@ -534,19 +648,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
   try {
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json({ error: "userId required" }, { status: 400 });
-    }
+    const { action } = await params;
 
     if (action === "favorites") {
       const body = await request.json().catch(() => ({}));
       const { artistId } = body;
+      const userId = searchParams.get("userId");
+
+      if (!userId) {
+        return NextResponse.json({ error: "userId required" }, { status: 400 });
+      }
 
       if (artistId) {
         await db

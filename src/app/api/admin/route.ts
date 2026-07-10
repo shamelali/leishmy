@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, artists, studios, bookings, payments, adminSettings } from "@/db/schema";
+import { users, artists, studios, bookings, payments, adminSettings, contacts, communityApplications } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -238,6 +238,43 @@ export async function GET(request: NextRequest) {
         })),
         total, page, pageSize,
       });
+    }
+
+    if (action === "moderation") {
+      const [contactRows, appRows] = await Promise.all([
+        db.select().from(contacts).orderBy(contacts.createdAt).limit(50),
+        db.select().from(communityApplications).orderBy(communityApplications.createdAt).limit(50),
+      ]);
+
+      const items: { id: number; type: string; from: string; target: string; reason: string; status: string; date: string }[] = [];
+
+      for (const c of contactRows) {
+        items.push({
+          id: c.id,
+          type: "contact",
+          from: c.name,
+          target: c.email,
+          reason: c.message.slice(0, 200),
+          status: "pending",
+          date: c.createdAt?.toISOString().split("T")[0] || "",
+        });
+      }
+
+      for (const a of appRows) {
+        items.push({
+          id: 1000 + a.id,
+          type: "community",
+          from: `${a.firstName} ${a.lastName}`,
+          target: a.email,
+          reason: `Community application — ${a.expertiseAreas?.join(", ") || "MUA"}`,
+          status: "pending",
+          date: a.createdAt?.toISOString().split("T")[0] || "",
+        });
+      }
+
+      items.sort((a, b) => b.date.localeCompare(a.date));
+
+      return NextResponse.json({ items });
     }
 
     if (action === "settings") {

@@ -40,7 +40,7 @@ async function findStudio(slug: string) {
       };
     }
   } catch {
-    // fall through
+    console.error("Failed to fetch studio detail");
   }
   return null;
 }

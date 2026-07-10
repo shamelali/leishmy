@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
+  async rewrites() {
+    return [
+      { source: "/admin", destination: "/dashboard/admin" },
+      { source: "/admin/:path*", destination: "/dashboard/admin/:path*" },
+    ];
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {

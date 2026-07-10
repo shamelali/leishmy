@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, payments, reviews } from "@/db/schema";
+import { artists, bookings, payments, reviews } from "@/db/schema";
 import { eq, and, count, sum, avg, gte, sql } from "drizzle-orm";
+import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "artistId required" }, { status: 400 });
     }
 
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = Number(artistId);
+
+    if (session.role !== "admin") {
+      const [artist] = await db
+        .select({ userId: artists.userId })
+        .from(artists)
+        .where(eq(artists.id, id))
+        .limit(1);
+      if (!artist || artist.userId !== session.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);

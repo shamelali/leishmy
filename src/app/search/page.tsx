@@ -39,37 +39,53 @@ export default function SearchPage() {
   const [sort, setSort] = useState("rating");
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const hasActiveFilters = selectedCategory || location || minPrice || maxPrice || sort !== "rating";
 
-  const searchArtists = useCallback(async () => {
-    setLoading(true);
+  const searchArtists = useCallback(async (q?: string, cat?: string, pageNum = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setSearched(true);
     try {
       const params = new URLSearchParams();
-      if (query) params.set("search", query);
-      if (selectedCategory) params.set("category", selectedCategory);
+      if (q) params.set("search", q);
+      if (cat) params.set("category", cat);
       if (location) params.set("location", location);
       if (minPrice) params.set("minPrice", minPrice);
       if (maxPrice) params.set("maxPrice", maxPrice);
       if (sort !== "rating") params.set("sort", sort);
+      params.set("page", String(pageNum));
       params.set("limit", "20");
       const res = await fetch(`/api/artists?${params}`);
       if (res.ok) {
         const data = await res.json();
-        setResults(data.artists || []);
-        if (!selectedCategory && !location && !minPrice && !maxPrice) {
-          setCategories(data.categories || []);
+        if (append) {
+          setResults((prev) => [...prev, ...(data.artists || [])]);
+        } else {
+          setResults(data.artists || []);
         }
+        setTotalPages(data.totalPages || 1);
+        setPage(pageNum);
+        if (!cat && !append) setCategories(data.categories || []);
       }
-    } catch {}
-    setLoading(false);
+    } catch { console.error("Search failed"); }
+    if (append) {
+      setLoadingMore(false);
+    } else {
+      setLoading(false);
+    }
   }, [query, selectedCategory, location, minPrice, maxPrice, sort]);
 
   useEffect(() => {
     startTransition(() => {
-      searchArtists();
+      searchArtists(query, selectedCategory);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -78,7 +94,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (autoSearch.current) {
-      searchArtists();
+      searchArtists(query, selectedCategory);
     }
     autoSearch.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +119,12 @@ export default function SearchPage() {
     setMinPrice("");
     setMaxPrice("");
     setSort("rating");
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && page < totalPages) {
+      searchArtists(query, selectedCategory, page + 1, true);
+    }
   };
 
   return (
@@ -231,7 +253,7 @@ export default function SearchPage() {
             <button
               type="button"
               onClick={() => {
-                searchArtists();
+                searchArtists(query, selectedCategory);
                 setShowFilters(false);
               }}
               className="mt-4 px-4 py-2 bg-rose-500 text-white text-sm font-medium rounded-lg hover:bg-rose-600 transition-colors"
@@ -292,6 +314,21 @@ export default function SearchPage() {
               </Link>
             ))}
           </div>
+          {results.length > 0 && page < totalPages && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 disabled:opacity-50 transition-colors"
+              >
+                {loadingMore ? (
+                  <span className="w-4 h-4 border-2 border-rose-200 border-t-rose-500 rounded-full animate-spin" />
+                ) : (
+                  "Load More"
+                )}
+              </button>
+            </div>
+          )}
         )}
       </div>
     </div>

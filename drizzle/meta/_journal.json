@@ -8,6 +8,62 @@
       "when": 1782521004741,
       "tag": "0000_powerful_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782521004742,
+      "tag": "0001_beauty_wallet",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782521004743,
+      "tag": "0002_leishplus_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782521004744,
+      "tag": "0003_loyalty_rewards",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782521004745,
+      "tag": "0004_artist_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782521004746,
+      "tag": "0005_artist_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782521004747,
+      "tag": "0006_community_applications",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782521004748,
+      "tag": "0007_artist_extra_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782521004749,
+      "tag": "0008_events",
+      "breakpoints": true
     }
   ]
 }

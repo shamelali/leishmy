@@ -33,7 +33,7 @@ async function getStudios() {
       }));
     }
   } catch {
-    // fall through
+    console.error("Failed to fetch studios");
   }
   return [];
 }

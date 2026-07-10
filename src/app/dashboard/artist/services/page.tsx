@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Sparkles, Trash2, ArrowLeft, Loader2 } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistServices() {
@@ -15,7 +16,7 @@ export default function ArtistServices() {
 
   useEffect(() => {
     if (!user?.id) return;
-    fetch(`/api/user?action=artist-profile&userId=${user.id}`)
+    fetch(`/api/user/artist-profile`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.artist?.id) {
@@ -29,7 +30,7 @@ export default function ArtistServices() {
       .then((data) => {
         if (data?.services) setServices(data.services);
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -62,8 +63,7 @@ export default function ArtistServices() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/artist" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
@@ -90,9 +90,7 @@ export default function ArtistServices() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-          </div>
+          <DashboardLoading />
         ) : services.length === 0 ? (
           <div className="text-center py-16">
             <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -119,7 +117,6 @@ export default function ArtistServices() {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

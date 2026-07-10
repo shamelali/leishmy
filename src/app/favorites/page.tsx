@@ -34,7 +34,7 @@ export default function FavoritesPage() {
         setAllArtists(favArtists);
         setArtists(favArtists.slice(0, PER_PAGE));
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [favorites]);

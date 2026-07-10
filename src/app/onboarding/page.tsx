@@ -40,12 +40,13 @@ export default function OnboardingPage() {
       return;
     }
 
-    setName(session.user.name || "");
-    setChecking(true);
+    (async () => {
+      setName(session.user.name || "");
+      setChecking(true);
 
-    fetch(`/api/user?userId=${session.user.id}`)
-      .then((r) => r.json())
-      .then((data) => {
+      try {
+        const res = await fetch(`/api/user?userId=${session.user.id}`);
+        const data = await res.json();
         if (data?.user?.role && (data.user.phone || data.user.location)) {
           router.replace("/");
         } else {
@@ -60,11 +61,11 @@ export default function OnboardingPage() {
           if (data?.user?.name) setName(data.user.name);
           setChecking(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn("[Onboarding] profile check failed:", err);
         setChecking(false);
-      });
+      }
+    })();
   }, [session, isPending, router]);
 
   const toggleSpecialty = (item: string) => {
@@ -83,7 +84,7 @@ export default function OnboardingPage() {
     try {
       const fullLocation = district ? `${district}, ${state}` : state;
 
-      const res = await fetch("/api/user?action=create-profile", {
+      const res = await fetch("/api/user/create-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

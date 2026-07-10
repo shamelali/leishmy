@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Calendar, MapPin, Clock, ArrowRight, ExternalLink, Search } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 
@@ -60,7 +61,6 @@ export default function EventsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [category, search]);
-
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <section className="bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 py-16">
@@ -128,13 +128,18 @@ export default function EventsPage() {
                   key={event.id}
                   className="group bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-neutral-800 hover:border-rose-200 dark:hover:border-rose-800 shadow-sm hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="relative aspect-[2/1] overflow-hidden">
-                    <img
-                      src={event.image || "/placeholder.svg"}
-                      alt={event.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      loading="lazy"
-                    />
+                  <div className="relative aspect-[2/1] overflow-hidden bg-gray-100 dark:bg-neutral-800">
+                    {event.image ? (
+                      <Image
+                        src={event.image}
+                        alt={event.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-rose-100 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className="absolute top-4 right-4">
                       <span className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600/80 backdrop-blur-sm rounded-full">

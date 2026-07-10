@@ -234,7 +234,7 @@ export function ArtistProfileEditForm({
         throw new Error("Not signed in");
       }
       const res = await fetch(
-        `/api/user?action=artist-profile&userId=${encodeURIComponent(user.id)}`,
+        `/api/user/artist-profile`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -71,7 +71,7 @@ export default function BeautyProfilePage() {
           setMakeupNotes(data.preferences.makeupNotes || "");
         }
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 

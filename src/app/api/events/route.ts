@@ -1,58 +1,65 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { events } from "@/db/schema";
 import { desc, asc, eq, and, gte, lte, ilike, or } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get("category");
-  const search = searchParams.get("search");
-  const upcoming = searchParams.get("upcoming") !== "false";
-  const admin = searchParams.get("admin") === "true";
+export const dynamic = "force-dynamic";
 
-  let conditions = [];
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+    const upcoming = searchParams.get("upcoming") !== "false";
+    const admin = searchParams.get("admin") === "true";
 
-  if (admin) {
-    const session = await getAuthSession();
-    if (!session || session.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let conditions = [];
+
+    if (admin) {
+      const session = await getAuthSession();
+      if (!session || session.role !== "admin") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else {
+      conditions.push(eq(events.published, true));
     }
-  } else {
-    conditions.push(eq(events.published, true));
+
+    if (category) {
+      conditions.push(eq(events.category, category));
+    }
+
+    if (search) {
+      conditions.push(
+        or(
+          ilike(events.title, `%${search}%`),
+          ilike(events.description, `%${search}%`),
+          ilike(events.location, `%${search}%`),
+        ),
+      );
+    }
+
+    if (upcoming) {
+      conditions.push(gte(events.date, new Date()));
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const result = await db
+      .select()
+      .from(events)
+      .where(where)
+      .orderBy(asc(events.date))
+      .limit(50);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Events GET error:", error);
+    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
   }
-
-  if (category) {
-    conditions.push(eq(events.category, category));
-  }
-
-  if (search) {
-    conditions.push(
-      or(
-        ilike(events.title, `%${search}%`),
-        ilike(events.description, `%${search}%`),
-        ilike(events.location, `%${search}%`),
-      ),
-    );
-  }
-
-  if (upcoming) {
-    conditions.push(gte(events.date, new Date()));
-  }
-
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const result = await db
-    .select()
-    .from(events)
-    .where(where)
-    .orderBy(asc(events.date))
-    .limit(50);
-
-  return NextResponse.json(result);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await getAuthSession();
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -91,7 +98,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   const session = await getAuthSession();
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -137,7 +144,7 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   const session = await getAuthSession();
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

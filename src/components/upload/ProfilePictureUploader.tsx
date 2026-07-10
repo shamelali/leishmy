@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Camera, Loader2, X, User } from "lucide-react";
 import { validateImageFile } from "@/lib/utils/magic-bytes";
 
@@ -132,17 +133,19 @@ export function ProfilePictureUploader({
           type="button"
           onClick={() => !disabled && !uploading && inputRef.current?.click()}
           disabled={disabled || uploading}
-          className={`${sizeClasses[size]} rounded-full overflow-hidden border-4 border-white dark:border-neutral-800 shadow-lg cursor-pointer hover:shadow-xl transition-shadow disabled:opacity-60 disabled:cursor-not-allowed bg-gray-100 dark:bg-neutral-900`}
+          className={`${sizeClasses[size]} relative rounded-full overflow-hidden border-4 border-white dark:border-neutral-800 shadow-lg cursor-pointer hover:shadow-xl transition-shadow disabled:opacity-60 disabled:cursor-not-allowed bg-gray-100 dark:bg-neutral-900`}
         >
           {uploading ? (
             <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
               <Loader2 className={`${iconSize[size]} text-rose-500 animate-spin`} />
             </div>
           ) : displayUrl ? (
-            <img
+            <Image
               src={displayUrl}
               alt="Profile"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-neutral-900">

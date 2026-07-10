@@ -29,12 +29,16 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
-    fetch(`/api/payments?action=history&userId=${user.id}`)
-      .then((r) => r.json())
-      .then((data) => { if (data?.payments) setPayments(data.payments); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    if (!user?.id) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/payments?action=history&userId=${user.id}`);
+        const data = await res.json();
+        if (data?.payments) setPayments(data.payments);
+      } catch { console.error("Failed to load payments"); }
+      setLoading(false);
+    })();
   }, [user?.id]);
 
   if (authLoading || loading) {

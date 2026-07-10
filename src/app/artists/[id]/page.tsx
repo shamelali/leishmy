@@ -105,7 +105,7 @@ async function findArtist(slug: string) {
       };
     }
   } catch {
-    // fall through
+    console.error("Failed to fetch artist detail");
   }
   return null;
 }

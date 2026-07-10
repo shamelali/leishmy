@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
           customerName: user.name || "Valued Customer",
           planName: plan.name,
           cancelDate,
-        }).catch(() => {});
+        }).catch((err) => console.error("sendSubscriptionCanceledEmail failed:", err));
       }
 
       return NextResponse.json({ success: true });
@@ -344,7 +344,7 @@ export async function POST(request: NextRequest) {
               customerName: user.name || "Valued Customer",
               planName: plan.name,
               amount: plan.price / 100,
-            }).catch(() => {});
+            }).catch((err) => console.error("sendSubscriptionCreatedEmail failed:", err));
           }
         }
       }

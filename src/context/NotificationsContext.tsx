@@ -77,7 +77,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     if (!user?.id) return;
     try {
       const res = await fetch(
-        `/api/user?action=notifications&userId=${user.id}`,
+        `/api/user/notifications`,
       );
       if (res.ok) {
         const data = await res.json();
@@ -92,7 +92,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         }));
         setNotifications(mapped);
       }
-    } catch {}
+    } catch { console.error("Failed to fetch notifications"); }
   }, [user]);
 
   const syncToServer = useCallback(
@@ -102,12 +102,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     ) => {
       if (!user?.id) return;
       try {
-        await fetch(`/api/user?action=notifications&userId=${user.id}`, {
+        await fetch(`/api/user/notifications`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, notificationId: id }),
         });
-      } catch {}
+      } catch { console.error("Failed to sync notification"); }
     },
     [user],
   );

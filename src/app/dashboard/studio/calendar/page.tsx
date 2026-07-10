@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -15,15 +16,15 @@ export default function StudioCalendar() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const prevMonth = useCallback(() => {
+  const prevMonth = () => {
     if (month === 0) { setYear((y) => y - 1); setMonth(11); }
     else setMonth((m) => m - 1);
-  }, [month]);
+  };
 
-  const nextMonth = useCallback(() => {
+  const nextMonth = () => {
     if (month === 11) { setYear((y) => y + 1); setMonth(0); }
     else setMonth((m) => m + 1);
-  }, [month]);
+  };
 
   const monthLabel = new Date(year, month).toLocaleString("default", { month: "long", year: "numeric" });
   const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -32,16 +33,16 @@ export default function StudioCalendar() {
 
   useEffect(() => {
     if (!user?.id) return;
-    setLoading(true);
     (async () => {
+      setLoading(true);
       try {
-        const profileRes = await fetch(`/api/user?action=studio-profile&userId=${user.id}`);
+        const profileRes = await fetch(`/api/user/studio-profile`);
         const profile = await profileRes.json();
         if (!profile?.studio?.id) return;
         const res = await fetch(`/api/calendar?studioId=${profile.studio.id}&month=${monthStr}`);
         const data = await res.json();
         if (data?.events) setEvents(data.events);
-      } catch {}
+      } catch { console.error("Failed to load calendar events"); }
       setLoading(false);
     })();
   }, [user?.id, monthStr]);
@@ -49,8 +50,7 @@ export default function StudioCalendar() {
   const getEvents = (day: number) => events.filter((e) => e.day === day);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
@@ -69,9 +69,7 @@ export default function StudioCalendar() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
-            </div>
+            <DashboardLoading />
           ) : (
             <div className="grid grid-cols-7">
               {DAYS.map((d) => (
@@ -103,7 +101,6 @@ export default function StudioCalendar() {
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }

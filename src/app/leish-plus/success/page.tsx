@@ -48,7 +48,7 @@ export default function LeishPlusSuccessPage() {
 
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-800 p-6 mb-8 shadow-sm">
           <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
-            What's next?
+            What&apos;s next?
           </h2>
           <div className="space-y-3 text-left">
             {[
