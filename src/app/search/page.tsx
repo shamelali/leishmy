@@ -280,55 +280,57 @@ export default function SearchPage() {
         )}
 
         {!loading && results.length > 0 && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {results.map((artist) => (
-              <Link
-                key={artist.id}
-                href={`/artists/${artist.slug || artist.id}`}
-                className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 hover:shadow-md hover:border-rose-200 dark:hover:border-rose-900/50 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-rose-500 transition-colors flex items-center gap-1.5">
-                      {artist.name}
-                      {artist.verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
-                    </h3>
-                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3" /> {artist.location}
-                    </p>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {results.map((artist) => (
+                <Link
+                  key={artist.id}
+                  href={`/artists/${artist.slug || artist.id}`}
+                  className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 hover:shadow-md hover:border-rose-200 dark:hover:border-rose-900/50 transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-rose-500 transition-colors flex items-center gap-1.5">
+                        {artist.name}
+                        {artist.verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
+                      </h3>
+                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3" /> {artist.location}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-amber-500">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">{artist.rating}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-amber-500">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-medium">{artist.rating}</span>
+                  {artist.bio && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">{artist.bio}</p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">MYR {artist.price}</p>
+                    <span className="text-xs text-rose-500 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                      View <ArrowRight className="w-3 h-3" />
+                    </span>
                   </div>
-                </div>
-                {artist.bio && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">{artist.bio}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">MYR {artist.price}</p>
-                  <span className="text-xs text-rose-500 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                    View <ArrowRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-          {results.length > 0 && page < totalPages && (
-            <div className="mt-8 text-center">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 disabled:opacity-50 transition-colors"
-              >
-                {loadingMore ? (
-                  <span className="w-4 h-4 border-2 border-rose-200 border-t-rose-500 rounded-full animate-spin" />
-                ) : (
-                  "Load More"
-                )}
-              </button>
+                </Link>
+              ))}
             </div>
-          )}
+            {results.length > 0 && page < totalPages && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 disabled:opacity-50 transition-colors"
+                >
+                  {loadingMore ? (
+                    <span className="w-4 h-4 border-2 border-rose-200 border-t-rose-500 rounded-full animate-spin" />
+                  ) : (
+                    "Load More"
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
