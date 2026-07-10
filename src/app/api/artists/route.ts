@@ -40,11 +40,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (minPrice) {
-      baseFilters.push(gte(artists.price, Number(minPrice)));
+      baseFilters.push(gte(artists.price, String(minPrice)));
     }
 
     if (maxPrice) {
-      baseFilters.push(lte(artists.price, Number(maxPrice)));
+      baseFilters.push(lte(artists.price, String(maxPrice)));
     }
 
     const sortMap: Record<string, any> = {
