@@ -13,7 +13,7 @@ import Skeleton from "@/components/Skeleton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 
-type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments";
+type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events";
 
 interface AdminStats {
   totalUsers: number;
@@ -31,6 +31,7 @@ interface Studio { id: string; name: string; email: string; phone: string; locat
 interface User { id: string; name: string; email: string; role: string; image: string; createdAt: string; }
 interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; }
 interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; }
+interface AdminEvent { id: number; title: string; slug: string; date: string; time: string | null; location: string | null; category: string; published: boolean; featured: boolean; }
 
 const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
@@ -39,6 +40,7 @@ const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "users", label: "Users", icon: Users },
   { key: "bookings", label: "Bookings", icon: BookOpen },
   { key: "payments", label: "Payments", icon: CreditCard },
+  { key: "events", label: "Events", icon: Calendar },
 ];
 
 function PaymentBadge({ status }: { status: string }) {
@@ -73,12 +75,15 @@ export default function DashboardAdmin() {
   const [recentActivity, setRecentActivity] = useState<{ action: string; detail: string; time: string; type: string }[]>([]);
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [addArtistForm, setAddArtistForm] = useState({ name: "", email: "", phone: "", location: "", image: "", bio: "", price: "" });
+  const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
-    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, overview: 1,
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, overview: 1,
   });
   const [total, setTotal] = useState<Record<Tab, number>>({
-    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, overview: 0,
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, overview: 0,
   });
 
   const fetchData = useCallback(async (t: Tab, p?: number) => {
@@ -96,6 +101,15 @@ export default function DashboardAdmin() {
         if (activityRes.ok) {
           const activityData = await activityRes.json();
           setRecentActivity(activityData.activity || []);
+        }
+      } else if (t === "events") {
+        const res = await fetch("/api/events?admin=true");
+        if (res.ok) {
+          const data = await res.json();
+          setAdminEvents(data);
+          setTotal((prev) => ({ ...prev, events: data.length }));
+        } else {
+          setFetchError("Failed to load events");
         }
       } else {
         const res = await fetch(`/api/admin?action=${t}&page=${currentPage}&pageSize=${pageSize}`);
@@ -474,6 +488,163 @@ export default function DashboardAdmin() {
             {total.bookings > pageSize && (
               <Pagination page={page.bookings} total={total.bookings} pageSize={pageSize} onPage={(p) => goToPage("bookings", p)} />
             )}
+          </div>
+        )}
+
+        {tab === "events" && (
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+            <div className="px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {total.events} event{total.events !== 1 ? "s" : ""}
+              </p>
+              <button
+                onClick={() => setShowAddEvent(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-500 text-white text-sm font-semibold rounded-xl hover:bg-rose-600 transition-all shadow-sm"
+              >
+                <Calendar className="w-4 h-4" /> Add Event
+              </button>
+            </div>
+
+            {showAddEvent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAddEvent(false)}>
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 p-6 w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Event</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Title *</label>
+                      <input type="text" value={addEventForm.title} onChange={(e) => setAddEventForm((f) => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Description</label>
+                      <textarea rows={3} value={addEventForm.description} onChange={(e) => setAddEventForm((f) => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Date *</label>
+                        <input type="date" value={addEventForm.date} onChange={(e) => setAddEventForm((f) => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Time</label>
+                        <input type="time" value={addEventForm.time} onChange={(e) => setAddEventForm((f) => ({ ...f, time: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Location</label>
+                        <input type="text" value={addEventForm.location} onChange={(e) => setAddEventForm((f) => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Category</label>
+                        <select value={addEventForm.category} onChange={(e) => setAddEventForm((f) => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400">
+                          <option value="Workshop">Workshop</option>
+                          <option value="Expo">Expo</option>
+                          <option value="Masterclass">Masterclass</option>
+                          <option value="Competition">Competition</option>
+                          <option value="Networking">Networking</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Image URL</label>
+                      <input type="text" value={addEventForm.image} onChange={(e) => setAddEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Ticket URL</label>
+                      <input type="url" value={addEventForm.ticketUrl} onChange={(e) => setAddEventForm((f) => ({ ...f, ticketUrl: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Organizer Name</label>
+                      <input type="text" value={addEventForm.organizerName} onChange={(e) => setAddEventForm((f) => ({ ...f, organizerName: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={addEventForm.published} onChange={(e) => setAddEventForm((f) => ({ ...f, published: e.target.checked }))} className="rounded border-gray-300 text-rose-500 focus:ring-rose-400" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Publish immediately</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 mt-6">
+                    <button onClick={() => setShowAddEvent(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all">Cancel</button>
+                    <button
+                      onClick={async () => {
+                        if (!addEventForm.title.trim() || !addEventForm.date) return;
+                        setActionLoading("create-event");
+                        try {
+                          await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(addEventForm) });
+                          setShowAddEvent(false);
+                          setAddEventForm({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
+                          fetchData("events");
+                        } finally { setActionLoading(""); }
+                      }}
+                      disabled={actionLoading === "create-event" || !addEventForm.title.trim() || !addEventForm.date}
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 transition-all"
+                    >
+                      {actionLoading === "create-event" ? "Creating..." : "Create Event"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-neutral-800">
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Title</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Category</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                {loading ? (
+                  <tr><td colSpan={6} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : adminEvents.length === 0 ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-gray-400">No events found</td></tr>
+                ) : adminEvents.map((ev) => (
+                  <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                    <td className="p-3 font-medium text-gray-900 dark:text-white">{ev.title}</td>
+                    <td className="p-3 text-gray-600 dark:text-gray-300">{new Date(ev.date).toLocaleDateString()}</td>
+                    <td className="p-3 text-gray-600 dark:text-gray-300">{ev.location || "—"}</td>
+                    <td className="p-3"><span className="px-2 py-1 text-xs font-medium rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">{ev.category}</span></td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${ev.published ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400"}`}>
+                          {ev.published ? "Published" : "Draft"}
+                        </span>
+                        {ev.featured && <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">Featured</span>}
+                      </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={async () => {
+                            setActionLoading(`pub-${ev.id}`);
+                            await fetch("/api/events", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.id, published: !ev.published }) });
+                            setActionLoading(""); fetchData("events");
+                          }}
+                          disabled={actionLoading === `pub-${ev.id}`}
+                          className="px-2 py-1 text-[10px] font-medium rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-40"
+                        >
+                          {ev.published ? "Unpublish" : "Publish"}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Delete this event?")) return;
+                            setActionLoading(`del-${ev.id}`);
+                            await fetch(`/api/events?id=${ev.id}`, { method: "DELETE" });
+                            setActionLoading(""); fetchData("events");
+                          }}
+                          disabled={actionLoading === `del-${ev.id}`}
+                          className="px-2 py-1 text-[10px] font-medium rounded-lg bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-40"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

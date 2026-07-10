@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, artists } from "@/db/schema";
+import { bookings, users, artists, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import crypto from "crypto";
@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
         artistId: artistIdNum,
         studioId: studioId || null,
         serviceId: serviceId || null,
+        service: body.service || null,
+        notes: body.notes || null,
         date: new Date(date),
         time: time || null,
         amount,
@@ -88,6 +90,16 @@ export async function POST(request: NextRequest) {
     });
 
     const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
+
+    if (artist?.userId) {
+      await db.insert(notifications).values({
+        userId: artist.userId,
+        type: "booking_confirmed",
+        title: "New Booking Received",
+        body: `${customer.name || "A customer"} booked "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}.`,
+        data: { link: "/dashboard/bookings", bookingId: String(booking.id) },
+      }).catch(() => {});
+    }
 
     sendBookingConfirmationEmail({
       email: customer.email,
@@ -166,7 +178,40 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const allBookings = await db.select().from(bookings);
+    const rawBookings = await db.select().from(bookings);
+    const allBookings = await Promise.all(
+      rawBookings.map(async (b) => {
+        let clientName = "Anonymous";
+        let clientEmail = "";
+        if (b.userId) {
+          const [user] = await db
+            .select({ name: users.name, email: users.email })
+            .from(users)
+            .where(eq(users.id, b.userId))
+            .limit(1);
+          if (user) {
+            clientName = user.name || "Anonymous";
+            clientEmail = user.email || "";
+          }
+        }
+        let artistName = "";
+        if (b.artistId) {
+          const [artist] = await db
+            .select({ name: artists.name })
+            .from(artists)
+            .where(eq(artists.id, b.artistId))
+            .limit(1);
+          artistName = artist?.name || "";
+        }
+        return {
+          ...b,
+          id: String(b.id),
+          clientName,
+          clientEmail,
+          artistName,
+        };
+      }),
+    );
     return NextResponse.json({ bookings: allBookings });
   } catch (error) {
     console.error("Fetch bookings error:", error);

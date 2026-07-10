@@ -26,6 +26,11 @@ export type EmailPayload = {
 };
 
 export async function sendEmail(payload: EmailPayload) {
+  const apiKey = brevoEnv.get("API_KEY");
+  if (!apiKey) {
+    return { success: false, error: new Error("BREVO_API_KEY is not set") };
+  }
+
   const fromEmail = payload.from || process.env.FROM_EMAIL || "hello@leish.my";
   const fromName = payload.fromName || process.env.FROM_NAME || "Leish";
 

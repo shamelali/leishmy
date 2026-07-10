@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 interface BookingItem {
   id: number;
   artistId: string;
+  artistName?: string;
   clientName: string;
   clientEmail: string;
   service: string;
@@ -134,15 +135,15 @@ export default function BookingsPage() {
                   </div>
 
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    {booking.service}
+                    {booking.service || "Beauty Service"}
                   </h3>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1">
                     <span className="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-300">
-                      <User className="w-3.5 h-3.5 text-rose-500" /> Artist ID: {booking.artistId}
+                      <User className="w-3.5 h-3.5 text-rose-500" /> {booking.artistName || `Artist #${booking.artistId}`}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-rose-500" /> {booking.date}
+                      <Calendar className="w-3.5 h-3.5 text-rose-500" /> {new Date(booking.date).toLocaleDateString("en-MY", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-rose-500" /> {booking.time}

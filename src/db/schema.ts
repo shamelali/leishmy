@@ -238,6 +238,8 @@ export const bookings = pgTable("bookings", {
   }),
   date: timestamp("date", { mode: "date" }).notNull(),
   time: varchar("time", { length: 50 }),
+  service: varchar("service", { length: 255 }),
+  notes: text("notes"),
   status: varchar("status", { length: 50 }).default("pending"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -563,6 +565,36 @@ export const subscriptions = pgTable(
   (table) => [
     index("subscriptions_user_idx").on(table.userId),
     index("subscriptions_status_idx").on(table.status),
+  ],
+);
+
+export const events = pgTable(
+  "events",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    description: text("description"),
+    date: timestamp("date", { mode: "date" }).notNull(),
+    endDate: timestamp("end_date", { mode: "date" }),
+    time: varchar("time", { length: 100 }),
+    endTime: varchar("end_time", { length: 100 }),
+    location: varchar("location", { length: 255 }),
+    address: text("address"),
+    category: varchar("category", { length: 100 }).default("Workshop"),
+    image: text("image").default("/placeholder.svg"),
+    organizerName: varchar("organizer_name", { length: 255 }),
+    organizerContact: varchar("organizer_contact", { length: 255 }),
+    ticketUrl: varchar("ticket_url", { length: 500 }),
+    featured: boolean("featured").default(false),
+    published: boolean("published").default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("events_date_idx").on(table.date),
+    index("events_category_idx").on(table.category),
+    index("events_published_idx").on(table.published),
   ],
 );
 

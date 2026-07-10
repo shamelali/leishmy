@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { ilike, or, eq, inArray } from "drizzle-orm";
+import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql } from "drizzle-orm";
 import { categories } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
@@ -9,9 +9,53 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
     const category = searchParams.get("category");
+    const location = searchParams.get("location");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+    const sort = searchParams.get("sort") || "rating";
     const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
 
     let rows: typeof artists.$inferSelect[] = [];
+
+    const baseFilters = [];
+
+    if (search) {
+      baseFilters.push(
+        or(
+          ilike(artists.name, `%${search}%`),
+          ilike(artists.location, `%${search}%`),
+          ilike(artists.bio, `%${search}%`),
+        ),
+      );
+    }
+
+    if (location) {
+      baseFilters.push(
+        or(
+          ilike(artists.location, `%${location}%`),
+          ilike(artists.area, `%${location}%`),
+          ilike(artists.district, `%${location}%`),
+        ),
+      );
+    }
+
+    if (minPrice) {
+      baseFilters.push(gte(artists.price, String(minPrice)));
+    }
+
+    if (maxPrice) {
+      baseFilters.push(lte(artists.price, String(maxPrice)));
+    }
+
+    const sortMap: Record<string, any> = {
+      rating: desc(artists.rating),
+      price_asc: asc(artists.price),
+      price_desc: desc(artists.price),
+      name: asc(artists.name),
+      newest: desc(artists.createdAt),
+    };
+
+    const orderBy = sortMap[sort] || desc(artists.rating);
 
     if (category) {
       const categoryRow = await db
@@ -28,39 +72,23 @@ export async function GET(request: NextRequest) {
 
         if (matchingArtistIds.length > 0) {
           const ids = matchingArtistIds.map((r) => r.artistId);
+          const catFilters = [inArray(artists.id, ids), ...baseFilters];
           rows = await db
             .select()
             .from(artists)
-            .where(inArray(artists.id, ids))
+            .where(and(...catFilters))
+            .orderBy(orderBy)
             .limit(limit);
-
-          if (search) {
-            rows = rows.filter(
-              (a) =>
-                a.name?.toLowerCase().includes(search.toLowerCase()) ||
-                a.location?.toLowerCase().includes(search.toLowerCase()) ||
-                a.bio?.toLowerCase().includes(search.toLowerCase()),
-            );
-          }
-        } else {
-          rows = [];
         }
-      } else {
-        rows = [];
       }
     } else {
-      const query = db.select().from(artists).limit(limit);
+      const query = db.select().from(artists);
 
-      if (search) {
-        query.where(
-          or(
-            ilike(artists.name, `%${search}%`),
-            ilike(artists.location, `%${search}%`),
-            ilike(artists.bio, `%${search}%`),
-          ),
-        );
+      if (baseFilters.length > 0) {
+        query.where(and(...baseFilters));
       }
 
+      query.orderBy(orderBy).limit(limit);
       rows = await query;
     }
 

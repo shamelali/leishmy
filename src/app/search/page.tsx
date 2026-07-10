@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, startTransition } from "react";
+import { useState, useEffect, useCallback, startTransition, useRef } from "react";
 import Link from "next/link";
-import { Search as SearchIcon, MapPin, Star, BadgeCheck, ArrowRight, Sparkles } from "lucide-react";
+import { Search as SearchIcon, MapPin, Star, BadgeCheck, ArrowRight, Sparkles, X } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
+import { malaysiaStates } from "@/data/malaysia-locations";
 
 interface ArtistResult {
   id: string;
@@ -19,47 +20,89 @@ interface ArtistResult {
   categories: string[];
 }
 
+const SORT_OPTIONS = [
+  { value: "rating", label: "Highest Rated" },
+  { value: "price_asc", label: "Price: Low to High" },
+  { value: "price_desc", label: "Price: High to Low" },
+  { value: "name", label: "Name" },
+  { value: "newest", label: "Newest" },
+];
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ArtistResult[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; icon: string; slug: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [location, setLocation] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("rating");
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const searchArtists = useCallback(async (q: string, cat: string) => {
+  const hasActiveFilters = selectedCategory || location || minPrice || maxPrice || sort !== "rating";
+
+  const searchArtists = useCallback(async () => {
     setLoading(true);
     setSearched(true);
     try {
       const params = new URLSearchParams();
-      if (q) params.set("search", q);
-      if (cat) params.set("category", cat);
-      const res = await fetch(`/api/artists?${params}&limit=20`);
+      if (query) params.set("search", query);
+      if (selectedCategory) params.set("category", selectedCategory);
+      if (location) params.set("location", location);
+      if (minPrice) params.set("minPrice", minPrice);
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      if (sort !== "rating") params.set("sort", sort);
+      params.set("limit", "20");
+      const res = await fetch(`/api/artists?${params}`);
       if (res.ok) {
         const data = await res.json();
         setResults(data.artists || []);
-        if (!cat) setCategories(data.categories || []);
+        if (!selectedCategory && !location && !minPrice && !maxPrice) {
+          setCategories(data.categories || []);
+        }
       }
     } catch {}
     setLoading(false);
-  }, []);
+  }, [query, selectedCategory, location, minPrice, maxPrice, sort]);
 
   useEffect(() => {
     startTransition(() => {
-      searchArtists("", "");
+      searchArtists();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const autoSearch = useRef(false);
+
+  useEffect(() => {
+    if (autoSearch.current) {
+      searchArtists();
+    }
+    autoSearch.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, location, minPrice, maxPrice, sort, query]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    searchArtists(query, selectedCategory);
+    const target = e.target as HTMLFormElement;
+    const input = target.querySelector("input");
+    if (input) {
+      setQuery(input.value);
+    }
   };
 
   const handleCategory = (slug: string) => {
-    const next = slug === selectedCategory ? "" : slug;
-    setSelectedCategory(next);
-    searchArtists(query, next);
+    setSelectedCategory(slug === selectedCategory ? "" : slug);
+  };
+
+  const clearFilters = () => {
+    setSelectedCategory("");
+    setLocation("");
+    setMinPrice("");
+    setMaxPrice("");
+    setSort("rating");
   };
 
   return (
@@ -75,16 +118,18 @@ export default function SearchPage() {
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
             placeholder="Search artists, locations, styles..."
             className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
           />
         </form>
 
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-2 mb-4">
             <button
-              onClick={() => handleCategory("")}
+              onClick={() => setSelectedCategory("")}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 !selectedCategory
                   ? "bg-rose-500 text-white"
@@ -109,19 +154,110 @@ export default function SearchPage() {
           </div>
         )}
 
-        {loading ? (
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 ${
+              showFilters || hasActiveFilters
+                ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"
+                : "bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300"
+            }`}
+          >
+            Filters {hasActiveFilters && `(${+!!selectedCategory + +!!location + +!!minPrice + +!!maxPrice + +(sort !== "rating")})`}
+          </button>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-500 hover:text-rose-600 transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Clear
+            </button>
+          )}
+        </div>
+
+        {showFilters && (
+          <div className="mb-6 p-4 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 shadow-sm">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Location</label>
+                <select
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-400 outline-none"
+                >
+                  <option value="">All Locations</option>
+                  {malaysiaStates.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Min Price (MYR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-rose-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Max Price (MYR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  placeholder="Any"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-rose-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Sort By</label>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-400 outline-none"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                searchArtists();
+                setShowFilters(false);
+              }}
+              className="mt-4 px-4 py-2 bg-rose-500 text-white text-sm font-medium rounded-lg hover:bg-rose-600 transition-colors"
+            >
+              Apply Filters
+            </button>
+          </div>
+        )}
+
+        {loading && searched && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-40 rounded-2xl" />
             ))}
           </div>
-        ) : results.length === 0 && searched ? (
+        )}
+
+        {!loading && results.length === 0 && searched && (
           <div className="text-center py-16">
             <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No artists found</h3>
-            <p className="text-sm text-gray-500">Try a different search or category</p>
+            <p className="text-sm text-gray-500">Try a different search or adjust your filters</p>
           </div>
-        ) : (
+        )}
+
+        {!loading && results.length > 0 && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {results.map((artist) => (
               <Link

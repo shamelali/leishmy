@@ -24,6 +24,7 @@ import {
 } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
+import ArtistReviews from "@/components/ArtistReviews";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -350,6 +351,12 @@ export default async function ArtistDetailPage({ params }: Props) {
                 </div>
               </div>
             )}
+
+            <ArtistReviews
+              artistId={artist.id}
+              artistName={artist.name}
+              services={artist.services.map((s) => ({ id: s.id, name: s.name }))}
+            />
           </div>
 
           {/* Right Column - Booking */}

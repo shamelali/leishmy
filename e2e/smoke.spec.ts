@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("homepage renders hero section", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("h1")).toBeVisible();
-  await expect(page.locator("text=Leish!")).toBeVisible();
+  await expect(page.locator("text=Leish!").first()).toBeVisible();
 });
 
 test("artists listing page loads", async ({ page }) => {
