@@ -5,6 +5,7 @@ import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
+import { awardPoints } from "@/lib/loyalty";
 
 const MAX_PORTFOLIO_ITEMS = 12;
 const MAX_URL_LENGTH = 500;
@@ -664,6 +665,48 @@ export async function POST(request: NextRequest) {
         title: "Booking Cancelled",
         body: `Your booking #${bookingId} has been cancelled by ${artist.name}.`,
         data: { link: "/dashboard" },
+      }).catch(() => {});
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "complete-booking") {
+      const { bookingId, userId: actionUserId } = body;
+      if (!bookingId || !actionUserId) {
+        return NextResponse.json({ error: "bookingId and userId required" }, { status: 400 });
+      }
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, Number(bookingId)))
+        .limit(1);
+      if (!booking) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+      if (booking.status !== "confirmed") {
+        return NextResponse.json({ error: "Only confirmed bookings can be completed" }, { status: 400 });
+      }
+      const [artist] = await db
+        .select()
+        .from(artists)
+        .where(eq(artists.userId, actionUserId))
+        .limit(1);
+      if (!artist || booking.artistId !== artist.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
+      await db
+        .update(bookings)
+        .set({ status: "completed", updatedAt: new Date() })
+        .where(eq(bookings.id, Number(bookingId)));
+
+      await awardPoints(booking.userId, "booking_completed", String(bookingId), `Booking #${bookingId} completed`);
+
+      await db.insert(notifications).values({
+        userId: booking.userId,
+        type: "booking_confirmed",
+        title: "Booking Completed",
+        body: `Your booking #${bookingId} with ${artist.name} has been completed. You earned 100 loyalty points!`,
+        data: { link: "/rewards" },
       }).catch(() => {});
 
       return NextResponse.json({ success: true });

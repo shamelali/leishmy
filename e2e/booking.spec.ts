@@ -94,11 +94,11 @@ test.describe("Booking Flow", () => {
     test.setTimeout(60_000);
 
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("form")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Book Now" })).toBeVisible();
 
     await page.getByRole("button", { name: "Book Now" }).click();
 
-    await expect(page.locator("form")).toBeVisible();
+    await expect(page.getByText("Your Name")).toBeVisible();
     await expect(page.getByText("Booking Confirmed!")).not.toBeVisible();
   });
 
