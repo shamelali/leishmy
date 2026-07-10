@@ -199,7 +199,7 @@ export default function DashboardAdmin() {
               <Icon className="w-4 h-4" />{label}
             </button>
           ))}
-          <span className="w-px h-6 bg-gray-200 dark:bg-neutral-700 mx-1 self-center" />
+          <span className="w-px h-6 bg-gray-200 dark:neutral-700 mx-1 self-center" />
           <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
             <Flag className="w-4 h-4" />Moderation
           </Link>
@@ -229,7 +229,7 @@ export default function DashboardAdmin() {
                   { icon: Building2, label: "Artists / Studios", value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: `${stats ? stats.totalArtists + stats.totalStudios : 0} total vendors`, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
                   { icon: Calendar, label: "Total Bookings", value: stats ? stats.totalBookings.toLocaleString() : "—", sub: "Across all services", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
                   { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-                  { icon: Star, label: "Average Rating", value: stats ? stats.avgRating : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
+                  { icon: Star, label: "Average Rating", value: stats ? String(stats.avgRating) : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
                   { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
                   { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
                   { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
@@ -689,36 +689,19 @@ export default function DashboardAdmin() {
             )}
           </div>
         )}
-    </div>
+      </div>
   );
 }
 
 function Pagination({ page, total, pageSize, onPage }: { page: number; total: number; pageSize: number; onPage: (p: number) => void }) {
   const totalPages = Math.ceil(total / pageSize);
-  if (totalPages <= 1) return null;
   return (
-    <div className="px-4 sm:px-5 py-4 border-t border-gray-100 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
-        Page {page} of {totalPages} ({total} total)
-      </p>
-      <div className="flex items-center justify-center gap-1.5">
-        <button onClick={() => onPage(page - 1)} disabled={page <= 1} className="px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-          const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-          const p = start + i;
-          if (p > totalPages) return null;
-          return (
-            <button key={p} onClick={() => onPage(p)} className={`min-w-[2.25rem] h-9 text-sm font-medium rounded-xl transition-all ${p === page ? "bg-rose-500 text-white shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30" : "text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"}`}>
-              {p}
-            </button>
-          );
-        })}
-        <button onClick={() => onPage(page + 1)} disabled={page >= totalPages} className="px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+    <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-100 dark:border-neutral-800">
+      <button onClick={() => onPage(page - 1)} disabled={page <= 1} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400"><ChevronLeft className="w-4 h-4" /></button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+        <button key={p} onClick={() => onPage(p)} className={`px-3 py-1 rounded-lg text-sm font-medium ${p === page ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>{p}</button>
+      ))}
+      <button onClick={() => onPage(page + 1)} disabled={page >= totalPages} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400"><ChevronRight className="w-4 h-4" /></button>
     </div>
   );
 }
