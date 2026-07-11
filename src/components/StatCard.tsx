@@ -1,10 +1,9 @@
-import type { LucideIcon } from "lucide-react";
 import { TrendingUp } from "lucide-react";
 
 interface StatCardProps {
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: string;
+  value: string | number;
   color: string;
   bg: string;
   sub?: string;

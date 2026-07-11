@@ -51,7 +51,6 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    setLoading(true);
     const params = new URLSearchParams();
     if (category !== "All") params.set("category", category);
     if (search) params.set("search", search);

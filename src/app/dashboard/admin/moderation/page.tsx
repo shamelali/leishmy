@@ -47,20 +47,17 @@ export default function ModerationPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [items, setItems] = useState<ModItem[]>([]);
 
-  const fetchPending = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin?action=pending-artists&pageSize=50");
-      if (res.ok) {
-        const data = await res.json();
-        setArtists(data.artists || []);
-      }
-    } catch { console.error("Failed to load pending artists"); }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchPending();
+    (async () => {
+      try {
+        const res = await fetch("/api/admin?action=pending-artists&pageSize=50");
+        if (res.ok) {
+          const data = await res.json();
+          setArtists(data.artists || []);
+        }
+      } catch { console.error("Failed to load pending artists"); }
+      setLoading(false);
+    })();
   }, []);
 
   useEffect(() => {

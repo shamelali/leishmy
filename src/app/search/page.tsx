@@ -81,7 +81,7 @@ export default function SearchPage() {
     } else {
       setLoading(false);
     }
-  }, [query, selectedCategory, location, minPrice, maxPrice, sort]);
+  }, [location, minPrice, maxPrice, sort]);
 
   useEffect(() => {
     startTransition(() => {
