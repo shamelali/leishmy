@@ -64,6 +64,13 @@
       "when": 1782521004749,
       "tag": "0008_events",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1752278400000,
+      "tag": "0009_add_received_emails",
+      "breakpoints": true
     }
   ]
 }

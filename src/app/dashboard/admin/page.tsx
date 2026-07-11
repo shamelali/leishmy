@@ -7,13 +7,24 @@ import {
   Calendar, Star, Shield, Palette, Store, UserCheck,
   BookOpen, CreditCard, RefreshCw, CheckCircle, XCircle,
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Mail,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
 
-type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events";
+interface ReceivedEmail {
+  id: number;
+  recipient: string;
+  sender: string;
+  subject: string | null;
+  bodyText: string | null;
+  bodyHtml: string | null;
+  source: string | null;
+  createdAt: string;
+}
+
+type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events" | "inbox";
 
 interface AdminStats {
   totalUsers: number;
@@ -41,6 +52,7 @@ const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "bookings", label: "Bookings", icon: BookOpen },
   { key: "payments", label: "Payments", icon: CreditCard },
   { key: "events", label: "Events", icon: Calendar },
+  { key: "inbox", label: "Inbox", icon: Mail },
 ];
 
 function PaymentBadge({ status }: { status: string }) {
@@ -78,12 +90,13 @@ export default function DashboardAdmin() {
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
+  const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
-    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, overview: 1,
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, overview: 1,
   });
   const [total, setTotal] = useState<Record<Tab, number>>({
-    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, overview: 0,
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, inbox: 0, overview: 0,
   });
 
   const fetchData = useCallback(async (t: Tab, p?: number) => {
@@ -101,6 +114,15 @@ export default function DashboardAdmin() {
         if (activityRes.ok) {
           const activityData = await activityRes.json();
           setRecentActivity(activityData.activity || []);
+        }
+      } else if (t === "inbox") {
+        const res = await fetch(`/api/admin?action=received-emails&limit=${pageSize}&offset=${(currentPage - 1) * pageSize}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReceivedEmails(data.emails || []);
+          setTotal((prev) => ({ ...prev, inbox: data.total || 0 }));
+        } else {
+          setFetchError("Failed to load inbox");
         }
       } else if (t === "events") {
         const res = await fetch("/api/events?admin=true");
@@ -636,6 +658,40 @@ export default function DashboardAdmin() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {tab === "inbox" && (
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-neutral-800">
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">From</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">To</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Subject</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Received</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                {loading ? (
+                  <tr><td colSpan={4} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : receivedEmails.length === 0 ? (
+                  <tr><td colSpan={4} className="p-8 text-center text-gray-400">No emails received yet. Set up forwarding in Cloudflare Email Routing.</td></tr>
+                ) : receivedEmails.map((email) => (
+                  <tr key={email.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                    <td className="p-3">
+                      <p className="font-medium text-gray-900 dark:text-white">{email.sender}</p>
+                    </td>
+                    <td className="p-3 text-gray-600 dark:text-gray-300 text-xs">{email.recipient}</td>
+                    <td className="p-3 text-gray-600 dark:text-gray-300">{email.subject || "(no subject)"}</td>
+                    <td className="p-3 text-gray-400 text-xs">{new Date(email.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {total.inbox > pageSize && (
+              <Pagination page={page.inbox} total={total.inbox} pageSize={pageSize} onPage={(p) => goToPage("inbox", p)} />
+            )}
           </div>
         )}
 

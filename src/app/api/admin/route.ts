@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, artists, studios, bookings, payments, adminSettings, contacts, communityApplications } from "@/db/schema";
+import { users, artists, studios, bookings, payments, adminSettings, contacts, communityApplications, receivedEmails } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -284,6 +284,25 @@ export async function GET(request: NextRequest) {
         settings[row.key] = row.value;
       }
       return NextResponse.json({ settings });
+    }
+
+    if (action === "received-emails") {
+      const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50"), 1), 200);
+      const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
+      const [rows, totalResult] = await Promise.all([
+        db.select()
+          .from(receivedEmails)
+          .orderBy(desc(receivedEmails.createdAt))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: count() }).from(receivedEmails),
+      ]);
+      return NextResponse.json({
+        emails: rows,
+        total: totalResult[0]?.count || 0,
+        limit,
+        offset,
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

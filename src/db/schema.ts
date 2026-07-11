@@ -618,4 +618,23 @@ export const loyaltyTransactions = pgTable(
   ],
 );
 
+export const receivedEmails = pgTable(
+  "received_emails",
+  {
+    id: serial("id").primaryKey(),
+    recipient: text("recipient").notNull(),
+    sender: text("sender").notNull(),
+    subject: text("subject"),
+    bodyText: text("body_text"),
+    bodyHtml: text("body_html"),
+    source: text("source").default("brevo-inbound"),
+    messageId: text("message_id"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("received_emails_recipient_idx").on(table.recipient),
+    index("received_emails_created_idx").on(table.createdAt),
+  ],
+);
+
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
+import { sendEmail } from "@/lib/email/brevo";
 import { limit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -24,6 +25,17 @@ export async function POST(request: NextRequest) {
       .insert(contacts)
       .values({ name, email, message })
       .returning();
+
+    const supportEmail = process.env.SUPPORT_EMAIL || "support@leish.my";
+    sendEmail({
+      to: supportEmail,
+      subject: `Contact Form: ${name}`,
+      html: `<p><strong>Name:</strong> ${name}</p>
+<p><strong>Email:</strong> ${email}</p>
+<p><strong>Message:</strong></p>
+<p>${message}</p>`,
+      text: `Name: ${name}\nEmail: ${email}\nMessage:\n${message}`,
+    }).catch((err) => console.error("Contact form email notify failed:", err));
 
     return NextResponse.json({ success: true, contact });
   } catch (error) {
