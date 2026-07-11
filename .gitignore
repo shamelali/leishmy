@@ -37,3 +37,4 @@ playwright-report/
 *.swp
 *.swo
 .env*
+opencode.json
