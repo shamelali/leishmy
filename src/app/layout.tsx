@@ -1,4 +1,6 @@
 import "@/lib/env";
+import "@/instrumentation-client";
+import * as Sentry from "@sentry/nextjs";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -33,6 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import Providers from "@/components/Providers";
+import ErrorState from "@/components/ErrorState";
 import BackToTop from "@/components/BackToTop";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import Script from "next/script";
@@ -62,13 +65,19 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </head>
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>
-            <Navbar />
-            <main className="min-h-screen pt-16">{children}</main>
-            <Footer />
-            <BackToTop />
-            <AccessibilityMenu />
-          </Providers>
+          <Sentry.ErrorBoundary
+            fallback={({ error, resetError }) => (
+              <ErrorState error={error as Error & { digest?: string }} reset={resetError} />
+            )}
+          >
+            <Providers>
+              <Navbar />
+              <main className="min-h-screen pt-16">{children}</main>
+              <Footer />
+              <BackToTop />
+              <AccessibilityMenu />
+            </Providers>
+          </Sentry.ErrorBoundary>
         </NextIntlClientProvider>
       </body>
     </html>

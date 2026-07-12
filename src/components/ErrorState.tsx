@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function ErrorState({
   error,
@@ -10,6 +12,10 @@ export default function ErrorState({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="text-center max-w-md">
