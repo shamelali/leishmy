@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { sql } from "drizzle-orm";
+import { hasBrevoKey } from "@/lib/email/brevo";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ export async function GET() {
   } catch {
     checks.database = "error";
   }
+
+  checks.brevo = hasBrevoKey() ? "key_set" : "missing_key";
 
   checks.uptime = `${Math.floor(process.uptime())}s`;
 

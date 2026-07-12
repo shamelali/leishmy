@@ -93,6 +93,9 @@
   "footer": {
     "description": "您的美丽，完美呈现。预约马来西亚最优秀的化妆师和工作室。",
     "explore": "探索",
+    "artists": "化妆师",
+    "studios": "工作室",
+    "categories": "分类",
     "support": "支持",
     "contactUs": "联系我们",
     "faq": "常见问题",
@@ -284,6 +287,21 @@
     "perk4Desc": "获取资源和机会，提升您的技艺。",
     "areaNotice": "目前仅向雪兰莪、吉隆坡和布城的化妆师开放。我们很快会扩展到其他州属！",
     "applicationForm": "申请表格"
+  },
+  "studioDetail": {
+    "backToStudios": "返回工作室列表",
+    "location": "位置",
+    "artists": "化妆师",
+    "priceRange": "价格范围",
+    "about": "关于",
+    "amenities": "设施",
+    "contactStudio": "联系工作室",
+    "contactDesc": "联系预约 {name} 的服务。",
+    "chatWhatsApp": "在WhatsApp上聊天",
+    "browseArtists": "浏览我们的化妆师",
+    "notFound": "工作室未找到",
+    "detailTitle": "{name} — Leish!",
+    "detailNotFound": "未找到 — Leish!"
   },
   "artistDetail": {
     "backToArtists": "返回化妆师列表",

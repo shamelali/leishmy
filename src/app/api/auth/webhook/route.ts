@@ -9,21 +9,46 @@ export const runtime = "nodejs";
 const neauth = prefixedEnvReader("NEON_AUTH_");
 
 let jwksCache: { keys: { kid: string; x: string; crv: string; kty: string }[] } | null = null;
-let jwksFetching: Promise<void> | null = null;
+let jwksFetching: Promise<{ keys: { kid: string; x: string; crv: string; kty: string }[] }> | null = null;
 
 async function getJwks() {
   if (jwksCache) return jwksCache;
-  if (jwksFetching) await jwksFetching;
+
+  if (jwksFetching) {
+    try {
+      jwksCache = await jwksFetching;
+      return jwksCache;
+    } catch {
+      jwksFetching = null;
+      throw new Error("Failed to fetch JWKS");
+    }
+  }
+
   const baseUrl = neauth.get("BASE_URL");
   if (!baseUrl) throw new Error("NEON_AUTH_BASE_URL is not configured");
   const jwksUrl = baseUrl.replace(/\/auth$/, "") + "/.well-known/jwks.json";
-  jwksFetching = fetch(jwksUrl).then(async (res) => {
-    jwksCache = await res.json();
-    jwksFetching = null;
+
+  jwksFetching = (async () => {
+    const res = await fetch(jwksUrl);
+    if (!res.ok) {
+      throw new Error(`JWKS fetch failed: ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    if (!data || !Array.isArray(data.keys)) {
+      throw new Error("Invalid JWKS response: missing keys array");
+    }
+    return data;
+  })();
+
+  try {
+    jwksCache = await jwksFetching;
     setTimeout(() => { jwksCache = null; }, 300_000);
-  });
-  await jwksFetching;
-  return jwksCache!;
+    return jwksCache;
+  } catch (error) {
+    jwksCache = null;
+    jwksFetching = null;
+    throw error;
+  }
 }
 
 async function verifyWebhook(rawBody: string, headers: Headers) {

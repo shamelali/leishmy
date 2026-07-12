@@ -93,6 +93,9 @@
   "footer": {
     "description": "Kecantikan Anda, Disempurnakan. Tempah artis dan studio solekan terbaik Malaysia.",
     "explore": "Teroka",
+    "artists": "Artis",
+    "studios": "Studio",
+    "categories": "Kategori",
     "support": "Sokongan",
     "contactUs": "Hubungi Kami",
     "faq": "Soalan Lazim",
@@ -284,6 +287,21 @@
     "perk4Desc": "Akses sumber dan peluang untuk meningkatkan kemahiran anda.",
     "areaNotice": "Kini dibuka kepada artis di Selangor, Kuala Lumpur, dan Putrajaya. Kami akan berkembang ke negeri lain tidak lama lagi!",
     "applicationForm": "Borang Permohonan"
+  },
+  "studioDetail": {
+    "backToStudios": "Kembali ke Studio",
+    "location": "Lokasi",
+    "artists": "Artis",
+    "priceRange": "Julat Harga",
+    "about": "Tentang",
+    "amenities": "Kemudahan",
+    "contactStudio": "Hubungi Studio",
+    "contactDesc": "Hubungi untuk menempah sesi di {name}.",
+    "chatWhatsApp": "Bual di WhatsApp",
+    "browseArtists": "Cari Artis Kami",
+    "notFound": "Studio Tidak Dijumpai",
+    "detailTitle": "{name} — Leish!",
+    "detailNotFound": "Tidak Dijumpai — Leish!"
   },
   "artistDetail": {
     "backToArtists": "Kembali ke Artis",

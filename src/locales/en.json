@@ -93,6 +93,9 @@
   "footer": {
     "description": "Your Beauty, Perfected. Book Malaysia's finest makeup artists and studios.",
     "explore": "Explore",
+    "artists": "Artists",
+    "studios": "Studios",
+    "categories": "Categories",
     "support": "Support",
     "contactUs": "Contact Us",
     "faq": "FAQ",
@@ -320,6 +323,21 @@
     "perk4Desc": "Access resources and opportunities to elevate your craft.",
     "areaNotice": "Currently open to artists in Selangor, Kuala Lumpur, and Putrajaya. We'll be expanding to other states soon!",
     "applicationForm": "Application Form"
+  },
+  "studioDetail": {
+    "backToStudios": "Back to Studios",
+    "location": "Location",
+    "artists": "Artists",
+    "priceRange": "Price Range",
+    "about": "About",
+    "amenities": "Amenities",
+    "contactStudio": "Contact Studio",
+    "contactDesc": "Get in touch to book a session at {name}.",
+    "chatWhatsApp": "Chat on WhatsApp",
+    "browseArtists": "Browse Our Artists",
+    "notFound": "Studio Not Found",
+    "detailTitle": "{name} — Leish!",
+    "detailNotFound": "Not Found — Leish!"
   },
   "artistDetail": {
     "backToArtists": "Back to Artists",

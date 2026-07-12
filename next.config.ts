@@ -26,7 +26,4 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   silent: !process.env.CI,
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring",
-  reactComponentAnnotation: {
-    enabled: true,
-  },
 });

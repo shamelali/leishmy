@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users, artists, bookings, reviews } from "@/db/schema";
+import { users, artists, bookings } from "@/db/schema";
 import { count, avg, sql } from "drizzle-orm";
 import { HeroSection } from "@/components/home/HeroSection";
 import { RoleRedirect } from "@/components/home/RoleRedirect";
@@ -11,17 +11,22 @@ import { CtaSection } from "@/components/home/CtaSection";
 
 async function getStats() {
   try {
-    const [userCount, artistCount, bookingCount, ratingResult] = await Promise.all([
+    const [userCount, artistStats, bookingCount] = await Promise.all([
       db.select({ count: count() }).from(users),
-      db.select({ count: count() }).from(artists),
+      db.select({
+        count: count(),
+        avgRating: avg(sql`CAST(${artists.rating} AS DECIMAL)`),
+      }).from(artists),
       db.select({ count: count() }).from(bookings),
-      db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
     ]);
-    const avgRating = ratingResult[0]?.avg ? Number(Number(ratingResult[0].avg).toFixed(1)) : 0;
+    const artistCount = artistStats[0]?.count || 0;
+    const avgRating = artistStats[0]?.avgRating
+      ? Number(Number(artistStats[0].avgRating).toFixed(1))
+      : 0;
     return [
       { value: `${userCount[0]?.count || 0}+`.replace("0+", "0"), label: "Happy Clients" },
       { value: avgRating > 0 ? avgRating.toString() : "0", label: "Avg Rating" },
-      { value: `${artistCount[0]?.count || 0}+`.replace("0+", "0"), label: "Pro Artists" },
+      { value: `${artistCount}+`.replace("0+", "0"), label: "Pro Artists" },
       { value: `${bookingCount[0]?.count || 0}+`.replace("0+", "0"), label: "Bookings" },
     ];
   } catch {
