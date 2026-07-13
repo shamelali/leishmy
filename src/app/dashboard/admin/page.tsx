@@ -7,11 +7,22 @@ import {
   Calendar, Star, Shield, Palette, Store, UserCheck,
   BookOpen, CreditCard, RefreshCw, CheckCircle, XCircle,
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
-  ChevronLeft, ChevronRight, Mail,
+  ChevronLeft, ChevronRight, Mail, MessageSquare, X, MoreHorizontal,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
+
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < breakpoint);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 interface ReceivedEmail {
   id: number;
@@ -73,6 +84,7 @@ function PaymentBadge({ status }: { status: string }) {
 
 export default function DashboardAdmin() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<Tab>("overview");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -91,6 +103,7 @@ export default function DashboardAdmin() {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
   const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<ReceivedEmail | null>(null);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, overview: 1,
@@ -197,13 +210,14 @@ export default function DashboardAdmin() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
+    <>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Platform overview and management</p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 rounded-full">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 rounded-full self-start sm:self-auto">
             <Shield className="w-4 h-4 text-rose-500" />
             <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">Admin</span>
           </div>
@@ -215,20 +229,20 @@ export default function DashboardAdmin() {
           </div>
         )}
 
-        <div className="flex gap-1 mb-2 overflow-x-auto pb-2">
+        <div className="flex gap-1 mb-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           {tabs.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => switchTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
+            <button key={key} onClick={() => switchTab(key)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
               <Icon className="w-4 h-4" />{label}
             </button>
           ))}
-          <span className="w-px h-6 bg-gray-200 dark:neutral-700 mx-1 self-center" />
-          <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+          <span className="w-px h-6 bg-gray-200 dark:neutral-700 mx-1 self-center hidden sm:inline" />
+          <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
             <Flag className="w-4 h-4" />Moderation
           </Link>
-          <Link href="/dashboard/admin/reports" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+          <Link href="/dashboard/admin/reports" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
             <FileText className="w-4 h-4" />Reports
           </Link>
-          <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+          <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
             <Settings className="w-4 h-4" />Settings
           </Link>
         </div>
@@ -236,7 +250,7 @@ export default function DashboardAdmin() {
         {tab !== "overview" && (
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search by name, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+            <input type="text" placeholder="Search by name, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
           </div>
         )}
 
@@ -296,8 +310,8 @@ export default function DashboardAdmin() {
             </div>
 
             {showAddArtist && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAddArtist(false)}>
-                <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 p-6 w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowAddArtist(false)}>
+                <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-lg ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''} overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Artist</h3>
                   <div className="space-y-3">
                     {(["name", "email", "phone", "location", "image", "bio", "price"] as const).map((field) => {
@@ -352,7 +366,8 @@ export default function DashboardAdmin() {
               </div>
             )}
 
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
@@ -386,14 +401,15 @@ export default function DashboardAdmin() {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <a href={`/artists/${artist.id}`} target="_blank" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><ExternalLink className="w-4 h-4" /></a>
-                        <button onClick={() => deleteArtist(artist.id)} disabled={actionLoading === artist.id} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                        <a href={`/artists/${artist.id}`} target="_blank" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><ExternalLink className="w-4 h-4" /></a>
+                        <button onClick={() => deleteArtist(artist.id)} disabled={actionLoading === artist.id} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             {total.artists > pageSize && (
               <Pagination page={page.artists} total={total.artists} pageSize={pageSize} onPage={(p) => goToPage("artists", p)} />
             )}
@@ -402,14 +418,23 @@ export default function DashboardAdmin() {
 
         {tab === "studios" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Rating</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th></tr>
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Rating</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                : filterBySearch(studios).length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-gray-400">No studios found</td></tr>
-                : filterBySearch(studios).map((studio) => (
+                {loading ? (
+                  <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : filterBySearch(studios).length === 0 ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No studios found</td></tr>
+                ) : filterBySearch(studios).map((studio) => (
                     <tr key={studio.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{studio.name}</td>
                       <td className="p-3 text-gray-600 dark:text-gray-300">{studio.email}</td>
@@ -420,6 +445,7 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            </div>
             {total.studios > pageSize && (
               <Pagination page={page.studios} total={total.studios} pageSize={pageSize} onPage={(p) => goToPage("studios", p)} />
             )}
@@ -428,14 +454,23 @@ export default function DashboardAdmin() {
 
           {tab === "users" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th><th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th></tr>
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                : filterBySearch(users).length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-gray-400">No users found</td></tr>
-                : filterBySearch(users).map((user) => {
+                {loading ? (
+                  <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : filterBySearch(users).length === 0 ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No users found</td></tr>
+                ) : filterBySearch(users).map((user) => {
                     const promoting = actionLoading === `promote-${user.id}`;
                     return (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
@@ -456,7 +491,7 @@ export default function DashboardAdmin() {
                               fetchData("users");
                             }}
                             disabled={promoting}
-                            className="px-2 py-1 text-[10px] font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40"
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40 touch-target"
                           >
                             {promoting ? "..." : "Make Admin"}
                           </button>
@@ -466,6 +501,7 @@ export default function DashboardAdmin() {
                   );})}
               </tbody>
             </table>
+            </div>
             {total.users > pageSize && (
               <Pagination page={page.users} total={total.users} pageSize={pageSize} onPage={(p) => goToPage("users", p)} />
             )}
@@ -474,14 +510,25 @@ export default function DashboardAdmin() {
 
         {tab === "bookings" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Customer</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Artist</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th><th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th></tr>
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Customer</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Artist</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                : filterBySearch(bookings).length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-gray-400">No bookings found</td></tr>
-                : filterBySearch(bookings).map((b) => (
+                {loading ? (
+                  <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : filterBySearch(bookings).length === 0 ? (
+                  <tr><td colSpan={7} className="p-8 text-center text-gray-400">No bookings found</td></tr>
+                ) : filterBySearch(bookings).map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-mono text-xs text-gray-500">{(b.id || "").slice(0, 8)}</td>
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{b.userName || "—"}</td>
@@ -498,6 +545,7 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            </div>
             {total.bookings > pageSize && (
               <Pagination page={page.bookings} total={total.bookings} pageSize={pageSize} onPage={(p) => goToPage("bookings", p)} />
             )}
@@ -519,8 +567,8 @@ export default function DashboardAdmin() {
             </div>
 
             {showAddEvent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAddEvent(false)}>
-                <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 p-6 w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowAddEvent(false)}>
+                <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-lg ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''} overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Event</h3>
                   <div className="space-y-3">
                     <div>
@@ -597,7 +645,8 @@ export default function DashboardAdmin() {
               </div>
             )}
 
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Title</th>
@@ -636,7 +685,7 @@ export default function DashboardAdmin() {
                             setActionLoading(""); fetchData("events");
                           }}
                           disabled={actionLoading === `pub-${ev.id}`}
-                          className="px-2 py-1 text-[10px] font-medium rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-40"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-40 touch-target"
                         >
                           {ev.published ? "Unpublish" : "Publish"}
                         </button>
@@ -648,7 +697,7 @@ export default function DashboardAdmin() {
                             setActionLoading(""); fetchData("events");
                           }}
                           disabled={actionLoading === `del-${ev.id}`}
-                          className="px-2 py-1 text-[10px] font-medium rounded-lg bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-40"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-40 touch-target"
                         >
                           Delete
                         </button>
@@ -658,12 +707,14 @@ export default function DashboardAdmin() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
         {tab === "inbox" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">From</th>
@@ -678,7 +729,7 @@ export default function DashboardAdmin() {
                 ) : receivedEmails.length === 0 ? (
                   <tr><td colSpan={4} className="p-8 text-center text-gray-400">No emails received yet. Set up forwarding in Cloudflare Email Routing.</td></tr>
                 ) : receivedEmails.map((email) => (
-                  <tr key={email.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                  <tr key={email.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer" onClick={() => setSelectedEmail(email)}>
                     <td className="p-3">
                       <p className="font-medium text-gray-900 dark:text-white">{email.sender}</p>
                     </td>
@@ -689,6 +740,7 @@ export default function DashboardAdmin() {
                 ))}
               </tbody>
             </table>
+            </div>
             {total.inbox > pageSize && (
               <Pagination page={page.inbox} total={total.inbox} pageSize={pageSize} onPage={(p) => goToPage("inbox", p)} />
             )}
@@ -697,14 +749,25 @@ export default function DashboardAdmin() {
 
         {tab === "payments" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Booking</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Method</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Created</th><th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th></tr>
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Booking</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Method</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Created</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                : filterBySearch(payments).length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-gray-400">No payments found</td></tr>
-                : filterBySearch(payments).map((p) => (
+                {loading ? (
+                  <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                ) : filterBySearch(payments).length === 0 ? (
+                  <tr><td colSpan={7} className="p-8 text-center text-gray-400">No payments found</td></tr>
+                ) : filterBySearch(payments).map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-mono text-xs text-gray-500">{(p.id || "").slice(0, 8)}</td>
                       <td className="p-3 font-mono text-xs text-gray-500">{(p.bookingId || "").toString().slice(0, 8) || "—"}</td>
@@ -740,24 +803,50 @@ export default function DashboardAdmin() {
                   ))}
               </tbody>
             </table>
+            </div>
             {total.payments > pageSize && (
               <Pagination page={page.payments} total={total.payments} pageSize={pageSize} onPage={(p) => goToPage("payments", p)} />
             )}
           </div>
         )}
       </div>
+
+      {selectedEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedEmail(null)}>
+          <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-neutral-800">
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedEmail.subject || "(no subject)"}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">From: {selectedEmail.sender} · To: {selectedEmail.recipient}</p>
+              </div>
+              <button onClick={() => setSelectedEmail(null)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {selectedEmail.bodyHtml ? (
+                <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.bodyHtml }} />
+              ) : selectedEmail.bodyText ? (
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 p-4 rounded-xl">{selectedEmail.bodyText}</pre>
+              ) : (
+                <p className="text-gray-400 dark:text-gray-500">No message content available</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 function Pagination({ page, total, pageSize, onPage }: { page: number; total: number; pageSize: number; onPage: (p: number) => void }) {
   const totalPages = Math.ceil(total / pageSize);
+  const isMobile = useIsMobile();
   return (
-    <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-100 dark:border-neutral-800">
-      <button onClick={() => onPage(page - 1)} disabled={page <= 1} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400"><ChevronLeft className="w-4 h-4" /></button>
+    <div className="flex items-center justify-center gap-1 p-4 border-t border-gray-100 dark:border-neutral-800 flex-wrap">
+      <button onClick={() => onPage(page - 1)} disabled={page <= 1} className={`p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400 ${isMobile ? 'min-w-[44px] min-h-[44px]' : ''}`}><ChevronLeft className="w-5 h-5" /></button>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-        <button key={p} onClick={() => onPage(p)} className={`px-3 py-1 rounded-lg text-sm font-medium ${p === page ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>{p}</button>
+        <button key={p} onClick={() => onPage(p)} className={`px-3 py-2 rounded-lg text-sm font-medium ${p === page ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"} ${isMobile ? 'min-w-[44px] min-h-[44px]' : ''}`}>{p}</button>
       ))}
-      <button onClick={() => onPage(page + 1)} disabled={page >= totalPages} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400"><ChevronRight className="w-4 h-4" /></button>
+      <button onClick={() => onPage(page + 1)} disabled={page >= totalPages} className={`p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-30 text-gray-600 dark:text-gray-400 ${isMobile ? 'min-w-[44px] min-h-[44px]' : ''}`}><ChevronRight className="w-5 h-5" /></button>
     </div>
   );
 }
