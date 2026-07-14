@@ -14,6 +14,7 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
   const [service, setService] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -56,6 +57,7 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
           service,
           date,
           time,
+          location,
           notes,
         }),
       });
@@ -87,6 +89,7 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
             setService("");
             setDate("");
             setTime("");
+            setLocation("");
             setNotes("");
           }}
           className="mt-6 text-sm text-rose-600 dark:text-rose-400 hover:text-rose-700 font-medium"
@@ -181,6 +184,20 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Location */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Location
+        </label>
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Hotel name, studio address, or venue"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+        />
       </div>
 
       {/* Notes */}

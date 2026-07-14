@@ -8,20 +8,21 @@ const WHATSAPP_NUMBER = "601137633788";
 const DEFAULT_MESSAGE = "Hi! I'm interested in booking a makeup artist through Leish. Could you help me?";
 
 export function WhatsAppChatbot() {
-  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [showNotification, setShowNotification] = useState(false);
   const toast = useToast();
 
+  const isClient = typeof window !== "undefined";
+
   useEffect(() => {
-    setMounted(true);
+    if (!isClient) return;
     const timer = setTimeout(() => setShowNotification(true), 5000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isClient]);
 
-  if (!mounted) return null;
+  if (!isClient) return null;
 
   const openWhatsApp = async () => {
     setIsLoading(true);

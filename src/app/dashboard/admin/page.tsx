@@ -51,7 +51,7 @@ interface AdminStats {
 interface Artist { id: string; name: string; email: string; phone: string; location: string; rating: string; reviewCount: number; verified: boolean; available: boolean; createdAt: string; }
 interface Studio { id: string; name: string; email: string; phone: string; location: string; rating: string; createdAt: string; }
 interface User { id: string; name: string; email: string; role: string; image: string; createdAt: string; }
-interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; }
+interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; notes: string; location: string; }
 interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; }
 interface AdminEvent { id: number; title: string; slug: string; date: string; time: string | null; location: string | null; category: string; published: boolean; featured: boolean; }
 
@@ -511,29 +511,32 @@ export default function DashboardAdmin() {
         {tab === "bookings" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
+            <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Customer</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Artist</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
                   <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
-                  <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                  <tr><td colSpan={9} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(bookings).length === 0 ? (
-                  <tr><td colSpan={7} className="p-8 text-center text-gray-400">No bookings found</td></tr>
+                  <tr><td colSpan={9} className="p-8 text-center text-gray-400">No bookings found</td></tr>
                 ) : filterBySearch(bookings).map((b) => (
-                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer" onClick={() => setSelectedEmail({ ...b, id: b.id, subject: `Booking #${b.id}`, sender: b.userName, recipient: b.artistName, bodyText: b.notes || "No notes", bodyHtml: null, createdAt: b.date, source: "booking" })}>
                       <td className="p-3 font-mono text-xs text-gray-500">{(b.id || "").slice(0, 8)}</td>
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{b.userName || "—"}</td>
                       <td className="p-3 text-gray-600 dark:text-gray-300">{b.artistName || "—"}</td>
                       <td className="p-3 text-gray-600 dark:text-gray-300">{b.date}</td>
+                      <td className="p-3 text-gray-600 dark:text-gray-300 text-sm">{b.location || "—"}</td>
                       <td className="p-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${b.status === "confirmed" ? "bg-green-50 text-green-600 dark:bg-green-950/30" : b.status === "pending" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30" : b.status === "cancelled" ? "bg-red-50 text-red-600 dark:bg-red-950/30" : b.status === "completed" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30" : "bg-gray-100 text-gray-600 dark:bg-neutral-800"}`}>{b.status}</span>
                       </td>
@@ -541,6 +544,9 @@ export default function DashboardAdmin() {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${b.paymentStatus === "paid" || b.paymentStatus === "released" ? "bg-green-50 text-green-600 dark:bg-green-950/30" : b.paymentStatus === "held" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30" : b.paymentStatus === "pending" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30" : "bg-gray-100 text-gray-600 dark:bg-neutral-800"}`}>{b.paymentStatus}</span>
                       </td>
                       <td className="p-3 text-right font-medium text-gray-900 dark:text-white">MYR {b.totalAmount}</td>
+                      <td className="p-3 text-gray-600 dark:text-gray-300 text-sm max-w-[200px] truncate" title={b.notes || "No notes"}>
+                        {b.notes ? (b.notes.length > 60 ? b.notes.slice(0, 60) + "..." : b.notes) : "—"}
+                      </td>
                     </tr>
                   ))}
               </tbody>

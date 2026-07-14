@@ -143,7 +143,23 @@ export async function GET(request: NextRequest) {
 
     if (action === "bookings") {
       const [rows, [{ count: total }]] = await Promise.all([
-        db.select().from(bookings).limit(pageSize).offset(offset),
+        db.select({
+          id: bookings.id,
+          date: bookings.date,
+          time: bookings.time,
+          status: bookings.status,
+          amount: bookings.amount,
+          notes: bookings.notes,
+          location: bookings.location,
+          userId: bookings.userId,
+          artistId: bookings.artistId,
+          userName: users.name,
+          artistName: artists.name,
+        })
+        .from(bookings)
+        .leftJoin(users, eq(bookings.userId, users.id))
+        .leftJoin(artists, eq(bookings.artistId, artists.id))
+        .limit(pageSize).offset(offset),
         db.select({ count: count() }).from(bookings),
       ]);
       return NextResponse.json({
@@ -154,8 +170,10 @@ export async function GET(request: NextRequest) {
           status: b.status || "pending",
           paymentStatus: "pending",
           totalAmount: b.amount || "0",
-          userName: b.userId,
-          artistName: "",
+          userName: b.userName || "—",
+          artistName: b.artistName || "—",
+          notes: b.notes || "",
+          location: b.location || "",
         })),
         total, page, pageSize,
       });

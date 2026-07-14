@@ -6,7 +6,7 @@ export function ThemeScript() {
   return (
     <Script
       id="theme-init"
-      strategy="beforeInteractive"
+      strategy="afterInteractive"
       dangerouslySetInnerHTML={{
         __html: `
           (function() {
