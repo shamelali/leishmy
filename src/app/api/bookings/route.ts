@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
         serviceId: serviceId || null,
         service: body.service || null,
         notes: body.notes || null,
+        location: body.location || null,
         date: new Date(date),
         time: time || null,
         amount,
@@ -204,13 +205,34 @@ export async function GET(request: NextRequest) {
         .where(eq(bookings.userId, userId));
       const total = totalResult?.count ?? 0;
       const userBookings = await db
-        .select()
+        .select({
+          id: bookings.id,
+          userId: bookings.userId,
+          artistId: bookings.artistId,
+          studioId: bookings.studioId,
+          serviceId: bookings.serviceId,
+          service: bookings.service,
+          notes: bookings.notes,
+          location: bookings.location,
+          date: bookings.date,
+          time: bookings.time,
+          amount: bookings.amount,
+          status: bookings.status,
+          createdAt: bookings.createdAt,
+          updatedAt: bookings.updatedAt,
+          artistName: artists.name,
+        })
         .from(bookings)
+        .leftJoin(artists, eq(bookings.artistId, artists.id))
         .where(eq(bookings.userId, userId))
         .limit(pageSize)
         .offset(offset);
       return NextResponse.json({
-        bookings: userBookings,
+        bookings: userBookings.map(b => ({
+          ...b,
+          id: String(b.id),
+          artistId: b.artistId ? String(b.artistId) : null,
+        })),
         total,
         page,
         pageSize,

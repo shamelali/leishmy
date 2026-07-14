@@ -26,8 +26,9 @@ export default function BookingsPage() {
 
   useEffect(() => {
     const fetchBookings = async () => {
+      if (!user?.id) return;
       try {
-        const res = await fetch("/api/bookings");
+        const res = await fetch(`/api/bookings?userId=${user.id}`);
         const data = await res.json();
         if (data.bookings) {
           setBookings(data.bookings);
@@ -39,7 +40,7 @@ export default function BookingsPage() {
       }
     };
 
-    if (!authLoading) {
+    if (!authLoading && user?.id) {
       fetchBookings();
     }
   }, [authLoading, user]);
