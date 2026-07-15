@@ -61,7 +61,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
         </div>
 
         {/* Right - Image Grid */}
-        <div className="relative hidden lg:block">
+        <div className="relative">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
               <div className="rounded-2xl overflow-hidden shadow-2xl shadow-rose-200/40 dark:shadow-rose-900/20 transform rotate-1 hover:rotate-0 transition-transform duration-500 animate-scale-in">
@@ -87,7 +87,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 </div>
               </div>
             </div>
-            <div className="space-y-4 pt-8">
+            <div className="space-y-4 lg:pt-8">
               <div className="rounded-2xl overflow-hidden shadow-xl shadow-rose-200/40 dark:shadow-rose-900/20 transform -rotate-1 hover:rotate-0 transition-transform duration-500 animate-scale-in delay-200">
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
