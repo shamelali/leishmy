@@ -1,7 +1,14 @@
 import { Star, Quote } from "lucide-react";
-import { testimonials } from "@/lib/data";
 
-export function TestimonialsSection() {
+type TestimonialProps = {
+  quote: string;
+  author: string;
+  role: string | null;
+  rating: number | null;
+};
+
+export function TestimonialsSection({ testimonials }: { testimonials: TestimonialProps[] | null }) {
+  if (!testimonials || testimonials.length === 0) return null;
   return (
     <section
       className="py-24 bg-gradient-to-b from-rose-50/30 to-white dark:from-neutral-900 dark:to-neutral-950"
@@ -25,14 +32,16 @@ export function TestimonialsSection() {
             >
               <Quote className="w-8 h-8 text-rose-100 dark:text-rose-900/50 mb-4 fill-rose-100 dark:fill-rose-900/50 group-hover:text-rose-200 dark:group-hover:text-rose-800/50 group-hover:fill-rose-200 dark:group-hover:fill-rose-800/50 transition-colors" />
 
-              <div className="flex items-center gap-0.5 mb-4">
-                {Array.from({ length: t.rating }).map((_, j) => (
-                  <Star
-                    key={j}
-                    className="w-3.5 h-3.5 text-amber-400 fill-amber-400"
-                  />
-                ))}
-              </div>
+              {t.rating != null && (
+                <div className="flex items-center gap-0.5 mb-4">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <Star
+                      key={j}
+                      className="w-3.5 h-3.5 text-amber-400 fill-amber-400"
+                    />
+                  ))}
+                </div>
+              )}
 
               <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 text-sm">
                 &ldquo;{t.quote}&rdquo;
@@ -47,7 +56,7 @@ export function TestimonialsSection() {
                     {t.author}
                   </p>
                   <p className="text-xs text-rose-500 dark:text-rose-400 font-medium">
-                    {t.role}
+                    {t.role || ""}
                   </p>
                 </div>
               </div>

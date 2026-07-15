@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { categories } from "@/lib/data";
 
-export function CategoriesSection() {
+type CategoryProps = {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string | null;
+  image: string | null;
+  artistCount: number;
+};
+
+export function CategoriesSection({ categories }: { categories: CategoryProps[] }) {
   return (
     <section className="py-24 bg-white dark:bg-neutral-950" id="categories">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,13 +36,13 @@ export function CategoriesSection() {
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/artists?category=${cat.id}`}
+              href={`/artists?category=${cat.slug}`}
               className="group relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 dark:from-neutral-800 dark:to-neutral-900 hover:from-rose-900 hover:to-pink-900 dark:hover:from-rose-950 dark:hover:to-pink-950 transition-all duration-500"
             >
               {/* Background image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={cat.image}
+                src={cat.image || "/placeholder.svg"}
                 alt={cat.name}
                 className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
                 loading="lazy"
@@ -49,7 +57,7 @@ export function CategoriesSection() {
                     {cat.name}
                   </h3>
                   <span className="text-xs text-rose-300 dark:text-rose-400 font-medium">
-                    {cat.count} artists
+                    {cat.artistCount} artists
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-rose-300 group-hover:translate-x-1 transition-all shrink-0 mt-0.5" />

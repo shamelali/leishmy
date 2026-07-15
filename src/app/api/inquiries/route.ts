@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (phone && !/^(\+?6?0)\d{8,11}$/.test(phone.replace(/[\s-]/g, ""))) {
+      return NextResponse.json(
+        { error: "Invalid phone number format. Please enter a valid Malaysian phone number." },
+        { status: 400 },
+      );
+    }
+
     const [artist] = await db
       .select({ id: artists.id, name: artists.name, email: artists.email })
       .from(artists)
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
         artistId: Number(artistId),
         name,
         email,
-        phone: phone || null,
+        phone: phone ? phone.replace(/[\s-]/g, "") : null,
         location: location || null,
         message,
       })

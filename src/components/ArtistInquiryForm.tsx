@@ -8,6 +8,8 @@ type Props = {
   artistName: string;
 };
 
+const PHONE_REGEX = /^(\+?6?0)[0-9]{8,11}$/;
+
 export function ArtistInquiryForm({ artistId, artistName }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,9 +19,20 @@ export function ArtistInquiryForm({ artistId, artistName }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+
+  const validatePhone = (value: string) => {
+    if (value && !PHONE_REGEX.test(value.replace(/\s|-/g, ""))) {
+      setPhoneError("Enter a valid Malaysian phone number (e.g. +60 12-345 6789)");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validatePhone(phone)) return;
     setSubmitting(true);
     setError("");
 
@@ -27,7 +40,7 @@ export function ArtistInquiryForm({ artistId, artistName }: Props) {
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artistId, name, email, phone, location, message }),
+        body: JSON.stringify({ artistId, name, email, phone: phone.replace(/\s|-/g, ""), location, message }),
       });
 
       if (!res.ok) throw new Error("Failed");
@@ -78,12 +91,14 @@ export function ArtistInquiryForm({ artistId, artistName }: Props) {
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phone (optional)</label>
         <input
-          type="text"
+          type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => { setPhone(e.target.value); setPhoneError(""); }}
+          onBlur={() => validatePhone(phone)}
           placeholder="+60 12-345 6789"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+          className={`w-full px-4 py-3 rounded-xl border ${phoneError ? "border-red-500 dark:border-red-400" : "border-gray-200 dark:border-neutral-700"} bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none`}
         />
+        {phoneError && <p className="text-xs text-red-500 dark:text-red-400 mt-1">{phoneError}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Location (optional)</label>
