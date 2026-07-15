@@ -47,6 +47,11 @@ export function bookingConfirmationTemplate(params: {
       <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/bookings" class="button">View My Bookings</a>
     </p>
   </div>
+  <div style="background: #fefce8; padding: 20px; margin: 0 0 20px 0; border-radius: 8px; text-align: center;">
+    <p style="font-weight: bold; margin: 0 0 4px 0;">🎉 Loved your session?</p>
+    <p style="margin: 0; font-size: 14px; color: #555;">Share this artist with friends and earn 200 loyalty points!</p>
+    <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist/share" style="display: inline-block; background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 14px; margin-top: 10px;">Learn More</a>
+  </div>
   <div class="footer">
     <p>If you need to reschedule or cancel, please contact us at hello@leish.my</p>
     <p>&copy; 2026 Leish. All rights reserved.</p>
@@ -70,6 +75,9 @@ BOOKING DETAILS:
 - Amount Paid: MYR ${params.amount} (${params.paymentType === "deposit" ? "30% Deposit" : "Full Payment"})
 
 View your bookings: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/bookings
+
+🎉 LOVED YOUR SESSION? Share this artist with friends and earn 200 loyalty points!
+${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist/share
 
 If you need to reschedule or cancel, please contact us at hello@leish.my
 
@@ -112,6 +120,15 @@ export function welcomeEmailTemplate(params: { name: string; role?: string }) {
           : `<p>Welcome to Leish! We're thrilled to have you join our community of beauty enthusiasts.</p>`
     }
     <p>Discover top makeup artists, book appointments, and find your perfect look.</p>
+    ${
+      params.role === "artist" || params.role === "studio"
+        ? `<div style="background: #f3e8ff; padding: 20px; margin: 20px 0; border-radius: 8px;">
+             <p style="font-weight: bold; margin: 0 0 8px 0;">💰 Earn 200 points per referral</p>
+             <p style="margin: 0 0 12px 0; font-size: 14px; color: #555;">Share your profile link with clients and earn 200 loyalty points when they book through your link.</p>
+             <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/${params.role}/share" style="display: inline-block; background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 14px;">Get Your Share Link</a>
+           </div>`
+        : ""
+    }
     <p style="text-align: center;">
       <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/artists" class="button">Explore Artists</a>
     </p>
@@ -136,6 +153,12 @@ ${
 }
 
 Discover top makeup artists, book appointments, and find your perfect look.
+
+${
+  params.role === "artist" || params.role === "studio"
+    ? `\nEARN 200 POINTS PER REFERRAL\nShare your profile link with clients and earn 200 loyalty points when they book through you.\nGet your share link: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/${params.role}/share\n`
+    : ""
+}
 
 Explore Artists: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/artists
 

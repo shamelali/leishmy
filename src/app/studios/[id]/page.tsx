@@ -4,6 +4,7 @@ import { Star, MapPin, Users, ArrowLeft, Wifi, Car, Crown, Coffee } from "lucide
 import { db } from "@/db";
 import { studios } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import ShareButtons from "@/components/ShareButtons";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -51,9 +52,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations("studioDetail");
   const m = await getTranslations("metadata");
   if (!studio) return { title: t("detailNotFound") };
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
   return {
     title: `${studio.name} — ${m("brand")}`,
-    description: studio.description,
+    description: studio.description || `Beauty studio in ${studio.location || "Malaysia"}`,
+    openGraph: {
+      title: `${studio.name} — Leish.my`,
+      description: `⭐ ${studio.rating} | ${studio.location || "Malaysia"} | ${studio.priceRange}`,
+      url: `${baseUrl}/studios/${studio.slug}`,
+      siteName: "Leish.my",
+      images: studio.image ? [{ url: studio.image, width: 800, height: 600 }] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${studio.name} — Leish.my`,
+      description: `⭐ ${studio.rating} | ${studio.location || "Malaysia"} | ${studio.priceRange}`,
+      images: studio.image ? [studio.image] : [],
+    },
   };
 }
 
@@ -86,6 +102,9 @@ export default async function StudioDetailPage({ params }: Props) {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute top-4 right-4">
+            <ShareButtons url={`${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/r/${studio.slug}`} title={`${studio.name} — Book on Leish!`} variant="dropdown" />
+          </div>
           <div className="absolute bottom-6 left-6 right-6">
             <div className="flex items-center gap-3 mb-2">
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-xs font-medium">

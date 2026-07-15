@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { db } from "@/db";
-import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
+import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories, referrals } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
@@ -339,6 +339,50 @@ export async function POST(
           description: "",
           userId,
         });
+      }
+
+      const refCookie = request.cookies.get("leish_ref");
+      if (refCookie?.value) {
+        try {
+          const ref = JSON.parse(refCookie.value);
+          if (ref?.t && ref?.id && (ref.t === "artist" || ref.t === "studio")) {
+            const referrerOwnerId = ref.t === "artist"
+              ? await db.select({ uid: artists.userId }).from(artists).where(eq(artists.id, Number(ref.id))).limit(1).then(r => r[0]?.uid)
+              : await db.select({ uid: studios.userId }).from(studios).where(eq(studios.id, Number(ref.id))).limit(1).then(r => r[0]?.uid);
+
+            if (referrerOwnerId && referrerOwnerId !== userId) {
+              const referrerIdNum = Number(ref.id);
+              const [existing] = await db
+                .select()
+                .from(referrals)
+                .where(and(
+                  eq(referrals.referrerType, ref.t),
+                  eq(referrals.referrerId, referrerIdNum),
+                  eq(referrals.referredEmail, email),
+                ))
+                .limit(1);
+
+              if (existing) {
+                await db.update(referrals).set({
+                  referredUserId: userId,
+                  status: "registered",
+                  registeredAt: new Date(),
+                }).where(eq(referrals.id, existing.id));
+              } else {
+                await db.insert(referrals).values({
+                  referrerType: ref.t,
+                  referrerId: referrerIdNum,
+                  referredUserId: userId,
+                  referredEmail: email,
+                  status: "registered",
+                  registeredAt: new Date(),
+                });
+              }
+            }
+          }
+        } catch {
+          // invalid referral cookie - ignore silently
+        }
       }
 
       const roleForEmail = userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");

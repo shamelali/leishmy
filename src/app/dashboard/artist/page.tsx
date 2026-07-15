@@ -23,6 +23,7 @@ import {
   Languages,
   Tag,
   MessageSquare,
+  Share2,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -300,6 +301,7 @@ export default function DashboardArtist() {
             { href: "/dashboard/artist/portfolio", label: "Portfolio", icon: Image },
             { href: "/dashboard/artist/bookings", label: "Bookings", icon: Calendar },
             { href: "/dashboard/artist/analytics", label: "Analytics", icon: TrendingUp },
+            { href: "/dashboard/artist/share", label: "Share & Refer", icon: Share2 },
           ].map(({ href, label, icon: Icon }) => (
             <Link
               key={href}

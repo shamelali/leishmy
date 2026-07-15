@@ -3,7 +3,6 @@ import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-reac
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
 import { eq, inArray, and } from "drizzle-orm";
-import { categories } from "@/lib/data";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -21,6 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ArtistsPage({ searchParams }: Props) {
   const { category } = await searchParams;
+
+  const dbCategories = await db
+    .select({ slug: categoriesTable.slug, name: categoriesTable.name, icon: categoriesTable.icon })
+    .from(categoriesTable)
+    .orderBy(categoriesTable.name);
   type DisplayArtist = {
     id: string;
     name: string;
@@ -151,12 +155,12 @@ export default async function ArtistsPage({ searchParams }: Props) {
             >
               All
             </Link>
-            {categories.map((cat) => (
+            {dbCategories.map((cat) => (
               <Link
-                key={cat.id}
-                href={`/artists?category=${cat.id}`}
+                key={cat.slug}
+                href={`/artists?category=${cat.slug}`}
                 className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                  category === cat.id
+                  category === cat.slug
                     ? "bg-rose-500 text-white"
                     : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
                 }`}

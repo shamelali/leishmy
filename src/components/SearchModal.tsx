@@ -4,7 +4,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, ArrowRight, Star, MapPin } from "lucide-react";
 import ImageWithFallback from "@/components/ImageWithFallback";
-import { categories } from "@/lib/data";
+
+const categories = [
+  { id: "bridal", name: "Bridal", icon: "💍" },
+  { id: "event", name: "Event", icon: "✨" },
+  { id: "hijab", name: "Hijab", icon: "🧕" },
+  { id: "editorial", name: "Editorial", icon: "📸" },
+  { id: "airbrush", name: "Airbrush", icon: "💨" },
+  { id: "sfx", name: "SFX", icon: "🎭" },
+  { id: "hair", name: "Hair", icon: "💇" },
+  { id: "lash", name: "Lash", icon: "👁️" },
+];
 
 interface ArtistResult {
   id: string;

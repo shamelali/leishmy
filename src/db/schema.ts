@@ -660,4 +660,30 @@ export const receivedEmails = pgTable(
   ],
 );
 
+export const referralStatusValues = ["clicked", "registered", "booked", "rewarded"] as const;
+export type ReferralStatus = (typeof referralStatusValues)[number];
+
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: serial("id").primaryKey(),
+    referrerType: varchar("referrer_type", { length: 50 }).notNull(),
+    referrerId: integer("referrer_id").notNull(),
+    referredUserId: text("referred_user_id").references(() => users.id, { onDelete: "set null" }),
+    referredEmail: text("referred_email"),
+    status: varchar("status", { length: 50 }).notNull().default("clicked"),
+    bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    pointsAwarded: integer("points_awarded").default(0),
+    clickedAt: timestamp("clicked_at", { mode: "date" }).defaultNow().notNull(),
+    registeredAt: timestamp("registered_at", { mode: "date" }),
+    bookedAt: timestamp("booked_at", { mode: "date" }),
+    rewardedAt: timestamp("rewarded_at", { mode: "date" }),
+  },
+  (table) => [
+    index("referrals_referrer_idx").on(table.referrerType, table.referrerId),
+    index("referrals_status_idx").on(table.status),
+    index("referrals_referred_user_idx").on(table.referredUserId),
+  ],
+);
+
 
