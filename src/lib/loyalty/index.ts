@@ -4,7 +4,7 @@ import {
   loyaltyTransactions,
   loyaltyTiers,
 } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 const POINTS_MAP: Record<string, number> = {
   booking_completed: 100,
@@ -24,8 +24,8 @@ export async function awardPoints(
   const basePoints = POINTS_MAP[source] || 0;
   if (basePoints === 0) return null;
 
-  const [current] = await db
-    .select()
+  const [currentPoints] = await db
+    .select({ tier: loyaltyPoints.tier })
     .from(loyaltyPoints)
     .where(eq(loyaltyPoints.userId, userId))
     .limit(1);
@@ -33,34 +33,33 @@ export async function awardPoints(
   const [tierData] = await db
     .select()
     .from(loyaltyTiers)
-    .where(eq(loyaltyTiers.name, current?.tier || "bronze"))
+    .where(eq(loyaltyTiers.name, currentPoints?.tier || "bronze"))
     .limit(1);
 
   const multiplier = Number(tierData?.multiplier || 1);
   const pointsAwarded = Math.round(basePoints * multiplier);
 
-  if (current) {
-    const newLifetimeEarned = current.lifetimeEarned + pointsAwarded;
-    const newTier = await calculateTier(newLifetimeEarned);
+  await db.execute(sql`
+    INSERT INTO loyalty_points (user_id, balance, lifetime_earned, lifetime_redeemed, tier, updated_at)
+    VALUES (${userId}, ${pointsAwarded}, ${pointsAwarded}, 0, 'bronze', NOW())
+    ON CONFLICT (user_id) DO UPDATE SET
+      balance = loyalty_points.balance + ${pointsAwarded},
+      lifetime_earned = loyalty_points.lifetime_earned + ${pointsAwarded},
+      updated_at = NOW()
+  `);
 
+  const [updated] = await db
+    .select({ lifetimeEarned: loyaltyPoints.lifetimeEarned })
+    .from(loyaltyPoints)
+    .where(eq(loyaltyPoints.userId, userId))
+    .limit(1);
+
+  if (updated) {
+    const newTier = await calculateTier(updated.lifetimeEarned);
     await db
       .update(loyaltyPoints)
-      .set({
-        balance: current.balance + pointsAwarded,
-        lifetimeEarned: newLifetimeEarned,
-        tier: newTier,
-        updatedAt: new Date(),
-      })
+      .set({ tier: newTier })
       .where(eq(loyaltyPoints.userId, userId));
-  } else {
-    const newTier = await calculateTier(pointsAwarded);
-    await db.insert(loyaltyPoints).values({
-      userId,
-      balance: pointsAwarded,
-      lifetimeEarned: pointsAwarded,
-      lifetimeRedeemed: 0,
-      tier: newTier,
-    });
   }
 
   await db.insert(loyaltyTransactions).values({
@@ -81,7 +80,7 @@ export async function redeemPoints(
   referenceId?: string,
 ) {
   const [current] = await db
-    .select()
+    .select({ balance: loyaltyPoints.balance, lifetimeRedeemed: loyaltyPoints.lifetimeRedeemed })
     .from(loyaltyPoints)
     .where(eq(loyaltyPoints.userId, userId))
     .limit(1);
@@ -90,14 +89,13 @@ export async function redeemPoints(
     return { success: false, error: "Insufficient points" };
   }
 
-  await db
-    .update(loyaltyPoints)
-    .set({
-      balance: current.balance - amount,
-      lifetimeRedeemed: current.lifetimeRedeemed + amount,
-      updatedAt: new Date(),
-    })
-    .where(eq(loyaltyPoints.userId, userId));
+  await db.execute(sql`
+    UPDATE loyalty_points SET
+      balance = balance - ${amount},
+      lifetime_redeemed = lifetime_redeemed + ${amount},
+      updated_at = NOW()
+    WHERE user_id = ${userId}
+  `);
 
   await db.insert(loyaltyTransactions).values({
     userId,

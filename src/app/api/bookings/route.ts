@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, artists, notifications } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { bookings, users, artists, studios, notifications, referrals } from "@/db/schema";
+import { eq, and, count } from "drizzle-orm";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { getAuthSession } from "@/lib/auth/server";
+import { awardPoints } from "@/lib/loyalty";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -127,6 +128,78 @@ export async function POST(request: NextRequest) {
         date: formattedDate,
         time: time || "To be confirmed",
       }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
+    }
+
+    const refCookie = request.cookies.get("leish_ref");
+    if (refCookie?.value && artist) {
+      try {
+        const ref = JSON.parse(refCookie.value);
+        if (ref?.t === "artist" && ref?.id) {
+          const referrerIdNum = Number(ref.id);
+          if (referrerIdNum !== artist.id) {
+            const referrerOwnerId = await db
+              .select({ uid: artists.userId })
+              .from(artists)
+              .where(eq(artists.id, referrerIdNum))
+              .limit(1)
+              .then(r => r[0]?.uid);
+
+            if (referrerOwnerId && referrerOwnerId !== customer.id) {
+              const [existingReferral] = await db
+                .select({ id: referrals.id, status: referrals.status })
+                .from(referrals)
+                .where(and(
+                  eq(referrals.referrerType, "artist"),
+                  eq(referrals.referrerId, referrerIdNum),
+                  eq(referrals.referredUserId, customer.id),
+                ))
+                .limit(1);
+
+              if (existingReferral && (existingReferral.status === "clicked" || existingReferral.status === "registered")) {
+                await db.update(referrals).set({
+                  bookingId: booking.id,
+                  status: "booked",
+                  bookedAt: new Date(),
+                }).where(eq(referrals.id, existingReferral.id));
+              } else if (!existingReferral) {
+                await db.insert(referrals).values({
+                  referrerType: "artist",
+                  referrerId: referrerIdNum,
+                  referredUserId: customer.id,
+                  referredEmail: customer.email,
+                  bookingId: booking.id,
+                  status: "booked",
+                  bookedAt: new Date(),
+                });
+              }
+
+              if (existingReferral?.status !== "rewarded") {
+                const pointsAwarded = await awardPoints(
+                  referrerOwnerId,
+                  "referral",
+                  String(booking.id),
+                  `Referral booking #${booking.id}`,
+                );
+                if (pointsAwarded) {
+                  await db.update(referrals).set({
+                    status: "rewarded",
+                    pointsAwarded,
+                    rewardedAt: new Date(),
+                  }).where(
+                    and(
+                      eq(referrals.referrerType, "artist"),
+                      eq(referrals.referrerId, referrerIdNum),
+                      eq(referrals.referredUserId, customer.id),
+                    ),
+                  );
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // invalid referral cookie - ignore silently
+      }
     }
 
     return NextResponse.json({ success: true, booking });

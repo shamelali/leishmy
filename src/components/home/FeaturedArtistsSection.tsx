@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Palette, Users, ArrowRight } from "lucide-react";
 
-export function FeaturedArtistsSection() {
+export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { onboardingArtists: number; categoryCount: number }) {
   return (
     <section className="py-24 bg-gradient-to-b from-white to-rose-50/30 dark:from-neutral-950 dark:to-neutral-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,13 +60,13 @@ export function FeaturedArtistsSection() {
 
         <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto text-center">
           <div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{onboardingArtists}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Artists Onboarding
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">8</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{categoryCount}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Beauty Categories
             </div>

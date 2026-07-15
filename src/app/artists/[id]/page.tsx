@@ -25,6 +25,7 @@ import {
 import { eq, desc } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
 import ArtistReviews from "@/components/ArtistReviews";
+import ShareButtons from "@/components/ShareButtons";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -117,9 +118,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const m = await getTranslations("metadata");
   if (!artist)
     return { title: t("detailNotFound") };
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
   return {
     title: `${artist.name} — ${m("brand")}`,
-    description: artist.bio,
+    description: artist.bio || `Makeup artist in ${[artist.district, artist.area, artist.location].filter(Boolean).join(", ") || "Malaysia"}`,
+    openGraph: {
+      title: `${artist.name} — Leish.my`,
+      description: `⭐ ${artist.rating} | ${artist.location || "Malaysia"} ${artist.price ? `| From RM${artist.price}` : ""}`,
+      url: `${baseUrl}/artists/${artist.slug}`,
+      siteName: "Leish.my",
+      images: artist.image ? [{ url: artist.image, width: 800, height: 600 }] : [],
+      type: "profile",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${artist.name} — Leish.my`,
+      description: `⭐ ${artist.rating} | ${artist.location || "Malaysia"} ${artist.price ? `| From RM${artist.price}` : ""}`,
+      images: artist.image ? [artist.image] : [],
+    },
   };
 }
 
@@ -156,6 +172,9 @@ export default async function ArtistDetailPage({ params }: Props) {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute top-4 right-4">
+                <ShareButtons url={`${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/r/${artist.slug}`} title={`${artist.name} — Book on Leish!`} variant="dropdown" />
+              </div>
               <div className="absolute bottom-6 left-6 right-6">
                 <div className="flex items-center gap-3 mb-2">
                   {artist.verified && (

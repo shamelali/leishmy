@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { users, artists, bookings, categories as categoriesTable, artistCategories, testimonials } from "@/db/schema";
-import { count, avg, sql, eq, desc } from "drizzle-orm";
+import { count, avg, sql, eq, desc, inArray } from "drizzle-orm";
 import { HeroSection } from "@/components/home/HeroSection";
 import { RoleRedirect } from "@/components/home/RoleRedirect";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
@@ -71,18 +71,41 @@ async function getStats() {
   }
 }
 
+async function getFeaturedStats() {
+  try {
+    const [onboardingCount, catCount] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(artists)
+        .where(inArray(artists.status, ["draft", "pending_verification"])),
+      db.select({ count: count() }).from(categoriesTable),
+    ]);
+    return {
+      onboardingArtists: onboardingCount[0]?.count || 0,
+      categoryCount: catCount[0]?.count || 0,
+    };
+  } catch {
+    console.error("Failed to load featured section stats");
+    return { onboardingArtists: 0, categoryCount: 0 };
+  }
+}
+
 export default async function HomePage() {
-  const [stats, categoryCounts, realTestimonials] = await Promise.all([
+  const [stats, categoryCounts, realTestimonials, featuredStats] = await Promise.all([
     getStats(),
     getCategoryCounts(),
     getRealTestimonials(),
+    getFeaturedStats(),
   ]);
   return (
     <>
       <RoleRedirect />
       <HeroSection stats={stats} />
       <CategoriesSection categories={categoryCounts} />
-      <FeaturedArtistsSection />
+      <FeaturedArtistsSection
+        onboardingArtists={Number(featuredStats.onboardingArtists)}
+        categoryCount={Number(featuredStats.categoryCount)}
+      />
       <HowItWorksSection />
       <TestimonialsSection testimonials={realTestimonials} />
       <CtaSection />
