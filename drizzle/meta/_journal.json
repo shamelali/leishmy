@@ -71,6 +71,13 @@
       "when": 1752278400000,
       "tag": "0009_add_received_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1751900000000,
+      "tag": "0010_add_contacts_location_and_inquiries",
+      "breakpoints": true
     }
   ]
 }

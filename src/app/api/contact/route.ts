@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
     const body = await request.json();
-    const { name, email, message } = body;
+    const { name, email, location, message } = body;
 
     if (!name || !email || !message) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const [contact] = await db
       .insert(contacts)
-      .values({ name, email, message })
+      .values({ name, email, location, message })
       .returning();
 
     const supportEmail = process.env.SUPPORT_EMAIL || "support@leish.my";
@@ -32,9 +32,10 @@ export async function POST(request: NextRequest) {
       subject: `Contact Form: ${name}`,
       html: `<p><strong>Name:</strong> ${name}</p>
 <p><strong>Email:</strong> ${email}</p>
+${location ? `<p><strong>Location:</strong> ${location}</p>` : ""}
 <p><strong>Message:</strong></p>
 <p>${message}</p>`,
-      text: `Name: ${name}\nEmail: ${email}\nMessage:\n${message}`,
+      text: `Name: ${name}\nEmail: ${email}${location ? `\nLocation: ${location}` : ""}\nMessage:\n${message}`,
     }).catch((err) => console.error("Contact form email notify failed:", err));
 
     return NextResponse.json({ success: true, contact });

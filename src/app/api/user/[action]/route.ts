@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/db";
 import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
@@ -341,7 +342,10 @@ export async function POST(
       }
 
       const roleForEmail = userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");
-      sendWelcomeEmail({ email, name, role: roleForEmail }).catch((err) => console.error("sendWelcomeEmail failed:", err));
+      sendWelcomeEmail({ email, name, role: roleForEmail }).catch((err) => {
+        console.error("sendWelcomeEmail failed:", err);
+        Sentry.captureException(err, { extra: { email, name, role: roleForEmail, context: "create-profile" } });
+      });
 
       return NextResponse.json({ success: true });
     }

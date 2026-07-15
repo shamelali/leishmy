@@ -25,7 +25,7 @@ function useIsMobile(breakpoint = 768) {
 }
 
 interface ReceivedEmail {
-  id: number;
+  id: string;
   recipient: string;
   sender: string;
   subject: string | null;

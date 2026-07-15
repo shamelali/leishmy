@@ -22,6 +22,7 @@ import {
   Award,
   Languages,
   Tag,
+  MessageSquare,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -40,6 +41,17 @@ interface BankAccount {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+}
+
+interface Inquiry {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  location: string | null;
+  message: string;
+  status: string;
+  createdAt: string;
 }
 
 interface Booking {
@@ -81,6 +93,8 @@ export default function DashboardArtist() {
     accountHolder: "",
   });
 
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [artistId, setArtistId] = useState<number | null>(null);
   const [fetchError, setFetchError] = useState("");
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
@@ -171,6 +185,14 @@ export default function DashboardArtist() {
               availabilityNotes: a.availability || "",
               socialProfiles: social,
             });
+
+            setArtistId(a.id);
+
+            const inquiriesRes = await fetch(`/api/inquiries?artistId=${a.id}`);
+            if (inquiriesRes.ok) {
+              const inquiriesData = await inquiriesRes.json();
+              setInquiries(inquiriesData.inquiries || []);
+            }
           }
         }
       } catch {
@@ -523,6 +545,35 @@ export default function DashboardArtist() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-8">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-rose-500" /> Inquiries ({inquiries.length})
+          </h2>
+          {inquiries.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">No inquiries yet</p>
+          ) : (
+            <div className="space-y-3">
+              {inquiries.filter((i) => i.status === "pending").map((inq) => (
+                <div key={inq.id} className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{inq.name}</p>
+                      <p className="text-xs text-gray-500">{inq.email}</p>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">New</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{inq.message}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                    {inq.phone && <span>{inq.phone}</span>}
+                    {inq.location && <span>{inq.location}</span>}
+                    <span>{new Date(inq.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -382,8 +382,30 @@ export const contacts = pgTable("contacts", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   message: text("message").notNull(),
+  location: text("location"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
+
+export const inquiries = pgTable(
+  "inquiries",
+  {
+    id: serial("id").primaryKey(),
+    artistId: integer("artist_id")
+      .notNull()
+      .references(() => artists.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 50 }),
+    location: text("location"),
+    message: text("message").notNull(),
+    status: varchar("status", { length: 50 }).default("pending").notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("inquiries_artist_idx").on(table.artistId),
+    index("inquiries_status_idx").on(table.status),
+  ],
+);
 
 export const studioInventory = pgTable("studio_inventory", {
   id: serial("id").primaryKey(),

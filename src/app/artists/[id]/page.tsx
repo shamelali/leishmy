@@ -24,6 +24,7 @@ import {
 } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { BookingForm } from "@/components/BookingForm";
+import { ArtistInquiryForm } from "@/components/ArtistInquiryForm";
 import ArtistReviews from "@/components/ArtistReviews";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
@@ -370,6 +371,16 @@ export default async function ArtistDetailPage({ params }: Props) {
                   Starting from MYR {artist.price}/hr
                 </p>
                 <BookingForm artistId={artist.id} artistName={artist.name} />
+              </div>
+
+              <div className="mt-6 bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-700 shadow-xl p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  Ask a Question
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  Not ready to book? Send {artist.name} an inquiry.
+                </p>
+                <ArtistInquiryForm artistId={artist.id} artistName={artist.name} />
               </div>
             </div>
           </div>
