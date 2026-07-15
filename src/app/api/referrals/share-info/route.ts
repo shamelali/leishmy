@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "role must be 'artist' or 'studio'" }, { status: 400 });
     }
 
-    let profile: { id: number; slug: string; name: string };
+    let profile: { id: number; slug: string | null; name: string };
 
     if (role === "artist") {
       const [artist] = await db

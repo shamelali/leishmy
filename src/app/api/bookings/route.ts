@@ -192,6 +192,14 @@ export async function POST(request: NextRequest) {
                       eq(referrals.referredUserId, customer.id),
                     ),
                   );
+
+                  await db.insert(notifications).values({
+                    userId: referrerOwnerId,
+                    type: "loyalty",
+                    title: "🎉 Referral Reward!",
+                    body: `You earned ${pointsAwarded} loyalty points from a referral booking!`,
+                    data: { link: "/dashboard/artist/share", pointsAwarded: String(pointsAwarded) },
+                  }).catch(() => {});
                 }
               }
             }

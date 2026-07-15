@@ -23,7 +23,6 @@ import {
   Languages,
   Tag,
   MessageSquare,
-  Share2,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -301,7 +300,6 @@ export default function DashboardArtist() {
             { href: "/dashboard/artist/portfolio", label: "Portfolio", icon: Image },
             { href: "/dashboard/artist/bookings", label: "Bookings", icon: Calendar },
             { href: "/dashboard/artist/analytics", label: "Analytics", icon: TrendingUp },
-            { href: "/dashboard/artist/share", label: "Share & Refer", icon: Share2 },
           ].map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
@@ -327,6 +325,23 @@ export default function DashboardArtist() {
             <StatCard key={props.label} {...props} />
           ))}
         </div>
+
+        <Link
+          href="/dashboard/artist/share"
+          className="block p-4 sm:p-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-8 text-white hover:opacity-90 transition-opacity group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-lg">Share & Earn</h3>
+              <p className="text-sm text-white/80 mt-1">
+                Share your profile and earn 200 loyalty points per referral booking
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-sm bg-white/20 rounded-lg px-4 py-2 group-hover:bg-white/30 transition-colors">
+              <Share2 className="w-4 h-4" /> Open
+            </div>
+          </div>
+        </Link>
 
         <div className="p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-8">
           <div className="flex items-center justify-between mb-4">
