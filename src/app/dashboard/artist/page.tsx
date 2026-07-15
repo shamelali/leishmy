@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Check,
   X,
+  Share2,
   Banknote,
   Wallet,
   Clock,
