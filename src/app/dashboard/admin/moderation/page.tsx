@@ -102,8 +102,15 @@ export default function ModerationPage() {
     return <DashboardLoading fullPage />;
   }
 
-  const handleResolve = async (id: number) => {
-    setItems((prev) => prev.filter((r) => r.id !== id));
+  const handleResolve = async (id: number, type: string) => {
+    try {
+      await fetch("/api/admin?action=resolve-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type }),
+      });
+      setItems((prev) => prev.filter((r) => r.id !== id));
+    } catch { console.error("Failed to resolve item"); }
   };
 
   return (
@@ -279,8 +286,8 @@ export default function ModerationPage() {
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{r.reason}</p>
-                      {r.status === "pending" && (
-                        <button onClick={() => handleResolve(r.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
+                        {r.status === "pending" && (
+                        <button onClick={() => handleResolve(r.id, r.type)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
                           <CheckCircle className="w-3.5 h-3.5" /> Dismiss
                         </button>
                       )}

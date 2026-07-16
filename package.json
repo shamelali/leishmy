@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "leishmy",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
@@ -7,11 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "db:seed": "tsx scripts/seed.ts",
+    "check": "pnpm typecheck && pnpm lint",
+    "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:studio": "drizzle-kit studio",
+    "setup": "pnpm install && pnpm db:push && pnpm db:seed",
+    "dev:fresh": "pnpm db:push && pnpm db:seed && pnpm dev",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "preview": "pnpm build && pnpm start"
   },
   "dependencies": {
     "@cloudinary/url-gen": "^1.22.0",

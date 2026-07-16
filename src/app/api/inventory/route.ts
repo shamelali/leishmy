@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { studioInventory } from "@/db/schema";
+import { studioInventory, studios } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const studioId = searchParams.get("studioId");
 
     if (!studioId) {
       return NextResponse.json({ error: "studioId required" }, { status: 400 });
+    }
+
+    const [studio] = await db
+      .select({ userId: studios.userId })
+      .from(studios)
+      .where(eq(studios.id, Number(studioId)))
+      .limit(1);
+
+    if (!studio || studio.userId !== session.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const rows = await db
@@ -68,6 +83,26 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    const [item] = await db
+      .select({ studioId: studioInventory.studioId })
+      .from(studioInventory)
+      .where(eq(studioInventory.id, Number(id)))
+      .limit(1);
+
+    if (!item) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    const [studio] = await db
+      .select({ userId: studios.userId })
+      .from(studios)
+      .where(eq(studios.id, item.studioId))
+      .limit(1);
+
+    if (!studio || studio.userId !== session.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await db.delete(studioInventory).where(eq(studioInventory.id, Number(id)));

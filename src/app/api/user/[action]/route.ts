@@ -178,6 +178,16 @@ export async function GET(
         return NextResponse.json({ error: "studioId required" }, { status: 400 });
       }
 
+      const [studio] = await db
+        .select({ userId: studios.userId })
+        .from(studios)
+        .where(eq(studios.id, Number(studioId)))
+        .limit(1);
+
+      if (!studio || studio.userId !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       const rows = await db
         .select()
         .from(artists)

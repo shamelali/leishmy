@@ -442,6 +442,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === "resolve-item") {
+      const { id, type } = body;
+      if (!id || !type) {
+        return NextResponse.json({ error: "id and type required" }, { status: 400 });
+      }
+      if (type === "contact") {
+        await db.delete(contacts).where(eq(contacts.id, Number(id)));
+      } else if (type === "community") {
+        const actualId = Number(id) >= 1000 ? Number(id) - 1000 : Number(id);
+        await db.delete(communityApplications).where(eq(communityApplications.id, actualId));
+      } else {
+        return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+      }
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "settings") {
       const entries = body.settings as Record<string, string>;
       if (!entries) {
