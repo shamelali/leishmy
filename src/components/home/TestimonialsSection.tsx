@@ -1,4 +1,5 @@
 import { Star, Quote } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type TestimonialProps = {
   quote: string;
@@ -7,7 +8,9 @@ type TestimonialProps = {
   rating: number | null;
 };
 
-export function TestimonialsSection({ testimonials }: { testimonials: TestimonialProps[] | null }) {
+export async function TestimonialsSection({ testimonials }: { testimonials: TestimonialProps[] | null }) {
+  const t = await getTranslations("testimonials");
+
   if (!testimonials || testimonials.length === 0) return null;
   return (
     <section
@@ -17,10 +20,10 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <p className="text-sm font-semibold text-rose-500 uppercase tracking-wider mb-2">
-            Testimonials
+            {t('label')}
           </p>
           <h2 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 dark:text-white">
-            What Our Clients Say
+            {t('heading')}
           </h2>
         </div>
 

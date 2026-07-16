@@ -1,20 +1,22 @@
 import Link from "next/link";
 import { Palette, Users, ArrowRight } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { onboardingArtists: number; categoryCount: number }) {
+export async function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { onboardingArtists: number; categoryCount: number }) {
+  const t = await getTranslations("featuredArtists");
+
   return (
     <section className="py-24 bg-gradient-to-b from-white to-rose-50/30 dark:from-neutral-950 dark:to-neutral-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-sm font-semibold text-rose-500 uppercase tracking-wider mb-2">
-            Are you a Makeup Artist?
+            {t('label')}
           </p>
           <h2 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 dark:text-white">
-            Join Malaysia&apos;s Beauty Platform
+            {t('heading')}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-xl mx-auto">
-            We&apos;re building the largest community of beauty professionals in
-            Kuala Lumpur and Selangor.
+            {t('description')}
           </p>
         </div>
 
@@ -24,17 +26,16 @@ export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { o
               <Palette className="w-6 h-6 text-white" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              Apply as an Artist
+              {t('card1Title')}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Create your professional profile, showcase your portfolio, and
-              start receiving booking requests from clients in your area.
+              {t('card1Desc')}
             </p>
             <Link
               href="/community/apply"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
             >
-              Apply Now <ArrowRight className="w-3.5 h-3.5" />
+              {t('card1Cta')} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
@@ -43,17 +44,16 @@ export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { o
               <Users className="w-6 h-6 text-white dark:text-gray-900" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              Browse the Platform
+              {t('card2Title')}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Explore profiles of talented artists, read reviews, and book the
-              perfect beauty professional for your next occasion.
+              {t('card2Desc')}
             </p>
             <Link
               href="/artists"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
-              Browse Artists <ArrowRight className="w-3.5 h-3.5" />
+              {t('card2Cta')} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -62,19 +62,19 @@ export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { o
           <div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{onboardingArtists}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Artists Onboarding
+              {t('statOnboarding')}
             </div>
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{categoryCount}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Beauty Categories
+              {t('statCategories')}
             </div>
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">KL & Selangor</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Service Area
+              {t('statArea')}
             </div>
           </div>
         </div>
