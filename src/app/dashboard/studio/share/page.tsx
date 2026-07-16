@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Share2, Copy, Check, Link as LinkIcon, Users, MousePointerClick, Gift, Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 
 interface ShareInfo {
@@ -35,6 +36,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 }
 
 export default function StudioSharePage() {
+  const t = useTranslations("share");
   const [data, setData] = useState<ShareInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,8 +47,8 @@ export default function StudioSharePage() {
     try {
       const res = await fetch("/api/referrals/share-info?role=studio");
       if (!res.ok) {
-        if (res.status === 404) throw new Error("Studio profile not found. Complete your studio setup first.");
-        throw new Error("Failed to load share info");
+        if (res.status === 404) throw new Error(t('studio.profileNotFound'));
+        throw new Error(t('common.failedToLoad'));
       }
       const json = await res.json();
       setData(json);
@@ -56,7 +58,7 @@ export default function StudioSharePage() {
         color: { dark: "#1a1a2e", light: "#ffffff" },
       }).then(setQrDataUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t('common.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function StudioSharePage() {
 
   const shareWhatsApp = () => {
     if (!data) return;
-    const text = encodeURIComponent(`Check out my studio on Leish! 🎨\n${data.shareLink}`);
+    const text = encodeURIComponent(`${t('studio.whatsappText')}\n${data.shareLink}`);
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
 
@@ -114,22 +116,22 @@ export default function StudioSharePage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Share & Refer</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('studio.title')}</h1>
         <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
-          Share your studio profile and earn 200 points per referral booking
+          {t('studio.description')}
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <label className="text-xs text-white/70 uppercase tracking-wider font-medium">Your share link</label>
+            <label className="text-xs text-white/70 uppercase tracking-wider font-medium">{t('common.yourLink')}</label>
             <div className="mt-1 flex items-center gap-2 bg-white/15 rounded-lg px-4 py-3">
               <LinkIcon className="w-4 h-4 shrink-0" />
               <code className="text-sm font-mono truncate">{data.shareLink}</code>
             </div>
             <p className="text-xs text-white/60 mt-2">
-              Share this link on WhatsApp, Instagram, or your business cards
+              {t('common.shareHint')}
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
@@ -138,23 +140,23 @@ export default function StudioSharePage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-white text-purple-700 rounded-lg font-medium text-sm hover:bg-white/90 transition-colors"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Copied!" : "Copy Link"}
+              {copied ? t('common.copied') : t('common.copyLink')}
             </button>
             <button
               onClick={shareWhatsApp}
               className="flex items-center gap-2 px-4 py-2.5 bg-green-500 text-white rounded-lg font-medium text-sm hover:bg-green-600 transition-colors"
             >
               <Share2 className="w-4 h-4" />
-              WhatsApp
+              {t('common.whatsapp')}
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={MousePointerClick} label="Link Clicks" value={data.stats.clicks} sub="Total clicks on your share link" />
-        <StatCard icon={Users} label="Referrals" value={data.stats.referrals} sub="Clients who booked through you" />
-        <StatCard icon={Gift} label="Points Earned" value={data.stats.pointsEarned} sub="200 points per referral booking" />
+        <StatCard icon={MousePointerClick} label={t('common.linkClicks')} value={data.stats.clicks} sub={t('common.totalClicks')} />
+        <StatCard icon={Users} label={t('common.referrals')} value={data.stats.referrals} sub={t('common.clientsWhoBooked')} />
+        <StatCard icon={Gift} label={t('common.pointsEarned')} value={data.stats.pointsEarned} sub={t('common.pointsPerReferral')} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
