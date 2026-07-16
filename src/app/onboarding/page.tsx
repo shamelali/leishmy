@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserCheck, Palette, Store, Heart, Mail, Phone, MapPin, Check, ArrowRight, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { authClient, useSession } from "@/lib/auth/client";
 import { useAuth } from "@/context/AuthContext";
 import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
@@ -19,6 +20,7 @@ const specialtiesList = [
 ];
 
 export default function OnboardingPage() {
+  const t = useTranslations();
   const { data: session, isPending } = useSession();
   const { refreshProfile } = useAuth();
   const router = useRouter();
@@ -133,10 +135,10 @@ export default function OnboardingPage() {
             <span className="text-2xl font-bold gradient-text">Leish!</span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 dark:text-white">
-            Complete Your Profile
+            {t('auth.completeProfile')}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Just a few more details to get started
+            {t('auth.profileDetails')}
           </p>
         </div>
 
@@ -151,9 +153,9 @@ export default function OnboardingPage() {
             }`}
           >
             <UserCheck className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">Client / Customer</span>
+            <span className="text-xs font-bold">{t('auth.clientTab')}</span>
             <span className={`text-[10px] ${role === "customer" ? "text-rose-100" : "text-gray-400"}`}>
-              Book beauty services
+              {t('auth.clientTabDesc')}
             </span>
           </button>
 
@@ -167,9 +169,9 @@ export default function OnboardingPage() {
             }`}
           >
             <Palette className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">Makeup Artist</span>
+            <span className="text-xs font-bold">{t('auth.artistTab')}</span>
             <span className={`text-[10px] ${role === "artist" ? "text-rose-100" : "text-gray-400"}`}>
-              Offer your talent
+              {t('auth.artistTabDesc')}
             </span>
           </button>
 
@@ -183,9 +185,9 @@ export default function OnboardingPage() {
             }`}
           >
             <Store className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">Beauty Studio</span>
+            <span className="text-xs font-bold">{t('auth.studioTab')}</span>
             <span className={`text-[10px] ${role === "studio" ? "text-rose-100" : "text-gray-400"}`}>
-              List a salon team
+              {t('auth.studioTabDesc')}
             </span>
           </button>
         </div>
@@ -194,21 +196,21 @@ export default function OnboardingPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {role === "studio" ? "Studio Name" : "Full Name"}
+                {role === "studio" ? t('auth.studioName') : t('auth.fullName')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder={role === "studio" ? "Glamour Beauty Lounge" : "Your name"}
+                placeholder={role === "studio" ? t('auth.studioPlaceholder') : t('auth.onboardingNamePlaceholder')}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Email
+                {t('auth.emailLabel')}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -224,7 +226,7 @@ export default function OnboardingPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Phone Number
+                  {t('auth.phoneLabel')}
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -240,14 +242,14 @@ export default function OnboardingPage() {
 
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <MapPin className="w-4 h-4 inline-block mr-1" /> Location
+                  <MapPin className="w-4 h-4 inline-block mr-1" /> {t('auth.location')}
                 </label>
                 <select
                   value={state}
                   onChange={(e) => { setState(e.target.value); setDistrict(""); }}
                   className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
                 >
-                  <option value="">Select State</option>
+                  <option value="">{t('auth.selectState')}</option>
                   {malaysiaStates.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -258,7 +260,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
                   >
-                    <option value="">Select District / Area</option>
+                    <option value="">{t('auth.selectDistrict')}</option>
                     {malaysiaDistricts[state].map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
@@ -270,7 +272,7 @@ export default function OnboardingPage() {
             {role === "artist" && (
               <div className="pt-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Select Your Specialties
+                  {t('auth.selectSpecialties')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {specialtiesList.map((item) => {
@@ -305,7 +307,7 @@ export default function OnboardingPage() {
               disabled={submitting}
               className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 text-sm flex items-center justify-center gap-2 mt-2"
             >
-              {submitting ? "Saving..." : "Complete Setup"} <ArrowRight className="w-4 h-4" />
+              {submitting ? t('auth.saving') : t('auth.completeSetup')} <ArrowRight className="w-4 h-4" />
             </button>
           </form>
         </div>

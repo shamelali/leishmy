@@ -7,6 +7,7 @@ import {
   Calendar, Clock, Wallet, Store, Package, Briefcase,
   Share2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
@@ -30,6 +31,7 @@ interface RecentBooking {
 }
 
 export default function DashboardStudio() {
+  const t = useTranslations("dashboard.studio");
   const { user } = useAuth();
   const [stats, setStats] = useState<StudioStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
@@ -75,8 +77,8 @@ export default function DashboardStudio() {
   if (!stats) {
     return (
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-16 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Studio Not Found</h2>
-        <p className="text-gray-500">No studio linked to your account.</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('notFound')}</h2>
+        <p className="text-gray-500">{t('notFoundText')}</p>
       </div>
     );
   }
@@ -93,11 +95,11 @@ export default function DashboardStudio() {
 
         <div className="flex gap-1.5 mb-8 overflow-x-auto pb-1">
           {[
-            { href: "/dashboard/studio", label: "Overview", icon: BarChart3 },
-            { href: "/dashboard/studio/calendar", label: "Calendar", icon: Calendar },
-            { href: "/dashboard/studio/staff", label: "Staff", icon: Users },
-            { href: "/dashboard/studio/finance", label: "Finance", icon: DollarSign },
-            { href: "/dashboard/studio/inventory", label: "Inventory", icon: Package },
+            { href: "/dashboard/studio", label: t('overview'), icon: BarChart3 },
+            { href: "/dashboard/studio/calendar", label: t('calendar'), icon: Calendar },
+            { href: "/dashboard/studio/staff", label: t('staff'), icon: Users },
+            { href: "/dashboard/studio/finance", label: t('finance'), icon: DollarSign },
+            { href: "/dashboard/studio/inventory", label: t('inventory'), icon: Package },
             { href: "/dashboard/studio/share", label: "Share & Refer", icon: Share2 },
           ].map(({ href, label, icon: Icon }) => (
             <Link
@@ -116,10 +118,10 @@ export default function DashboardStudio() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {([
-            { icon: Users, label: "Artists", value: stats.artists, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-            { icon: BarChart3, label: "Bookings", value: stats.bookings, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-            { icon: DollarSign, label: "Revenue", value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-            { icon: Star, label: "Rating", value: stats.rating, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
+            { icon: Users, label: t('artists'), value: stats.artists, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+            { icon: BarChart3, label: t('bookings'), value: stats.bookings, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+            { icon: DollarSign, label: t('revenue'), value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
+            { icon: Star, label: t('rating'), value: stats.rating, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
           ] as const).map((props) => (
             <StatCard key={props.label} {...props} />
           ))}
@@ -129,16 +131,16 @@ export default function DashboardStudio() {
           <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/30 rounded-2xl border border-amber-100 dark:border-amber-900/50 mb-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Wallet className="w-5 h-5 text-amber-500" />
-              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300">Pending Balance</span>
+              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300">{t('pendingBalance')}</span>
             </div>
             <p className="text-base sm:text-lg font-bold text-amber-800 dark:text-amber-200">MYR {stats.pendingBalance.toLocaleString()}</p>
           </div>
         )}
 
         <div className="p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Bookings</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('recentBookings')}</h2>
           {recentBookings.length === 0 ? (
-            <p className="text-sm text-gray-400">No bookings yet.</p>
+            <p className="text-sm text-gray-400">{t('noBookings')}</p>
           ) : (
             <div className="space-y-3">
               {recentBookings.map((b) => (
@@ -159,7 +161,7 @@ export default function DashboardStudio() {
                         : b.status === "cancelled"
                           ? "bg-red-50 text-red-600 dark:bg-red-950/30"
                           : "bg-amber-50 text-amber-600 dark:bg-amber-950/30"
-                  }`}>{b.status}</span>
+                  }`}>{b.status === "confirmed" ? t('confirmed') : b.status === "completed" ? t('completed') : b.status === "cancelled" ? t('cancelled') : b.status}</span>
                 </div>
               ))}
             </div>

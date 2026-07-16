@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { User, Mail, Phone, MapPin, Sparkles, CheckCircle, Save, Calendar, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProfilePage() {
+  const t = useTranslations("profile");
   const { user, loading, updateProfile, logout } = useAuth();
   const router = useRouter();
 
@@ -97,10 +99,10 @@ export default function ProfilePage() {
           <div className="md:col-span-2">
             <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-800 p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Information</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('heading')}</h3>
                 {saved && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 text-xs font-semibold rounded-full animate-fade-in">
-                    <CheckCircle className="w-3.5 h-3.5" /> Saved!
+                    <CheckCircle className="w-3.5 h-3.5" /> {t('saved')}
                   </span>
                 )}
               </div>
@@ -108,7 +110,7 @@ export default function ProfilePage() {
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Full Name
+                    {t('fullName')}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -124,7 +126,7 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Email Address (read-only)
+                    {t('email')} (read-only)
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -140,7 +142,7 @@ export default function ProfilePage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Phone Number
+                      {t('phone')}
                     </label>
                     <div className="relative">
                       <Phone className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -148,7 +150,7 @@ export default function ProfilePage() {
                         type="text"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+60 12-345 6789"
+                        placeholder={t('phonePlaceholder')}
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
                       />
                     </div>
@@ -156,7 +158,7 @@ export default function ProfilePage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Location
+                      {t('locationLabel')}
                     </label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -164,7 +166,7 @@ export default function ProfilePage() {
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Kuala Lumpur, Malaysia"
+                        placeholder={t('locationPlaceholder')}
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
                       />
                     </div>
@@ -173,13 +175,13 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Bio / Notes
+                    {t('bioLabel')}
                   </label>
                   <textarea
                     rows={3}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell us about yourself or your preferences..."
+                    placeholder={t('bioPlaceholder')}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none resize-none"
                   />
                 </div>
@@ -187,7 +189,7 @@ export default function ProfilePage() {
                 {user.specialties && user.specialties.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Specialties
+                      {t('specialties')}
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {user.specialties.map((s) => (
@@ -207,7 +209,7 @@ export default function ProfilePage() {
                     type="submit"
                     className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 text-sm flex items-center gap-2"
                   >
-                    <Save className="w-4 h-4" /> Save Changes
+                    <Save className="w-4 h-4" /> {t('saveChanges')}
                   </button>
                 </div>
               </form>

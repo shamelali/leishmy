@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Heart, Star, MapPin, Trash2, ChevronDown } from "lucide-react";
 import { useFavorites } from "@/context/FavoritesContext";
 import ImageWithFallback from "@/components/ImageWithFallback";
@@ -10,6 +11,7 @@ import Skeleton from "@/components/Skeleton";
 const PER_PAGE = 6;
 
 export default function FavoritesPage() {
+  const t = useTranslations("favorites");
   const { favorites, removeFavorite } = useFavorites();
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function FavoritesPage() {
         <div className="flex items-center gap-3 mb-8">
           <Heart className="w-6 h-6 text-rose-500" />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            My Favorites
+            {t('heading')}
           </h1>
           <span className="px-3 py-1 text-sm font-medium bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-full">
             {favorites.length}
@@ -75,16 +77,16 @@ export default function FavoritesPage() {
           <div className="text-center py-16">
             <Heart className="w-16 h-16 text-gray-200 dark:text-neutral-700 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              No favorites yet
+              {t('emptyHeading')}
             </h2>
             <p className="text-gray-400 mb-6">
-              Start browsing and save artists you love!
+              {t('emptyText')}
             </p>
             <Link
               href="/artists"
               className="inline-flex px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all"
             >
-              Browse Artists
+              {t('browseArtists')}
             </Link>
           </div>
         ) : (
@@ -125,7 +127,7 @@ export default function FavoritesPage() {
                       onClick={() => removeFavorite(String(artist.id))}
                       className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" /> Remove
+                      <Trash2 className="w-4 h-4" /> {t('remove')}
                     </button>
                   </div>
                 </div>
@@ -139,7 +141,7 @@ export default function FavoritesPage() {
                   className="inline-flex items-center gap-2 px-8 py-3 bg-white dark:bg-neutral-900 border-2 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-sm font-semibold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-300 dark:hover:border-rose-700 transition-all"
                 >
                   <ChevronDown className="w-4 h-4" />
-                  Load More
+                  {t('loadMore')}
                 </button>
               </div>
             )}

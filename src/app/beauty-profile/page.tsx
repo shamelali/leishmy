@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Save, CheckCircle, Droplets, Sun, AlertTriangle, Palette, Tag } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslations } from "next-intl";
 
 const SKIN_TYPES = [
   { value: "oily", label: "Oily" },
@@ -13,10 +14,31 @@ const SKIN_TYPES = [
   { value: "normal", label: "Normal" },
 ];
 
+const skinTypeKeys: Record<string, string> = {
+  oily: "skinTypeOily",
+  dry: "skinTypeDry",
+  combination: "skinTypeCombination",
+  sensitive: "skinTypeSensitive",
+  normal: "skinTypeNormal",
+};
+
 const SKIN_CONCERNS = [
   "Acne", "Aging", "Dark Circles", "Dullness", "Hyperpigmentation",
   "Large Pores", "Oiliness", "Redness", "Texture", "Uneven Tone",
 ];
+
+const concernKeys: Record<string, string> = {
+  Acne: "concernAcne",
+  Aging: "concernAging",
+  "Dark Circles": "concernDarkCircles",
+  Dullness: "concernDullness",
+  Hyperpigmentation: "concernHyperpigmentation",
+  "Large Pores": "concernLargePores",
+  Oiliness: "concernOiliness",
+  Redness: "concernRedness",
+  Texture: "concernTexture",
+  "Uneven Tone": "concernUnevenTone",
+};
 
 const UNDERTONES = [
   { value: "warm", label: "Warm" },
@@ -25,6 +47,13 @@ const UNDERTONES = [
   { value: "olive", label: "Olive" },
 ];
 
+const undertoneKeys: Record<string, string> = {
+  warm: "undertoneWarm",
+  cool: "undertoneCool",
+  neutral: "undertoneNeutral",
+  olive: "undertoneOlive",
+};
+
 const STYLE_OPTIONS = [
   "Natural / No-Makeup", "Soft Glam", "Full Glam", "Bridal",
   "Editorial", "Avant-Garde", "Hijab Styling", "Airbrush",
@@ -32,7 +61,27 @@ const STYLE_OPTIONS = [
   "Dewy Skin", "Matte Finish", "Cut Crease", "Graphic Liner",
 ];
 
+const styleKeys: Record<string, string> = {
+  "Natural / No-Makeup": "styleNatural",
+  "Soft Glam": "styleSoftGlam",
+  "Full Glam": "styleFullGlam",
+  "Bridal": "styleBridal",
+  "Editorial": "styleEditorial",
+  "Avant-Garde": "styleAvantGarde",
+  "Hijab Styling": "styleHijab",
+  "Airbrush": "styleAirbrush",
+  "SFX / Creative": "styleSFX",
+  "Boho": "styleBoho",
+  "Classic Red Lip": "styleClassicRed",
+  "Smokey Eye": "styleSmokeyEye",
+  "Dewy Skin": "styleDewySkin",
+  "Matte Finish": "styleMatteFinish",
+  "Cut Crease": "styleCutCrease",
+  "Graphic Liner": "styleGraphicLiner",
+};
+
 export default function BeautyProfilePage() {
+  const t = useTranslations("beautyProfile");
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -132,10 +181,10 @@ export default function BeautyProfilePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <Sparkles className="w-6 h-6 text-rose-500" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Beauty Profile</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('heading')}</h1>
           {saved && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 text-xs font-semibold rounded-full animate-fade-in">
-              <CheckCircle className="w-3.5 h-3.5" /> Saved!
+              <CheckCircle className="w-3.5 h-3.5" /> {t('saved')}
             </span>
           )}
         </div>
@@ -149,7 +198,7 @@ export default function BeautyProfilePage() {
                 : "text-gray-600 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400"
             }`}
           >
-            <Droplets className="w-4 h-4" /> Skin Profile
+            <Droplets className="w-4 h-4" /> {t('skinProfile')}
           </button>
           <button
             onClick={() => setActiveTab("preferences")}
@@ -159,7 +208,7 @@ export default function BeautyProfilePage() {
                 : "text-gray-600 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400"
             }`}
           >
-            <Palette className="w-4 h-4" /> Style Preferences
+            <Palette className="w-4 h-4" /> {t('stylePreferences')}
           </button>
         </div>
 
@@ -168,7 +217,7 @@ export default function BeautyProfilePage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Skin Type
+                  {t('skinType')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {SKIN_TYPES.map((type) => (
@@ -181,7 +230,7 @@ export default function BeautyProfilePage() {
                           : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-rose-200 dark:hover:border-rose-800"
                       }`}
                     >
-                      {type.label}
+                      {t(skinTypeKeys[type.value])}
                     </button>
                   ))}
                 </div>
@@ -189,7 +238,7 @@ export default function BeautyProfilePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Skin Concerns
+                  {t('skinConcerns')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {SKIN_CONCERNS.map((concern) => (
@@ -203,7 +252,7 @@ export default function BeautyProfilePage() {
                       }`}
                     >
                       <Sun className="w-3 h-3 inline mr-1" />
-                      {concern}
+                      {t(concernKeys[concern])}
                     </button>
                   ))}
                 </div>
@@ -211,7 +260,7 @@ export default function BeautyProfilePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Undertone
+                  {t('undertone')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {UNDERTONES.map((u) => (
@@ -224,7 +273,7 @@ export default function BeautyProfilePage() {
                           : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-rose-200 dark:hover:border-rose-800"
                       }`}
                     >
-                      {u.label}
+                      {t(undertoneKeys[u.value])}
                     </button>
                   ))}
                 </div>
@@ -233,7 +282,7 @@ export default function BeautyProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   <AlertTriangle className="w-4 h-4 inline mr-1.5 text-red-400" />
-                  Allergies & Sensitivities
+                  {t('allergies')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {allergies.map((allergy) => (
@@ -252,14 +301,14 @@ export default function BeautyProfilePage() {
                     value={allergyInput}
                     onChange={(e) => setAllergyInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAllergy())}
-                    placeholder="Type an allergy and press Enter..."
+                    placeholder={t('allergyPlaceholder')}
                     className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
                   />
                   <button
                     onClick={addAllergy}
                     className="px-4 py-2.5 bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-neutral-700 text-sm border border-gray-200 dark:border-neutral-700"
                   >
-                    Add
+                    {t('add')}
                   </button>
                 </div>
               </div>
@@ -271,7 +320,7 @@ export default function BeautyProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   <Tag className="w-4 h-4 inline mr-1.5 text-rose-400" />
-                  Preferred Makeup Styles
+                  {t('preferredStyles')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {STYLE_OPTIONS.map((style) => (
@@ -284,7 +333,7 @@ export default function BeautyProfilePage() {
                           : "border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:border-rose-200 dark:hover:border-rose-800"
                       }`}
                     >
-                      {style}
+                      {t(styleKeys[style])}
                     </button>
                   ))}
                 </div>
@@ -292,13 +341,13 @@ export default function BeautyProfilePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Makeup Notes & Requests
+                  {t('makeupNotes')}
                 </label>
                 <textarea
                   rows={4}
                   value={makeupNotes}
                   onChange={(e) => setMakeupNotes(e.target.value)}
-                  placeholder="Anything else your artist should know? Preferred products, past experiences, specific requests..."
+                  placeholder={t('notesPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none resize-none"
                 />
               </div>
@@ -310,7 +359,7 @@ export default function BeautyProfilePage() {
               onClick={handleSave}
               className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 text-sm flex items-center gap-2"
             >
-              <Save className="w-4 h-4" /> Save Beauty Profile
+              <Save className="w-4 h-4" /> {t('saveProfile')}
             </button>
           </div>
         </div>

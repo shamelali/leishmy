@@ -4,9 +4,11 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ArrowRight, CheckCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth/client";
 
 function ResetPasswordForm() {
+  const t = useTranslations("auth");
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -63,16 +65,16 @@ function ResetPasswordForm() {
       <div className="text-center py-6">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h1 className="text-2xl font-serif font-bold text-gray-900 dark:text-white mb-2">
-          Password Reset
+          {t('resetSuccessHeading')}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Your password has been updated successfully.
+          {t('resetSuccessText')}
         </p>
         <Link
           href="/login"
           className="inline-flex items-center gap-2 py-3.5 px-6 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 text-sm"
         >
-          Log In <ArrowRight className="w-4 h-4" />
+          {t('logIn')} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     );
@@ -82,16 +84,16 @@ function ResetPasswordForm() {
     return (
       <div className="text-center py-6">
         <h1 className="text-2xl font-serif font-bold text-gray-900 dark:text-white mb-2">
-          Invalid Link
+          {t('invalidLink')}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          This password reset link is invalid or has expired.
+          {t('invalidLinkText')}
         </p>
         <Link
           href="/forgot-password"
           className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline"
         >
-          Request a new reset link
+          {t('newResetLink')}
         </Link>
       </div>
     );
@@ -100,16 +102,16 @@ function ResetPasswordForm() {
   return (
     <>
       <h1 className="text-2xl font-serif font-bold text-gray-900 dark:text-white mb-2 text-center">
-        Set New Password
+        {t('setNewPassword')}
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">
-        Enter your new password below
+        {t('enterNewPassword')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            New Password
+            {t('newPasswordLabel')}
           </label>
           <div className="relative">
             <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -127,7 +129,7 @@ function ResetPasswordForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Confirm Password
+            {t('confirmPassword')}
           </label>
           <div className="relative">
             <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -137,7 +139,7 @@ function ResetPasswordForm() {
               onChange={(e) => setConfirm(e.target.value)}
               required
               minLength={6}
-              placeholder="Re-enter password"
+              placeholder={t('confirmPlaceholder')}
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
             />
           </div>
@@ -154,7 +156,7 @@ function ResetPasswordForm() {
           disabled={submitting}
           className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
         >
-          {submitting ? "Resetting..." : "Reset Password"} <ArrowRight className="w-4 h-4" />
+          {submitting ? t('resetting') : t('resetPasswordBtn')} <ArrowRight className="w-4 h-4" />
         </button>
       </form>
     </>

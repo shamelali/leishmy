@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition, useRef } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Search as SearchIcon, MapPin, Star, BadgeCheck, ArrowRight, Sparkles, X } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { malaysiaStates } from "@/data/malaysia-locations";
@@ -29,6 +30,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function SearchPage() {
+  const t = useTranslations("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ArtistResult[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; icon: string; slug: string }[]>([]);
@@ -131,8 +133,8 @@ export default function SearchPage() {
     <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Find Makeup Artists</h1>
-          <p className="text-sm text-gray-500">Search by name, location, or style</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('heading')}</h1>
+          <p className="text-sm text-gray-500">{t('subheading')}</p>
         </div>
 
         <form onSubmit={handleSearch} className="relative mb-6">
@@ -143,7 +145,7 @@ export default function SearchPage() {
             onChange={(e) => {
               setQuery(e.target.value);
             }}
-            placeholder="Search artists, locations, styles..."
+            placeholder={t('placeholder')}
             className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
           />
         </form>
@@ -274,8 +276,8 @@ export default function SearchPage() {
         {!loading && results.length === 0 && searched && (
           <div className="text-center py-16">
             <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No artists found</h3>
-            <p className="text-sm text-gray-500">Try a different search or adjust your filters</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('noArtistsFound')}</h3>
+            <p className="text-sm text-gray-500">{t('noArtistsText')}</p>
           </div>
         )}
 
@@ -309,7 +311,7 @@ export default function SearchPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">MYR {artist.price}</p>
                     <span className="text-xs text-rose-500 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                      View <ArrowRight className="w-3 h-3" />
+                      {t('view')} <ArrowRight className="w-3 h-3" />
                     </span>
                   </div>
                 </Link>

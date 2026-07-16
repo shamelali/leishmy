@@ -25,6 +25,7 @@ import {
   Tag,
   MessageSquare,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
@@ -70,6 +71,7 @@ interface Booking {
 }
 
 export default function DashboardArtist() {
+  const t = useTranslations("dashboard.artist");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -284,8 +286,8 @@ export default function DashboardArtist() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">
-          Artist Dashboard
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">
+          {t('heading')}
         </h1>
 
         {fetchError && (
@@ -296,11 +298,11 @@ export default function DashboardArtist() {
 
         <div className="flex gap-1.5 mb-8 overflow-x-auto pb-1">
           {[
-            { href: "/dashboard/artist", label: "Overview", icon: BarChart3 },
-            { href: "/dashboard/artist/services", label: "Services", icon: Sparkles },
-            { href: "/dashboard/artist/portfolio", label: "Portfolio", icon: Image },
-            { href: "/dashboard/artist/bookings", label: "Bookings", icon: Calendar },
-            { href: "/dashboard/artist/analytics", label: "Analytics", icon: TrendingUp },
+            { href: "/dashboard/artist", label: t('overview'), icon: BarChart3 },
+            { href: "/dashboard/artist/services", label: t('services'), icon: Sparkles },
+            { href: "/dashboard/artist/portfolio", label: t('portfolio'), icon: Image },
+            { href: "/dashboard/artist/bookings", label: t('bookings'), icon: Calendar },
+            { href: "/dashboard/artist/analytics", label: t('analytics'), icon: TrendingUp },
           ].map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
@@ -318,10 +320,10 @@ export default function DashboardArtist() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {([
-            { icon: Calendar, label: "Total Bookings", value: String(stats.bookings), color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-            { icon: DollarSign, label: "Revenue", value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-            { icon: Star, label: "Rating", value: String(stats.rating), color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-            { icon: TrendingUp, label: "Reviews", value: String(stats.reviews), color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
+            { icon: Calendar, label: t('totalBookings'), value: String(stats.bookings), color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+            { icon: DollarSign, label: t('revenue'), value: `MYR ${stats.revenue.toLocaleString()}`, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+            { icon: Star, label: t('rating'), value: String(stats.rating), color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
+            { icon: TrendingUp, label: t('reviews'), value: String(stats.reviews), color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
           ] as const).map((props) => (
             <StatCard key={props.label} {...props} />
           ))}
@@ -347,14 +349,14 @@ export default function DashboardArtist() {
         <div className="p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-rose-500" /> Artist Profile
+              <User className="w-5 h-5 text-rose-500" /> {t('artistProfile')}
             </h2>
             {!showProfileEdit && (
               <button
                 onClick={() => setShowProfileEdit(true)}
                 className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors"
               >
-                Edit Profile
+                {t('editProfile')}
               </button>
             )}
           </div>
@@ -370,33 +372,33 @@ export default function DashboardArtist() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Display Name</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.name || "Not set"}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.name || t('notSet')}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Email</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 break-all">{profile.email || "Not set"}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 break-all">{profile.email || t('notSet')}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Phone</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.phone || "Not set"}</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('phoneLabel')}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.phone || t('notSet')}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Location</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('locationLabel')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {[profile.district, profile.area, profile.location].filter(Boolean).join(", ") || "Not set"}
+                    {[profile.district, profile.area, profile.location].filter(Boolean).join(", ") || t('notSet')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Experience</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('experience')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{profile.experience} years</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Hourly Rate</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('hourlyRate')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">MYR {profile.price}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Response Time</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.responseTime || "Not set"}</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('responseTime')}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.responseTime || t('notSet')}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Availability</p>
@@ -409,18 +411,18 @@ export default function DashboardArtist() {
                           .replace(/evenings/gi, "Evenings only")
                           .replace(/flexible/gi, "Flexible / By appointment")
                           .replace(/custom/gi, "Custom")
-                      : "Not set"}
+                      : t('notSet')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Portfolio Items</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('portfolioItems')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{profile.portfolio.length} item(s)</p>
                 </div>
               </div>
 
               {profile.bio && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Bio</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('bio')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{profile.bio}</p>
                 </div>
               )}
@@ -430,7 +432,7 @@ export default function DashboardArtist() {
                   {profile.languages.length > 0 && (
                     <div>
                       <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
-                        <Languages className="w-3.5 h-3.5" /> Languages
+                        <Languages className="w-3.5 h-3.5" /> {t('languages')}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {profile.languages.map((l) => (
@@ -490,25 +492,25 @@ export default function DashboardArtist() {
 
         <div className="p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Payouts</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('payouts')}</h2>
             {bankAccounts.length === 0 && (
               <button
                 onClick={() => setShowBankForm(!showBankForm)}
                 className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors"
               >
-                + Register Bank
+                + {t('registerBank')}
               </button>
             )}
           </div>
 
           {showBankForm && (
             <form onSubmit={handleRegisterBank} className="mb-6 p-4 bg-gray-50 dark:bg-neutral-800 rounded-xl space-y-3">
-              <input placeholder="Bank Name (e.g. Maybank, CIMB)" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
-              <input placeholder="Account Number" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
-              <input placeholder="Account Holder Name" value={bankForm.accountHolder} onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+              <input placeholder={t('bankName')} value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+              <input placeholder={t('accountNumber')} value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+              <input placeholder={t('accountHolder')} value={bankForm.accountHolder} onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
               <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">Save</button>
-                <button type="button" onClick={() => setShowBankForm(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">{t('save')}</button>
+                <button type="button" onClick={() => setShowBankForm(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">{t('cancelBtn')}</button>
               </div>
             </form>
           )}
@@ -517,33 +519,33 @@ export default function DashboardArtist() {
             <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/50">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Pending Balance</span>
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">{t('pendingBalance')}</span>
               </div>
               <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">MYR {pendingBalance.toLocaleString()}</p>
             </div>
             <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-100 dark:border-green-900/50">
               <div className="flex items-center gap-2 mb-2">
                 <Wallet className="w-4 h-4 text-green-500" />
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">Paid Out</span>
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">{t('paidOut')}</span>
               </div>
               <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">MYR {totalEarned.toLocaleString()}</p>
             </div>
             <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/50">
               <div className="flex items-center gap-2 mb-2">
                 <Banknote className="w-4 h-4 text-blue-500" />
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Bank Account</span>
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">{t('bankAccount')}</span>
               </div>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {bankAccounts.length > 0
                   ? `${bankAccounts[0].bankName} •••• ${bankAccounts[0].accountNumber.slice(-4)}`
-                  : "Not registered"}
+                  : t('notRegistered')}
               </p>
             </div>
           </div>
 
           {payouts.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Payout History</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('payoutHistory')}</h3>
               <div className="space-y-2">
                 {payouts.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
@@ -599,7 +601,7 @@ export default function DashboardArtist() {
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 shadow-sm">
           <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-neutral-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2 className="font-bold text-gray-900 dark:text-white">All Bookings</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">{t('allBookings')}</h2>
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5 overflow-x-auto">
                   {(["all", "upcoming", "completed", "cancelled"] as const).map((f) => (
@@ -626,19 +628,19 @@ export default function DashboardArtist() {
           </div>
 
           {paged.length === 0 ? (
-            <div className="p-8 sm:p-12 text-center text-gray-400 text-sm">No bookings found</div>
+            <div className="p-8 sm:p-12 text-center text-gray-400 text-sm">{t('noBookings')}</div>
           ) : (
             <>
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-neutral-800">
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Client</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Service</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Date</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Amount</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Status</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Action</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('clientCol')}</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('serviceCol')}</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('dateCol')}</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('amountCol')}</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('statusCol')}</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">{t('actionCol')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
@@ -651,10 +653,10 @@ export default function DashboardArtist() {
                         <td className="px-5 py-3">
                           {(() => {
                             switch (b.status) {
-                              case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">Pending</span>;
-                              case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">Confirmed</span>;
-                              case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Completed</span>;
-                              case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">Cancelled</span>;
+                              case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">{t('pendingStatus')}</span>;
+                              case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">{t('confirmedStatus')}</span>;
+                              case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">{t('completedStatus')}</span>;
+                              case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">{t('cancelledStatus')}</span>;
                               default: return <span className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-neutral-700 rounded-full">{b.status}</span>;
                             }
                           })()}
@@ -680,32 +682,32 @@ export default function DashboardArtist() {
                       <span className="font-medium text-gray-900 dark:text-white text-sm">{b.client || b.userName || "—"}</span>
                       {(() => {
                         switch (b.status) {
-                          case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">Pending</span>;
-                          case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">Confirmed</span>;
-                          case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Completed</span>;
-                          case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">Cancelled</span>;
+                          case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">{t('pendingStatus')}</span>;
+                          case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">{t('confirmedStatus')}</span>;
+                          case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">{t('completedStatus')}</span>;
+                          case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">{t('cancelledStatus')}</span>;
                           default: return <span className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-neutral-700 rounded-full">{b.status}</span>;
                         }
                       })()}
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Service</span>
+                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('serviceCol')}</span>
                         <span className="text-gray-700 dark:text-gray-300">{b.service || "—"}</span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Amount</span>
+                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('amountCol')}</span>
                         <span className="font-semibold text-gray-900 dark:text-white">RM {b.price || b.amount || 0}</span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Date</span>
+                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('dateCol')}</span>
                         <span className="text-gray-700 dark:text-gray-300">{b.date} {b.time || ""}</span>
                       </div>
                       <div className="flex items-end">
                         {b.status === "pending" && (
                           <div className="flex gap-2 mt-1">
-                            <button onClick={() => handleConfirm(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> Confirm</button>
-                            <button onClick={() => handleReject(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> Reject</button>
+                            <button onClick={() => handleConfirm(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> {t('confirmBtn')}</button>
+                            <button onClick={() => handleReject(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> {t('rejectBtn')}</button>
                           </div>
                         )}
                       </div>
@@ -718,7 +720,7 @@ export default function DashboardArtist() {
 
           {totalPages > 1 && (
             <div className="px-4 sm:px-5 py-4 border-t border-gray-100 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">Page {bookingsPage} of {totalPages} ({filtered.length} total)</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">{t('pageInfo', { current: bookingsPage, total: totalPages, filtered: filtered.length })}</p>
               <div className="flex items-center justify-center gap-1.5">
                 <button onClick={() => setBookingsPage((p) => Math.max(1, p - 1))} disabled={bookingsPage <= 1} className="px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"><ChevronLeft className="w-4 h-4" /></button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ImageIcon, Plus, Trash2, Grid3X3, FolderOpen, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslations } from "next-intl";
 
 export default function InspirationPage() {
+  const t = useTranslations("inspiration");
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -95,7 +97,7 @@ export default function InspirationPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
           <ImageIcon className="w-6 h-6 text-rose-500" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Inspiration</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('heading')}</h1>
           <span className="px-3 py-1 text-sm font-medium bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-full">
             {items.length}
           </span>
@@ -132,26 +134,26 @@ export default function InspirationPage() {
             onClick={() => setShowCreateBoard(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 border-dashed border-gray-300 dark:border-neutral-600 text-gray-500 dark:text-gray-400 hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-500 transition-all"
           >
-            <Plus className="w-4 h-4" /> New Board
+            <Plus className="w-4 h-4" /> {t('newBoard')}
           </button>
         </div>
 
         {showCreateBoard && (
           <div className="mb-6 p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Create New Board</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t('createBoard')}</h3>
             <div className="space-y-3">
               <input
                 type="text"
                 value={boardName}
                 onChange={(e) => setBoardName(e.target.value)}
-                placeholder="Board name..."
+                placeholder={t('boardName')}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
               />
               <input
                 type="text"
                 value={boardDescription}
                 onChange={(e) => setBoardDescription(e.target.value)}
-                placeholder="Description (optional)"
+                placeholder={t('description')}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
               />
               <div className="flex gap-2">
@@ -160,13 +162,13 @@ export default function InspirationPage() {
                   disabled={!boardName.trim()}
                   className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-xl hover:from-rose-600 hover:to-pink-700 text-sm disabled:opacity-50"
                 >
-                  Create
+                  {t('create')}
                 </button>
                 <button
                   onClick={() => setShowCreateBoard(false)}
                   className="px-4 py-2 bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-neutral-700 text-sm"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
               </div>
             </div>
@@ -190,15 +192,15 @@ export default function InspirationPage() {
         {boardItems.length === 0 ? (
           <div className="text-center py-16">
             <ImageIcon className="w-16 h-16 text-gray-200 dark:text-neutral-700 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No saved looks yet</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('emptyHeading')}</h2>
             <p className="text-gray-400 mb-6">
-              Browse artists and save their portfolio looks, or upload your own inspiration!
+              {t('emptyText')}
             </p>
             <Link
               href="/artists"
               className="inline-flex px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all"
             >
-              Browse Artists
+              {t('browseArtists')}
             </Link>
           </div>
         ) : (

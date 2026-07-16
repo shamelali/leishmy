@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Skeleton from "@/components/Skeleton";
 
 interface BookingDetail {
@@ -21,6 +22,7 @@ interface BookingDetail {
 }
 
 export default function BookingDetailPage() {
+  const t = useTranslations("bookings");
   const params = useParams();
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);

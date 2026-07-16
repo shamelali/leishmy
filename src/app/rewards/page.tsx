@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Award, Gift, TrendingUp, Star, ChevronRight, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Skeleton from "@/components/Skeleton";
@@ -14,6 +15,8 @@ const TIER_COLORS: Record<string, { bg: string; text: string; border: string; ic
 };
 
 export default function RewardsPage() {
+  const t = useTranslations("rewards");
+  const getTierName = (name: string) => t(`tier${name.charAt(0).toUpperCase() + name.slice(1)}`);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -64,7 +67,7 @@ export default function RewardsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <Award className="w-6 h-6 text-rose-500" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Leish Rewards</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('heading')}</h1>
         </div>
 
         {/* Tier Card */}
@@ -73,11 +76,11 @@ export default function RewardsPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className="text-4xl mr-2">{tierColor.icon}</span>
-                <span className={`text-2xl font-bold ${tierColor.text} capitalize`}>{tier}</span>
+                <span className={`text-2xl font-bold ${tierColor.text} capitalize`}>{getTierName(tier)}</span>
               </div>
               <div className="text-right">
                 <p className={`text-4xl font-black ${tierColor.text}`}>{points?.balance || 0}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">points available</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('pointsAvailable')}</p>
               </div>
             </div>
 
@@ -86,7 +89,7 @@ export default function RewardsPage() {
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
                   <span className="flex items-center gap-1">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    {pointsToNext} pts to {nextTier.name}
+                    {t('progressToNext', { pointsToNext, tierName: getTierName(nextTier.name) })}
                   </span>
                   <span>{Math.round(progress)}%</span>
                 </div>
@@ -98,7 +101,7 @@ export default function RewardsPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Maximum tier reached!</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('maxTier')}</p>
             )}
           </div>
         </div>
@@ -107,7 +110,7 @@ export default function RewardsPage() {
         {tierInfo?.perks && (
           <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-800 p-6 mb-8 shadow-sm">
             <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Gift className="w-4 h-4 text-rose-500" /> Your {tier.charAt(0).toUpperCase() + tier.slice(1)} Perks
+              <Gift className="w-4 h-4 text-rose-500" /> {t('yourPerks', { tier: getTierName(tier) })}
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {tierInfo.perks.map((perk: string) => (
@@ -122,7 +125,7 @@ export default function RewardsPage() {
 
         {/* All Tiers */}
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-800 p-6 mb-8 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">All Tiers</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t('allTiers')}</h2>
           <div className="space-y-3">
             {allTiers.map((t) => {
               const tc = TIER_COLORS[t.name] || TIER_COLORS.bronze;
@@ -140,11 +143,11 @@ export default function RewardsPage() {
                     <span className="text-2xl">{tc.icon}</span>
                     <div>
                       <p className={`text-sm font-bold capitalize ${isCurrent ? tc.text : "text-gray-900 dark:text-white"}`}>
-                        {t.name}
-                        {isCurrent && <span className="ml-2 text-[10px] font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">Current</span>}
+                        {getTierName(t.name)}
+                        {isCurrent && <span className="ml-2 text-[10px] font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">{t('current')}</span>}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t.min_points.toLocaleString()} pts &middot; {Number(t.multiplier).toFixed(2)}x multiplier
+                        {t('multiplier', { pts: t.min_points.toLocaleString(), multiplier: Number(t.multiplier).toFixed(2) })}
                       </p>
                     </div>
                   </div>
@@ -158,11 +161,11 @@ export default function RewardsPage() {
         {/* Points History */}
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-800 p-6 shadow-sm">
           <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-rose-500" /> Points History
+            <Clock className="w-4 h-4 text-rose-500" /> {t('pointsHistory')}
           </h2>
           {transactions.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">
-              No points activity yet. Book an artist or leave a review to start earning!
+              {t('empty')}
             </p>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
