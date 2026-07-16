@@ -1,6 +1,5 @@
 import createIntlMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
 import { routing } from "@/i18n/routing";
 
@@ -20,9 +19,21 @@ function withSecurityHeaders(res: NextResponse) {
   return res;
 }
 
-const authMiddleware = auth.middleware({
-  loginUrl: "/login",
-});
+// Lazily initialise the auth middleware so that missing NEON_AUTH_* env vars
+// do not crash module evaluation (which would 404 every route).
+let _authMiddleware: ((req: NextRequest) => Promise<NextResponse>) | null = null;
+async function getAuthMiddleware() {
+  if (!_authMiddleware) {
+    try {
+      const { auth } = await import("@/lib/auth/auth");
+      _authMiddleware = auth.middleware({ loginUrl: "/login" });
+    } catch (err) {
+      console.warn("[middleware] Auth unavailable:", (err as Error).message);
+      _authMiddleware = async () => NextResponse.next() as never;
+    }
+  }
+  return _authMiddleware;
+}
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -43,6 +54,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Auth check for dashboard routes
   if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/api/auth/")) {
+    const authMiddleware = await getAuthMiddleware();
     const authResponse = await authMiddleware(request);
     if (authResponse) {
       return withSecurityHeaders(authResponse);
