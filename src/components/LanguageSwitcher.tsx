@@ -1,26 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Languages } from "lucide-react";
 import { useLocale } from "next-intl";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { setCookie } from "@/lib/cookies";
 
 const locales = [
   { code: "en", label: "English" },
   { code: "ms-MY", label: "Bahasa Melayu" },
   { code: "zh-MY", label: "中文" },
   { code: "ta-MY", label: "தமிழ்" },
-] as const;
+];
 
 export function LanguageSwitcher() {
   const [open, setOpen] = useState(false);
   const currentLocale = useLocale();
-  const router = useRouter();
-  const pathname = usePathname();
+  const [, startTransition] = useTransition();
 
-  const switchLocale = (locale: (typeof locales)[number]["code"]) => {
+  const switchLocale = (locale: string) => {
+    setCookie("NEXT_LOCALE", locale, 365);
     setOpen(false);
-    router.replace(pathname, { locale });
+    startTransition(() => {
+      window.location.reload();
+    });
   };
 
   return (
