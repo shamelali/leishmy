@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
         .insert(payments)
         .values({
           bookingId: Number(bookingId),
-          amount: Math.round(Number(amount)),
+          amount: Math.round(Number(amount) * 100),
           status: "pending",
           billplzId: billplzData.id,
           method: "billplz",
