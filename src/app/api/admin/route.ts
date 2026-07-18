@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, artists, studios, bookings, payments, adminSettings, contacts, communityApplications, receivedEmails } from "@/db/schema";
+import { users, artists, studios, bookings, payments, adminSettings, contacts, receivedEmails } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -259,10 +259,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "moderation") {
-      const [contactRows, appRows] = await Promise.all([
-        db.select().from(contacts).orderBy(contacts.createdAt).limit(50),
-        db.select().from(communityApplications).orderBy(communityApplications.createdAt).limit(50),
-      ]);
+      const contactRows = await db.select().from(contacts).orderBy(contacts.createdAt).limit(50);
 
       const items: { id: number; type: string; from: string; target: string; reason: string; status: string; date: string }[] = [];
 
@@ -275,18 +272,6 @@ export async function GET(request: NextRequest) {
           reason: c.message.slice(0, 200),
           status: "pending",
           date: c.createdAt?.toISOString().split("T")[0] || "",
-        });
-      }
-
-      for (const a of appRows) {
-        items.push({
-          id: 1000 + a.id,
-          type: "community",
-          from: `${a.firstName} ${a.lastName}`,
-          target: a.email,
-          reason: `Community application — ${a.expertiseAreas?.join(", ") || "MUA"}`,
-          status: "pending",
-          date: a.createdAt?.toISOString().split("T")[0] || "",
         });
       }
 
@@ -449,9 +434,6 @@ export async function POST(request: NextRequest) {
       }
       if (type === "contact") {
         await db.delete(contacts).where(eq(contacts.id, Number(id)));
-      } else if (type === "community") {
-        const actualId = Number(id) >= 1000 ? Number(id) - 1000 : Number(id);
-        await db.delete(communityApplications).where(eq(communityApplications.id, actualId));
       } else {
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
       }

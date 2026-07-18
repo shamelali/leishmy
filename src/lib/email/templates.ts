@@ -89,7 +89,7 @@ If you need to reschedule or cancel, please contact us at hello@leish.my
 export function welcomeEmailTemplate(params: { name: string; role?: string }) {
   const subject =
     params.role === "artist"
-      ? "Welcome to Leish! Artist Community"
+      ? "Welcome to Leish! Artist Network"
       : params.role === "studio"
         ? "Your Studio Registration on Leish!"
         : "Welcome to Leish!";
@@ -117,7 +117,7 @@ export function welcomeEmailTemplate(params: { name: string; role?: string }) {
         ? `<p>Thank you for joining Leish! As an artist, your profile is now live. Start receiving bookings!</p>`
         : params.role === "studio"
           ? `<p>Thank you for registering your studio on Leish! Your studio listing is being reviewed.</p>`
-          : `<p>Welcome to Leish! We're thrilled to have you join our community of beauty enthusiasts.</p>`
+          : `<p>Welcome to Leish! We're thrilled to have you join our platform.</p>`
     }
     <p>Discover top makeup artists, book appointments, and find your perfect look.</p>
     ${
@@ -149,7 +149,7 @@ ${
     ? "Thank you for joining Leish! As an artist, your profile is now live. Start receiving bookings!"
     : params.role === "studio"
       ? "Thank you for registering your studio on Leish! Your studio listing is being reviewed."
-      : "Welcome to Leish! We're thrilled to have you join our community of beauty enthusiasts."
+      : "Welcome to Leish! We're thrilled to have you join our platform."
 }
 
 Discover top makeup artists, book appointments, and find your perfect look.

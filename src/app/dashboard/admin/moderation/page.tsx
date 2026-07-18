@@ -128,7 +128,7 @@ export default function ModerationPage() {
               <Shield className="w-7 h-7 text-rose-500" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Moderation</h1>
-                <p className="text-sm text-gray-500">Review artist applications and community submissions</p>
+                <p className="text-sm text-gray-500">Review artist applications and contact messages</p>
               </div>
             </div>
           </div>
@@ -274,12 +274,12 @@ export default function ModerationPage() {
                     <div key={r.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-lg ${r.type === "community" ? "bg-violet-100 dark:bg-violet-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
-                            <AlertTriangle className={`w-4 h-4 ${r.type === "community" ? "text-violet-500" : "text-amber-500"}`} />
+                          <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {r.type === "community" ? "Community Application" : "Contact Message"} &mdash; {r.target}
+                              Contact Message &mdash; {r.target}
                             </p>
                             <p className="text-xs text-gray-400">From {r.from} &middot; {r.date}</p>
                           </div>

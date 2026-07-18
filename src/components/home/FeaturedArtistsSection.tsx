@@ -13,8 +13,8 @@ export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { o
             Join Malaysia&apos;s Beauty Platform
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-xl mx-auto">
-            We&apos;re building the largest community of beauty professionals in
-            Kuala Lumpur and Selangor.
+            We&apos;re building the largest network of beauty professionals in
+            Cyberjaya, Selangor.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export function FeaturedArtistsSection({ onboardingArtists, categoryCount }: { o
               start receiving booking requests from clients in your area.
             </p>
             <Link
-              href="/community/apply"
+              href="/onboarding"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
             >
               Apply Now <ArrowRight className="w-3.5 h-3.5" />
