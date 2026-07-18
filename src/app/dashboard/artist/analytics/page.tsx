@@ -3,13 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BarChart3, TrendingUp, Users, DollarSign, ArrowLeft, Star } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistAnalytics() {
-  const t = useTranslations("dashboard.artist");
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -34,8 +32,8 @@ export default function ArtistAnalytics() {
   }
 
   const stats = data ? [
-    { icon: BarChart3, label: t('totalBookings'), value: String(data.totalBookings), change: data.bookingChange, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-    { icon: DollarSign, label: t('revenue'), value: `MYR ${data.revenue?.toLocaleString() || 0}`, change: data.revenueChange, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+    { icon: BarChart3, label: "Total Bookings", value: String(data.totalBookings), change: data.bookingChange, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+    { icon: DollarSign, label: "Revenue", value: `MYR ${data.revenue?.toLocaleString() || 0}`, change: data.revenueChange, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
     { icon: Users, label: "Bookings This Month", value: String(data.thisMonthClients), change: data.clientChange, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
     { icon: Star, label: "Avg. Rating", value: String(data.avgRating || "—"), change: `${data.paidCount || 0} paid`, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
   ] : [];
@@ -56,7 +54,7 @@ export default function ArtistAnalytics() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('analytics')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Analytics</h1>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {stats.map((props) => (

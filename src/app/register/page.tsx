@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { UserCheck, Palette, Store, User, Mail, Phone, MapPin, Lock, ArrowRight, Check } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
@@ -23,16 +22,15 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const router = useRouter();
-  const t = useTranslations("auth");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agree) {
-      setError(t('agreeError'));
+      setError("You must agree to the Terms of Service.");
       return;
     }
     if (!password || password.length < 6) {
-      setError(t('passwordLengthError'));
+      setError("Password must be at least 6 characters.");
       return;
     }
     setSubmitting(true);
@@ -102,10 +100,10 @@ export default function RegisterPage() {
             <Image src="/leishlogo.png" alt="Leish!" width={48} height={48} className="h-12 w-auto group-hover:scale-105 transition-transform" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 dark:text-white">
-            {t('createAccount')}
+            Create Your Account
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {t('registerSubtitle')}
+            Join Leish! and discover Malaysia&apos;s finest beauty professionals
           </p>
         </div>
 
@@ -121,9 +119,9 @@ export default function RegisterPage() {
             }`}
           >
             <UserCheck className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">{t('clientTab')}</span>
+            <span className="text-xs font-bold">Client / Customer</span>
             <span className={`text-[10px] ${role === "customer" ? "text-rose-100" : "text-gray-400"}`}>
-              {t('clientTabDesc')}
+              Book beauty services
             </span>
           </button>
 
@@ -137,9 +135,9 @@ export default function RegisterPage() {
             }`}
           >
             <Palette className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">{t('artistTab')}</span>
+            <span className="text-xs font-bold">Makeup Artist</span>
             <span className={`text-[10px] ${role === "artist" ? "text-rose-100" : "text-gray-400"}`}>
-              {t('artistTabDesc')}
+              Offer your talent
             </span>
           </button>
 
@@ -153,9 +151,9 @@ export default function RegisterPage() {
             }`}
           >
             <Store className="w-5 h-5 mb-1" />
-            <span className="text-xs font-bold">{t('studioTab')}</span>
+            <span className="text-xs font-bold">Beauty Studio</span>
             <span className={`text-[10px] ${role === "studio" ? "text-rose-100" : "text-gray-400"}`}>
-              {t('studioTabDesc')}
+              List a salon team
             </span>
           </button>
         </div>
@@ -166,7 +164,7 @@ export default function RegisterPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {role === "studio" ? t('studioName') : t('fullName')}
+                  {role === "studio" ? "Studio Name" : "Full Name"}
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -175,7 +173,7 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    placeholder={role === "studio" ? t('studioPlaceholder') : t('namePlaceholder')}
+                    placeholder={role === "studio" ? "Glamour Beauty Lounge" : "Siti Nurhaliza"}
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
                   />
                 </div>
@@ -183,7 +181,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {t('emailLabel')}
+                  Email Address
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -192,7 +190,7 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder={t('emailPlaceholder')}
+                    placeholder="you@example.my"
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
                   />
                 </div>
@@ -202,7 +200,7 @@ export default function RegisterPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {t('phoneLabel')}
+                  Phone Number
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -210,7 +208,7 @@ export default function RegisterPage() {
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder={t('phonePlaceholder')}
+                    placeholder="+60 12-345 6789"
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
                   />
                 </div>
@@ -218,14 +216,14 @@ export default function RegisterPage() {
 
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <MapPin className="w-4 h-4 inline-block mr-1" /> {t('location')}
+                  <MapPin className="w-4 h-4 inline-block mr-1" /> Location
                 </label>
                 <select
                   value={state}
                   onChange={(e) => { setState(e.target.value); setDistrict(""); }}
                   className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
                 >
-                  <option value="">{t('selectState')}</option>
+                  <option value="">Select State</option>
                   {malaysiaStates.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -236,7 +234,7 @@ export default function RegisterPage() {
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none appearance-none"
                   >
-                    <option value="">{t('selectDistrict')}</option>
+                    <option value="">Select District / Area</option>
                     {malaysiaDistricts[state].map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
@@ -247,7 +245,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('passwordLabel')}
+                Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -257,7 +255,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  placeholder={t('passwordHint')}
+                  placeholder="At least 6 characters"
                   className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -267,7 +265,7 @@ export default function RegisterPage() {
             {role === "artist" && (
               <div className="pt-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('selectSpecialties')}
+                  Select Your Specialties
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {availableSpecialties.map((item) => {
@@ -301,9 +299,9 @@ export default function RegisterPage() {
                 className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-gray-300 dark:border-neutral-700"
               />
               <label htmlFor="terms" className="text-xs text-gray-600 dark:text-gray-400">
-                {t('agreeToTerms')}{" "}
-                <Link href="/terms-of-service" className="text-rose-600 dark:text-rose-400 hover:underline">{t('termsOfService')}</Link> {t('and')}{" "}
-                <Link href="/privacy-policy" className="text-rose-600 dark:text-rose-400 hover:underline">{t('privacyPolicy')}</Link>
+                I agree to the{" "}
+                <Link href="/terms-of-service" className="text-rose-600 dark:text-rose-400 hover:underline">Terms of Service</Link> and{" "}
+                <Link href="/privacy-policy" className="text-rose-600 dark:text-rose-400 hover:underline">Privacy Policy</Link>
               </label>
             </div>
 
@@ -318,7 +316,7 @@ export default function RegisterPage() {
               disabled={submitting}
               className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 text-sm flex items-center justify-center gap-2 mt-2"
             >
-              {submitting ? t('creatingAccount') : t('createAccountBtn')} <ArrowRight className="w-4 h-4" />
+              {submitting ? "Creating account..." : "Create Account"} <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
@@ -328,7 +326,7 @@ export default function RegisterPage() {
               <div className="w-full border-t border-gray-200 dark:border-neutral-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white dark:bg-neutral-900 text-gray-400">{t('orContinueWith')}</span>
+              <span className="px-3 bg-white dark:bg-neutral-900 text-gray-400">or continue with</span>
             </div>
           </div>
 
@@ -344,13 +342,13 @@ export default function RegisterPage() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            {t('signUpGoogle')}
+            Sign up with Google
           </button>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            {t('haveAccount')}{" "}
+            Already have an account?{" "}
             <Link href="/login" className="font-semibold text-rose-600 dark:text-rose-400 hover:underline">
-              {t('logInLink')}
+              Log In
             </Link>
           </p>
         </div>

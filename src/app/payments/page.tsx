@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CreditCard, CheckCircle, XCircle, Clock, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useTranslations } from "next-intl";
 
 const statusIcon: Record<string, typeof CheckCircle> = {
   paid: CheckCircle,
@@ -25,7 +24,6 @@ const statusColor: Record<string, string> = {
 };
 
 export default function PaymentsPage() {
-  const t = useTranslations("payments");
   const { user, loading: authLoading } = useAuth();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,30 +53,30 @@ export default function PaymentsPage() {
     <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('heading')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('subheading')}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Payments</h1>
+          <p className="text-sm text-gray-500 mt-1">Your payment history and billing information</p>
         </div>
 
         {!user ? (
           <div className="text-center py-16">
             <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('signInHeading')}</h3>
-            <p className="text-sm text-gray-500 mb-4">{t('signInText')}</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Sign in to view payments</h3>
+            <p className="text-sm text-gray-500 mb-4">You need to be signed in to access payment information</p>
             <Link href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600">
-              {t('signIn')} <ArrowRight className="w-4 h-4" />
+              Sign In <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('paymentMethods')}</h2>
-              <p className="text-sm text-gray-400">{t('noPaymentMethods')}</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Payment Methods</h2>
+              <p className="text-sm text-gray-400">No payment methods saved yet. Payments are processed through Billplz at checkout.</p>
             </div>
 
             <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('recentPayments')}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Payments</h2>
               {payments.length === 0 ? (
-                <p className="text-sm text-gray-400">{t('noPayments')}</p>
+                <p className="text-sm text-gray-400">Payments will appear here after you complete a booking.</p>
               ) : (
                 <div className="space-y-2">
                   {payments.map((p: any) => {
@@ -100,7 +98,7 @@ export default function PaymentsPage() {
                           <p className="text-sm font-bold">MYR {Number(p.amount).toLocaleString()}</p>
                           {p.bookingId && (
                             <Link href={`/bookings/${p.bookingId}`} className="text-[10px] font-medium text-rose-500 hover:underline">
-                              {t('viewBooking')}
+                              View Booking
                             </Link>
                           )}
                         </div>
@@ -115,7 +113,7 @@ export default function PaymentsPage() {
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  {t('helpText')} <Link href="/contact" className="font-medium underline">{t('contactSupport')}</Link>
+                  Need help with a payment? <Link href="/contact" className="font-medium underline">Contact support</Link>
                 </p>
               </div>
             </div>

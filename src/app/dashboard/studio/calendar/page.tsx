@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function StudioCalendar() {
-  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -54,10 +52,10 @@ export default function StudioCalendar() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> {t('backToDashboard')}
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('calendar.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Calendar</h1>
 
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
           <div className="p-4 flex items-center justify-between border-b border-gray-100 dark:border-neutral-800">
@@ -95,7 +93,7 @@ export default function StudioCalendar() {
                       </div>
                     ))}
                     {dayEvents.length > 3 && (
-                      <div className="mt-0.5 text-[8px] text-gray-400 text-center">{t('calendar.more', { count: dayEvents.length - 3 })}</div>
+                      <div className="mt-0.5 text-[8px] text-gray-400 text-center">+{dayEvents.length - 3} more</div>
                     )}
                   </div>
                 );

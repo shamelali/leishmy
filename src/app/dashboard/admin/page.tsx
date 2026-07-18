@@ -9,7 +9,6 @@ import {
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
   ChevronLeft, ChevronRight, Mail, MessageSquare, X, MoreHorizontal,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
@@ -56,15 +55,15 @@ interface Booking { id: string; date: string; time: string; status: string; paym
 interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; }
 interface AdminEvent { id: number; title: string; slug: string; date: string; time: string | null; location: string | null; category: string; published: boolean; featured: boolean; }
 
-const tabs: { key: Tab; labelKey: string; icon: typeof BarChart3 }[] = [
-  { key: "overview", labelKey: "overview", icon: BarChart3 },
-  { key: "artists", labelKey: "artists", icon: Palette },
-  { key: "studios", labelKey: "studios", icon: Store },
-  { key: "users", labelKey: "users", icon: Users },
-  { key: "bookings", labelKey: "bookings", icon: BookOpen },
-  { key: "payments", labelKey: "payments", icon: CreditCard },
-  { key: "events", labelKey: "events", icon: Calendar },
-  { key: "inbox", labelKey: "inbox", icon: Mail },
+const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
+  { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "artists", label: "Artists", icon: Palette },
+  { key: "studios", label: "Studios", icon: Store },
+  { key: "users", label: "Users", icon: Users },
+  { key: "bookings", label: "Bookings", icon: BookOpen },
+  { key: "payments", label: "Payments", icon: CreditCard },
+  { key: "events", label: "Events", icon: Calendar },
+  { key: "inbox", label: "Inbox", icon: Mail },
 ];
 
 function PaymentBadge({ status }: { status: string }) {
@@ -84,7 +83,6 @@ function PaymentBadge({ status }: { status: string }) {
 }
 
 export default function DashboardAdmin() {
-  const t = useTranslations("dashboard.admin");
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<Tab>("overview");
@@ -216,12 +214,12 @@ export default function DashboardAdmin() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('heading')}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('subtitle')}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Platform overview and management</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 rounded-full self-start sm:self-auto">
             <Shield className="w-4 h-4 text-rose-500" />
-            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">{t('badge')}</span>
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">Admin</span>
           </div>
         </div>
 
@@ -232,27 +230,27 @@ export default function DashboardAdmin() {
         )}
 
         <div className="flex gap-1 mb-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-          {tabs.map(({ key, labelKey, icon: Icon }) => (
+          {tabs.map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => switchTab(key)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
-              <Icon className="w-4 h-4" />{t(labelKey)}
+              <Icon className="w-4 h-4" />{label}
             </button>
           ))}
           <span className="w-px h-6 bg-gray-200 dark:neutral-700 mx-1 self-center hidden sm:inline" />
           <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <Flag className="w-4 h-4" />{t('moderation')}
+            <Flag className="w-4 h-4" />Moderation
           </Link>
           <Link href="/dashboard/admin/reports" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <FileText className="w-4 h-4" />{t('reports')}
+            <FileText className="w-4 h-4" />Reports
           </Link>
           <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <Settings className="w-4 h-4" />{t('settings')}
+            <Settings className="w-4 h-4" />Settings
           </Link>
         </div>
 
         {tab !== "overview" && (
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder={t('searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+            <input type="text" placeholder="Search by name, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
           </div>
         )}
 
@@ -263,14 +261,14 @@ export default function DashboardAdmin() {
                 [1, 2, 3, 4, 5, 6, 7, 8].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
               ) : (
                 [
-                  { icon: Users, label: t('totalUsers'), value: stats ? stats.totalUsers.toLocaleString() : "—", sub: stats ? t('thisMonth', { n: stats.newUsersThisMonth }) : "", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-                  { icon: Building2, label: t('artistStudio'), value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: t('totalVendors', { n: stats ? stats.totalArtists + stats.totalStudios : 0 }), color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
-                  { icon: Calendar, label: t('totalBookings'), value: stats ? stats.totalBookings.toLocaleString() : "—", sub: t('allServices'), color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-                  { icon: DollarSign, label: t('totalRevenue'), value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? t('pendingAmount', { n: stats.pendingPayouts.toLocaleString() }) : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-                  { icon: Star, label: t('averageRating'), value: stats ? String(stats.avgRating) : "—", sub: t('platformWide'), color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
-                  { icon: TrendingUp, label: t('growthRate'), value: "+18%", sub: t('vsLastMonth'), color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                  { icon: DollarSign, label: t('pendingPayouts'), value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: t('payoutsCount', { n: Math.ceil((stats?.pendingPayouts || 0) / 350) }), color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
-                  { icon: BarChart3, label: t('conversionRate'), value: "12.4%", sub: t('viewsToBookings'), color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+                  { icon: Users, label: "Total Users", value: stats ? stats.totalUsers.toLocaleString() : "—", sub: stats ? `+${stats.newUsersThisMonth} this month` : "", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+                  { icon: Building2, label: "Artists / Studios", value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: `${stats ? stats.totalArtists + stats.totalStudios : 0} total vendors`, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
+                  { icon: Calendar, label: "Total Bookings", value: stats ? stats.totalBookings.toLocaleString() : "—", sub: "Across all services", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+                  { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
+                  { icon: Star, label: "Average Rating", value: stats ? String(stats.avgRating) : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
+                  { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+                  { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
+                  { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
                 ].map((props) => (
                   <StatCard key={props.label} {...props} size="lg" />
                 ))
@@ -278,7 +276,7 @@ export default function DashboardAdmin() {
             </div>
 
             <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('recentActivity')}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Platform Activity</h2>
               <div className="space-y-3">
                 {recentActivity.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
@@ -301,20 +299,20 @@ export default function DashboardAdmin() {
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <div className="px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {total.artists} {total.artists !== 1 ? "artists" : "artist"} total
+                {total.artists} artist{total.artists !== 1 ? "s" : ""} total
               </p>
               <button
                 onClick={() => setShowAddArtist(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-500 text-white text-sm font-semibold rounded-xl hover:bg-rose-600 transition-all shadow-sm"
               >
-                <UserCheck className="w-4 h-4" /> {t('addArtist')}
+                <UserCheck className="w-4 h-4" /> Add Artist
               </button>
             </div>
 
             {showAddArtist && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowAddArtist(false)}>
                 <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-lg ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''} overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('addArtistHeading')}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Artist</h3>
                   <div className="space-y-3">
                     {(["name", "email", "phone", "location", "image", "bio", "price"] as const).map((field) => {
                       const isTextarea = field === "bio";
@@ -345,7 +343,7 @@ export default function DashboardAdmin() {
                   </div>
                   <div className="flex items-center justify-end gap-2 mt-6">
                     <button onClick={() => setShowAddArtist(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all">
-                      {t('cancelBtn')}
+                      Cancel
                     </button>
                     <button
                       onClick={async () => {
@@ -361,7 +359,7 @@ export default function DashboardAdmin() {
                       disabled={actionLoading === "create" || !addArtistForm.name.trim()}
                       className="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 transition-all"
                     >
-                      {actionLoading === "create" ? t('creating') : t('createArtist')}
+                      {actionLoading === "create" ? "Creating..." : "Create Artist"}
                     </button>
                   </div>
                 </div>
@@ -369,22 +367,22 @@ export default function DashboardAdmin() {
             )}
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('nameCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('locationCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('ratingCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('verifiedCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('availableCol')}</th>
-                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">{t('actionsCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Rating</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Verified</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Available</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
                   <tr><td colSpan={6} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(artists).length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-gray-400">{t('noArtists')}</td></tr>
+                  <tr><td colSpan={6} className="p-8 text-center text-gray-400">No artists found</td></tr>
                 ) : filterBySearch(artists).map((artist) => (
                   <tr key={artist.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                     <td className="p-3"><p className="font-medium text-gray-900 dark:text-white">{artist.name}</p><p className="text-xs text-gray-400">{artist.email}</p></td>
@@ -393,12 +391,12 @@ export default function DashboardAdmin() {
                     <td className="p-3">
                       <button onClick={() => toggleVerify(artist.id, !artist.verified)} disabled={actionLoading === artist.id} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${artist.verified ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400"}`}>
                         {actionLoading === artist.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : artist.verified ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                        {artist.verified ? t('verified') : t('unverified')}
+                        {artist.verified ? "Verified" : "Unverified"}
                       </button>
                     </td>
                     <td className="p-3">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${artist.available ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400" : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"}`}>
-                        {artist.available ? t('available') : t('unavailable')}
+                        {artist.available ? "Available" : "Unavailable"}
                       </span>
                     </td>
                     <td className="p-3 text-right">
@@ -421,21 +419,21 @@ export default function DashboardAdmin() {
         {tab === "studios" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('nameCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('emailCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('locationCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('ratingCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('joinedCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Rating</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
                   <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(studios).length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">{t('noStudios')}</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No studios found</td></tr>
                 ) : filterBySearch(studios).map((studio) => (
                     <tr key={studio.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{studio.name}</td>
@@ -457,21 +455,21 @@ export default function DashboardAdmin() {
           {tab === "users" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('nameCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('emailCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('roleCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('joinedCol')}</th>
-                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">{t('actionsCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
                   <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(users).length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">{t('noUsers')}</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No users found</td></tr>
                 ) : filterBySearch(users).map((user) => {
                     const promoting = actionLoading === `promote-${user.id}`;
                     return (
@@ -486,7 +484,7 @@ export default function DashboardAdmin() {
                         {user.role !== "admin" && (
                           <button
                             onClick={async () => {
-                              if (!confirm(t('makeAdminConfirm'))) return;
+                              if (!confirm("Make this user an admin? This action is irreversible.")) return;
                               setActionLoading(`promote-${user.id}`);
                               await fetch("/api/admin?action=set-role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
                               setActionLoading("");
@@ -495,7 +493,7 @@ export default function DashboardAdmin() {
                             disabled={promoting}
                             className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40 touch-target"
                           >
-                            {promoting ? "..." : t('makeAdmin')}
+                            {promoting ? "..." : "Make Admin"}
                           </button>
                         )}
                       </td>
@@ -513,17 +511,17 @@ export default function DashboardAdmin() {
         {tab === "bookings" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
+            <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('idCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('customerCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('artistCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('dateCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('locationCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('statusCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('paymentCol')}</th>
-                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">{t('amountCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Customer</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Artist</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Notes</th>
                 </tr>
               </thead>
@@ -531,7 +529,7 @@ export default function DashboardAdmin() {
                 {loading ? (
                   <tr><td colSpan={9} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(bookings).length === 0 ? (
-                  <tr><td colSpan={9} className="p-8 text-center text-gray-400">{t('noBookings')}</td></tr>
+                  <tr><td colSpan={9} className="p-8 text-center text-gray-400">No bookings found</td></tr>
                 ) : filterBySearch(bookings).map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer" onClick={() => setSelectedEmail({ ...b, id: b.id, subject: `Booking #${b.id}`, sender: b.userName, recipient: b.artistName, bodyText: b.notes || "No notes", bodyHtml: null, createdAt: b.date, source: "booking" })}>
                       <td className="p-3 font-mono text-xs text-gray-500">{(b.id || "").slice(0, 8)}</td>
@@ -654,15 +652,15 @@ export default function DashboardAdmin() {
             )}
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Title</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('dateCol')}</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('locationCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Category</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">{t('statusCol')}</th>
-                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">{t('actionsCol')}</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">

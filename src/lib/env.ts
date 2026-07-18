@@ -35,13 +35,7 @@ if (!parsed.success) {
     .filter((i) => i.code === "too_small" && i.minimum === 1)
     .map((i) => i.path.join("."));
   if (missing.length > 0) {
-    // Warn instead of throw so the app can still build and serve pages
-    // that don't depend on these vars. Individual modules (db, auth, etc.)
-    // perform their own checks at usage time.
-    console.warn(
-      `[env] Missing required env vars: ${missing.join(", ")}. ` +
-        "Features depending on them will be unavailable.",
-    );
+    throw new Error(`Missing required env vars: ${missing.join(", ")}`);
   }
 }
 

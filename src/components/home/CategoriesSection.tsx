@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 
 type CategoryProps = {
   id: number;
@@ -11,19 +10,17 @@ type CategoryProps = {
   artistCount: number;
 };
 
-export async function CategoriesSection({ categories }: { categories: CategoryProps[] }) {
-  const t = await getTranslations("categories");
-
+export function CategoriesSection({ categories }: { categories: CategoryProps[] }) {
   return (
     <section className="py-24 bg-white dark:bg-neutral-950" id="categories">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-12">
           <div>
             <p className="text-sm font-semibold text-rose-500 uppercase tracking-wider mb-2">
-              {t('label')}
+              Specialties
             </p>
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 dark:text-white">
-              {t('heading')}
+              Browse by Category
             </h2>
           </div>
           <Link
@@ -60,7 +57,7 @@ export async function CategoriesSection({ categories }: { categories: CategoryPr
                     {cat.name}
                   </h3>
                   <span className="text-xs text-rose-300 dark:text-rose-400 font-medium">
-                    {t('artistCount', { count: cat.artistCount })}
+                    {cat.artistCount} artists
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-rose-300 group-hover:translate-x-1 transition-all shrink-0 mt-0.5" />

@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Crown, Sparkles } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 export default function LeishPlusSuccessPage() {
-  const t = useTranslations("subscription");
   const router = useRouter();
   const [countdown, setCountdown] = useState(5);
 
@@ -36,7 +34,7 @@ export default function LeishPlusSuccessPage() {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 mb-4">
           <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-            {t('activePlan')}
+            Leish+ Member
           </span>
         </div>
 

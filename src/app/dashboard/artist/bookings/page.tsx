@@ -3,12 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Calendar, Clock, ArrowLeft, AlertCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistBookings() {
-  const t = useTranslations("dashboard.artist");
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,10 +27,10 @@ export default function ArtistBookings() {
 
   const statusBadge = (status: string) => {
     switch (status) {
-      case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">{t('pendingStatus')}</span>;
-      case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">{t('confirmedStatus')}</span>;
-      case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">{t('completedStatus')}</span>;
-      case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">{t('cancelledStatus')}</span>;
+      case "pending": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">Pending</span>;
+      case "confirmed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">Confirmed</span>;
+      case "completed": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Completed</span>;
+      case "cancelled": return <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full">Cancelled</span>;
       default: return null;
     }
   };
@@ -44,7 +42,7 @@ export default function ArtistBookings() {
         </Link>
 
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('allBookings')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">All Bookings</h1>
           <div className="flex gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
             {["all", "pending", "confirmed", "completed", "cancelled"].map((f) => (
               <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${filter === f ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>{f}</button>
@@ -57,7 +55,7 @@ export default function ArtistBookings() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-sm text-gray-500">{t('noBookings')}</p>
+            <p className="text-sm text-gray-500">No bookings found</p>
           </div>
         ) : (
           <div className="space-y-3">

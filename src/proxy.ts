@@ -1,7 +1,6 @@
-import createIntlMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
-import { routing } from "@/i18n/routing";
 
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -19,48 +18,24 @@ function withSecurityHeaders(res: NextResponse) {
   return res;
 }
 
-let _authMiddleware: ((req: NextRequest) => Promise<NextResponse>) | null = null;
-async function getAuthMiddleware() {
-  if (!_authMiddleware) {
-    try {
-      const { auth } = await import("@/lib/auth/auth");
-      _authMiddleware = auth.middleware({ loginUrl: "/login" });
-    } catch (err) {
-      console.warn("[middleware] Auth unavailable:", (err as Error).message);
-      _authMiddleware = async () => NextResponse.next() as never;
-    }
-  }
-  return _authMiddleware;
-}
+const authMiddleware = auth.middleware({
+  loginUrl: "/login",
+});
 
-const intlMiddleware = createIntlMiddleware(routing);
-
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?|json|webp|txt)$/) ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/_vercel")
+    pathname.startsWith("/dashboard/") &&
+    !pathname.startsWith("/api/auth/")
   ) {
-    return withSecurityHeaders(NextResponse.next());
-  }
-
-  const intlResponse = await intlMiddleware(request);
-
-  if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/api/auth/")) {
-    const authMiddleware = await getAuthMiddleware();
-    const authResponse = await authMiddleware(request);
-    if (authResponse) {
-      return withSecurityHeaders(authResponse);
+    const response = await authMiddleware(request);
+    if (response) {
+      return withSecurityHeaders(response);
     }
   }
 
-  if (
-    pathname.startsWith("/api") &&
-    !pathname.startsWith("/api/auth/") &&
-    pathname !== "/api/health"
-  ) {
+  if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth/") && pathname !== "/api/health") {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
@@ -80,7 +55,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return withSecurityHeaders(intlResponse || NextResponse.next());
+  return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
@@ -88,5 +63,3 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml).*)",
   ],
 };
-
-export default middleware;

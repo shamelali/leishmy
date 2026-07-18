@@ -1,29 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Languages } from "lucide-react";
-import { useLocale } from "next-intl";
-import { setCookie } from "@/lib/cookies";
 
 const locales = [
   { code: "en", label: "English" },
-  { code: "ms-MY", label: "Bahasa Melayu" },
-  { code: "zh-MY", label: "中文" },
-  { code: "ta-MY", label: "தமிழ்" },
+  { code: "ms", label: "Bahasa Melayu" },
+  { code: "zh", label: "中文" },
+  { code: "ta", label: "தமிழ்" },
 ];
 
 export function LanguageSwitcher() {
   const [open, setOpen] = useState(false);
-  const currentLocale = useLocale();
-  const [, startTransition] = useTransition();
-
-  const switchLocale = (locale: string) => {
-    setCookie("NEXT_LOCALE", locale, 365);
-    setOpen(false);
-    startTransition(() => {
-      window.location.reload();
-    });
-  };
 
   return (
     <div className="relative">
@@ -39,12 +27,8 @@ export function LanguageSwitcher() {
           {locales.map((loc) => (
             <button
               key={loc.code}
-              onClick={() => switchLocale(loc.code)}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                currentLocale === loc.code
-                  ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 font-semibold"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-              }`}
+              onClick={() => setOpen(false)}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               {loc.label}
             </button>

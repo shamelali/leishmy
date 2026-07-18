@@ -6,7 +6,6 @@ import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import NextImage from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { useTranslations } from "next-intl";
 import { PortfolioUploader, type PortfolioItem } from "@/components/upload";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
 import { deleteCloudinaryAssets, isSyntheticPublicId } from "@/lib/cloudinary-delete-client";
@@ -14,7 +13,6 @@ import { deleteCloudinaryAssets, isSyntheticPublicId } from "@/lib/cloudinary-de
 const MAX_PORTFOLIO_ITEMS = 12;
 
 export default function ArtistPortfolio() {
-  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,14 +103,14 @@ export default function ArtistPortfolio() {
           href="/dashboard/artist"
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6"
         >
-          <ArrowLeft className="w-4 h-4" /> {t('backToDashboard')}
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('portfolio.title')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
           {saving && (
             <span className="text-xs text-gray-400 inline-flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin" /> {t('portfolio.saving')}
+              <Loader2 className="w-3 h-3 animate-spin" /> Saving…
             </span>
           )}
         </div>
@@ -154,7 +152,7 @@ export default function ArtistPortfolio() {
         {items.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
-              {t('portfolio.liveOnProfile')}
+              Live on your profile
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {items.map((item) => (
@@ -164,7 +162,7 @@ export default function ArtistPortfolio() {
                 >
                   <NextImage
                     src={item.url}
-                    alt={t('portfolio.alt')}
+                    alt="Portfolio"
                     width={400}
                     height={400}
                     className="w-full h-full object-cover"

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { Check, Sparkles, Star, Clock, MessageCircle, HeadphonesIcon, Gift, Zap, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -53,7 +52,6 @@ const BENEFITS = [
 ];
 
 export default function LeishPlusPage() {
-  const t = useTranslations("subscription");
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [plan, setPlan] = useState<any>(null);
@@ -123,7 +121,7 @@ export default function LeishPlusPage() {
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 mb-8 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> Back to Home
         </Link>
 
         {/* Hero */}
