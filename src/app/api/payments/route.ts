@@ -160,6 +160,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      if (Number(amount) < 1) {
+        return NextResponse.json(
+          { error: "Amount must be RM1.00 or more" },
+          { status: 400 },
+        );
+      }
+
       const [booking] = await db
         .select()
         .from(bookings)
