@@ -15,14 +15,39 @@ function resolveCustomerId(body: any): string | null {
   return null;
 }
 
-async function ensureCustomer(body: any): Promise<{ id: string; name: string | null; email: string } | null> {
-  const email = body.clientEmail || body.email;
+async function ensureCustomer(
+  body: any,
+  session: { id: string; name?: string | null; email: string } | null,
+): Promise<{ id: string; name: string | null; email: string } | null> {
+  const email = (body.clientEmail || body.email || session?.email || "").toLowerCase();
   if (!email) return null;
+
+  // Prefer authenticated session user
+  if (session?.id) {
+    const existing = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, session.id))
+      .limit(1)
+      .then((r) => r[0]);
+
+    if (existing) return existing;
+
+    await db.insert(users).values({
+      id: session.id,
+      name: session.name || body.clientName || body.name || "Customer",
+      email,
+      role: "customer",
+      location: body.location || "",
+    }).onConflictDoNothing({ target: users.email });
+
+    return { id: session.id, name: session.name || body.clientName || body.name || "Customer", email };
+  }
 
   const existing = await db
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
-    .where(eq(users.email, email.toLowerCase()))
+    .where(eq(users.email, email))
     .limit(1)
     .then((r) => r[0]);
 
@@ -32,12 +57,12 @@ async function ensureCustomer(body: any): Promise<{ id: string; name: string | n
   await db.insert(users).values({
     id: newId,
     name: body.clientName || body.name || "Guest",
-    email: email.toLowerCase(),
+    email,
     role: "customer",
     location: body.location || "",
   }).onConflictDoNothing({ target: users.email });
 
-  return { id: newId, name: body.clientName || body.name || "Guest", email: email.toLowerCase() };
+  return { id: newId, name: body.clientName || body.name || "Guest", email };
 }
 
 async function resolveAmount(body: any, artistId: number | null): Promise<string> {
@@ -59,7 +84,8 @@ export async function POST(request: NextRequest) {
     const { artistId, studioId, serviceId, date, time, status } = body;
     const artistIdNum = artistId ? Number(artistId) : null;
 
-    const customer = await ensureCustomer(body);
+    const session = await getAuthSession();
+    const customer = await ensureCustomer(body, session);
     if (!customer || !date) {
       return NextResponse.json(
         { error: "clientEmail and date are required" },
