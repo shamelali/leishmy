@@ -45,10 +45,19 @@ export async function POST(request: NextRequest) {
         .where(eq(payments.billplzId, body.id))
         .limit(1);
 
-      await db
-        .update(payments)
-        .set({ status: "paid", updatedAt: new Date() })
-        .where(eq(payments.billplzId, body.id));
+      if (payment) {
+        await db
+          .update(payments)
+          .set({ status: "paid", updatedAt: new Date() })
+          .where(eq(payments.billplzId, body.id));
+
+        if (payment.bookingId) {
+          await db
+            .update(bookings)
+            .set({ status: "completed", updatedAt: new Date() })
+            .where(eq(bookings.id, payment.bookingId));
+        }
+      }
 
       if (payment?.bookingId) {
         const [booking] = await db

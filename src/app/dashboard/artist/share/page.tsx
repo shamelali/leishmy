@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Share2, Copy, Check, Link as LinkIcon, Users, MousePointerClick, Gift, ArrowLeft, Download, ExternalLink } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -42,28 +42,33 @@ export default function SharePage() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrDownloading, setQrDownloading] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/referrals/share-info");
-      if (!res.ok) {
-        if (res.status === 404) throw new Error("Artist profile not found. Complete your artist onboarding first.");
-        throw new Error("Failed to load share info");
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/referrals/share-info");
+        if (!res.ok) {
+          if (res.status === 404) throw new Error("Artist profile not found. Complete your artist onboarding first.");
+          throw new Error("Failed to load share info");
+        }
+        const json = await res.json();
+        if (cancelled) return;
+        setData(json);
+        QRCode.toDataURL(json.shareLink, {
+          width: 300,
+          margin: 2,
+          color: { dark: "#1a1a2e", light: "#ffffff" },
+        }).then(setQrDataUrl);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      const json = await res.json();
-      setData(json);
-      QRCode.toDataURL(json.shareLink, {
-        width: 300,
-        margin: 2,
-        color: { dark: "#1a1a2e", light: "#ffffff" },
-      }).then(setQrDataUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const copyLink = async () => {
     if (!data) return;
@@ -91,8 +96,7 @@ export default function SharePage() {
   };
 
   const refreshStats = () => {
-    setLoading(true);
-    fetchData();
+    window.location.reload();
   };
 
   if (loading) {

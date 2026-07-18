@@ -13,6 +13,7 @@ interface BookingDetail {
   artistName: string;
   clientName: string;
   clientEmail: string;
+  service: string | null;
   date: string;
   time: string;
   status: string;
@@ -121,6 +122,18 @@ export default function BookingDetailPage() {
             <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Amount</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">MYR {Number(booking.amount).toLocaleString()}</p>
           </div>
+
+          {booking.service && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Service</h3>
+              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                </div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.service}</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Client</h3>

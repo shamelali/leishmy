@@ -223,9 +223,6 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -245,7 +242,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
       }
 
-      if (session.role !== "admin" && booking.userId !== session.id) {
+      if (session && session.role !== "admin" && booking.userId !== session.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -274,6 +271,10 @@ export async function GET(request: NextRequest) {
           artistName,
         },
       });
+    }
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (userId) {

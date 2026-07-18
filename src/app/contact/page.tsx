@@ -75,7 +75,7 @@ export default function ContactPage() {
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">Location</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Kuala Lumpur, Malaysia
+                      Cyberjaya, Malaysia
                     </p>
                   </div>
                 </div>

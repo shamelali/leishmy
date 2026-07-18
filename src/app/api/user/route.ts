@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       const email = (body.email || "").toLowerCase();
       const userRole = body.role || "customer";
       const userPhone = body.phone || "";
-      const userLocation = body.location || "Kuala Lumpur, Malaysia";
+      const userLocation = body.location || "Cyberjaya, Malaysia";
 
       if (!email) {
         return NextResponse.json({ error: "Email is required" }, { status: 400 });

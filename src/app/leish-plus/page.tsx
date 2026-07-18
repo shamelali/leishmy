@@ -106,14 +106,6 @@ export default function LeishPlusPage() {
   const pricePerMonth = plan ? (plan.price / 100).toFixed(0) : "29";
   const pricePerDay = plan ? (plan.price / 100 / 30).toFixed(1) : "1.0";
 
-  if (loading || authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-rose-50/30 to-white dark:from-neutral-950 dark:via-rose-950/10 dark:to-neutral-950">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
@@ -152,42 +144,53 @@ export default function LeishPlusPage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-rose-600 text-white text-xs font-bold rounded-full">
                 BEST VALUE
               </div>
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {plan?.name || "Leish+ Monthly"}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {plan?.description || "All premium features included"}
-                </p>
-              </div>
-              <div className="text-center mb-8">
-                <span className="text-5xl font-black text-gray-900 dark:text-white">
-                  RM{pricePerMonth}
-                </span>
-                <span className="text-lg text-gray-500 dark:text-gray-400">/month</span>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                  Less than RM{pricePerDay}/day
-                </p>
-              </div>
-              <button
-                onClick={handleSubscribe}
-                disabled={subscribing}
-                className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold rounded-2xl hover:from-amber-600 hover:to-rose-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {subscribing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
-                  </span>
-                ) : user ? (
-                  "Get Leish+ Now"
-                ) : (
-                  "Sign In to Subscribe"
-                )}
-              </button>
-              <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-3">
-                Secure payment via Billplz. Cancel anytime.
-              </p>
+              {loading ? (
+                <div className="space-y-4 py-4">
+                  <div className="h-6 w-3/4 mx-auto bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                  <div className="h-4 w-1/2 mx-auto bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                  <div className="h-12 w-1/3 mx-auto bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                      {plan?.name || "Leish+ Monthly"}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {plan?.description || "All premium features included"}
+                    </p>
+                  </div>
+                  <div className="text-center mb-8">
+                    <span className="text-5xl font-black text-gray-900 dark:text-white">
+                      RM{pricePerMonth}
+                    </span>
+                    <span className="text-lg text-gray-500 dark:text-gray-400">/month</span>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                      Less than RM{pricePerDay}/day
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={subscribing || authLoading}
+                    className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold rounded-2xl hover:from-amber-600 hover:to-rose-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {subscribing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing...
+                      </span>
+                    ) : user ? (
+                      "Get Leish+ Now"
+                    ) : (
+                      "Sign In to Subscribe"
+                    )}
+                  </button>
+                  <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-3">
+                    Secure payment via Billplz. Cancel anytime.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

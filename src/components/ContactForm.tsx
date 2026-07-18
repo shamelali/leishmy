@@ -81,7 +81,7 @@ export function ContactForm() {
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Kuala Lumpur, Malaysia"
+          placeholder="e.g. Cyberjaya, Malaysia"
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
         />
       </div>

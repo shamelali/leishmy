@@ -51,7 +51,7 @@ export default function OnboardingPage() {
           router.replace("/");
         } else {
           if (data?.user?.phone) setPhone(data.user.phone);
-          if (data?.user?.location && data.user.location !== "Kuala Lumpur, Malaysia") {
+          if (data?.user?.location && data.user.location !== "Cyberjaya, Malaysia") {
             const parts = data.user.location.split(", ");
             if (parts.length === 2) {
               setState(parts[1]);

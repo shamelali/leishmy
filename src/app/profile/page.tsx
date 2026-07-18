@@ -164,7 +164,7 @@ export default function ProfilePage() {
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Kuala Lumpur, Malaysia"
+                        placeholder="Cyberjaya, Malaysia"
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 outline-none"
                       />
                     </div>

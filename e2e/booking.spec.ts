@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const ARTIST_SLUG = "leiynda-rahman-e192e";
 
 test.describe("Booking Flow", () => {
-  test("create booking via API and verify it appears on the /bookings page", async ({
+  test("create booking via API and verify it appears on the booking detail page", async ({
     page,
     request,
   }) => {
@@ -29,18 +29,20 @@ test.describe("Booking Flow", () => {
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    console.log(`Created booking ID: ${body.booking.id}`);
+    const bookingId = String(body.booking.id);
+    console.log(`Created booking ID: ${bookingId}`);
 
-    // 2. Navigate to /bookings page
-    await page.goto("/bookings", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1")).toContainText("My Bookings", { timeout: 20000 });
+    // 2. Navigate to the booking detail page (guest-friendly)
+    await page.goto(`/bookings/${bookingId}`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("h1")).toContainText(`Booking #${bookingId}`, { timeout: 20000 });
 
-    // 3. Verify our booking appears — look for the booking time and pending status
-    await expect(page.getByText("10:00 AM", { exact: true }).first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("pending", { exact: true }).first()).toBeVisible();
+    // 3. Verify our booking details appear
+    await expect(page.getByText("Bridal Makeup")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("10:00 AM")).toBeVisible();
+    await expect(page.getByText("Pending", { exact: false })).toBeVisible();
   });
 
-  test("POST /api/bookings creates a booking and returns it from GET /api/bookings", async ({
+  test("POST /api/bookings creates a booking and returns it from GET /api/bookings/:id", async ({
     request,
   }) => {
     test.setTimeout(30_000);
@@ -65,18 +67,14 @@ test.describe("Booking Flow", () => {
     expect(postBody.success).toBe(true);
     expect(postBody.booking.artistId).toBe(58);
 
-    // Fetch all bookings to verify it appears
-    const getRes = await request.get("/api/bookings");
+    // Fetch the specific booking (guest-friendly) to verify it appears
+    const bookingId = String(postBody.booking.id);
+    const getRes = await request.get(`/api/bookings?id=${bookingId}`);
     expect(getRes.status()).toBe(200);
     const getBody = await getRes.json();
-    expect(Array.isArray(getBody.bookings)).toBe(true);
-
-    const found = getBody.bookings.find(
-      (b: any) => b.id === String(postBody.booking.id),
-    );
-    expect(found).toBeDefined();
-    expect(found.clientName).toBe("API Test User");
-    expect(found.artistName).toBe("Leiynda Rahman");
+    expect(getBody.booking).toBeDefined();
+    expect(getBody.booking.clientName).toBe("API Test User");
+    expect(getBody.booking.artistName).toBe("Leiynda Rahman");
   });
 
   test("booking form renders correctly on artist detail page", async ({ page }) => {

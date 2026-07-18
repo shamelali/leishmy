@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, ne } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -65,7 +65,10 @@ export default async function ArtistsPage({ searchParams }: Props) {
           query = db
             .select()
             .from(artists)
-            .where(inArray(artists.id, matchingArtistIds.map((r) => r.artistId)))
+            .where(and(
+              inArray(artists.id, matchingArtistIds.map((r) => r.artistId)),
+              ne(artists.slug, "leiynda-rahman-e192e"),
+            ))
             .limit(50);
         } else {
           displayArtists = [];
@@ -74,7 +77,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
         displayArtists = [];
       }
     } else {
-      query = db.select().from(artists).limit(50);
+      query = db.select().from(artists).where(ne(artists.slug, "leiynda-rahman-e192e")).limit(50);
     }
 
     if (!displayArtists && query) {

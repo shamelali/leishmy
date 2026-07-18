@@ -20,9 +20,6 @@ function billplzAuth() {
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
@@ -47,6 +44,10 @@ export async function GET(request: NextRequest) {
           popular: p.popular,
         })),
       });
+    }
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (action === "my") {

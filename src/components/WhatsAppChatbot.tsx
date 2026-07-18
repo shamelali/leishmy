@@ -12,17 +12,17 @@ export function WhatsAppChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [showNotification, setShowNotification] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const toast = useToast();
 
-  const isClient = typeof window !== "undefined";
-
   useEffect(() => {
-    if (!isClient) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard hydration-guard pattern: first client render must match server (null)
+    setMounted(true);
     const timer = setTimeout(() => setShowNotification(true), 5000);
     return () => clearTimeout(timer);
-  }, [isClient]);
+  }, []);
 
-  if (!isClient) return null;
+  if (!mounted) return null;
 
   const openWhatsApp = async () => {
     setIsLoading(true);
@@ -43,8 +43,6 @@ export function WhatsAppChatbot() {
     navigator.clipboard.writeText(`+${WHATSAPP_NUMBER}`);
     toast.success("WhatsApp number copied!");
   };
-
-  if (typeof window === "undefined") return null;
 
   return (
     <>

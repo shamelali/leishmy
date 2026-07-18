@@ -146,6 +146,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (action === "create-bill") {
+      const session = await getAuthSession();
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
       const { bookingId, amount, description, name, email, phone } = body;
 
       if (!bookingId || !amount) {
@@ -153,6 +158,20 @@ export async function POST(request: NextRequest) {
           { error: "bookingId and amount required" },
           { status: 400 },
         );
+      }
+
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, Number(bookingId)))
+        .limit(1);
+
+      if (!booking) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+
+      if (session.role !== "admin" && booking.userId !== session.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
       const billplzBody = new URLSearchParams({
