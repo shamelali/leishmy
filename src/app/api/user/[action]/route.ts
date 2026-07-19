@@ -219,17 +219,30 @@ export async function GET(
       }
 
       const rows = await db
-        .select()
+        .select({
+          userId: profiles.userId,
+          slug: profiles.slug,
+          area: profiles.area,
+          rating: profiles.rating,
+          reviewCount: profiles.reviewCount,
+          verified: profiles.verified,
+          available: profiles.available,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          image: users.image,
+        })
         .from(profiles)
+        .innerJoin(users, eq(profiles.userId, users.id))
         .where(and(eq(profiles.studioId, studioId), eq(profiles.role, "artist")));
 
       return NextResponse.json({
         staff: rows.map((a) => ({
           id: a.userId,
-          name: a.slug || a.userId,
-          email: "",
-          phone: "",
-          image: "",
+          name: a.name || a.slug || a.userId,
+          email: a.email || "",
+          phone: a.phone || "",
+          image: a.image || "",
           location: a.area || "",
           rating: a.rating || "0",
           reviewCount: a.reviewCount || 0,

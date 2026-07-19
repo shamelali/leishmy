@@ -103,13 +103,21 @@ export async function GET(request: NextRequest) {
           ...baseFilters,
           sql`${profiles.categories} @> ARRAY[${category}]::text[]`,
         );
-        const matched = await db
-          .select(selectFields)
+        const [totalResult] = await db
+          .select({ count: count() })
           .from(profiles)
           .innerJoin(users, eq(users.id, profiles.userId))
           .where(catFilter);
-        total = matched.length;
-        rows = matched.slice(offset, offset + pageSize);
+        total = totalResult?.count ?? 0;
+
+        rows = await db
+          .select(selectFields)
+          .from(profiles)
+          .innerJoin(users, eq(users.id, profiles.userId))
+          .where(catFilter)
+          .orderBy(orderBy)
+          .limit(pageSize)
+          .offset(offset);
       }
     } else {
       const where = and(eq(profiles.role, "artist"), ...baseFilters);

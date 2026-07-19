@@ -155,7 +155,43 @@
     "creatingAccount": "Sedang mencipta akaun...",
     "signUpGoogle": "Daftar dengan Google",
     "haveAccount": "Sudah ada akaun?",
-    "logInLink": "Log Masuk"
+    "logInLink": "Log Masuk",
+    "checkEmail": "Semak E-mel Anda",
+    "resetLinkSent": "Kami telah menghantar pautan tetapan semula kata laluan kepada",
+    "backToLogin": "Kembali ke Log Masuk",
+    "resetPassword": "Tetapkan Semula Kata Laluan",
+    "resetInstructions": "Masukkan e-mel anda dan kami akan menghantar pautan tetapan semula",
+    "sending": "Menghantar...",
+    "sendResetLink": "Hantar Pautan Tetapan Semula",
+    "rememberPassword": "Ingat kata laluan anda?",
+    "resetSuccessHeading": "Tetapan Semula Kata Laluan",
+    "resetSuccessText": "Kata laluan anda telah berjaya dikemas kini.",
+    "invalidLink": "Pautan Tidak Sah",
+    "invalidLinkText": "Pautan tetapan semula kata laluan ini tidak sah atau telah tamat tempoh.",
+    "newResetLink": "Minta pautan tetapan semula baharu",
+    "setNewPassword": "Tetapkan Kata Laluan Baharu",
+    "enterNewPassword": "Masukkan kata laluan baharu anda di bawah",
+    "newPasswordLabel": "Kata Laluan Baharu",
+    "confirmPassword": "Sahkan Kata Laluan",
+    "confirmPlaceholder": "Masukkan semula kata laluan",
+    "resetting": "Menetapkan semula...",
+    "resetPasswordBtn": "Tetapkan Semula Kata Laluan",
+    "completeProfile": "Lengkapkan Profil Anda",
+    "profileDetails": "Hanya beberapa butiran lagi untuk bermula",
+    "onboardingNamePlaceholder": "Nama anda",
+    "completeSetup": "Lengkapkan Persediaan",
+    "emailVerified": "E-mel Disahkan!",
+    "emailVerifiedText": "E-mel anda telah disahkan. Anda kini boleh log masuk.",
+    "missingEmail": "E-mel Tiada",
+    "missingEmailText": "Tiada alamat e-mel diberikan untuk pengesahan.",
+    "verifyEmailTitle": "Sahkan E-mel Anda",
+    "enterCode": "Masukkan kod 6 digit yang dihantar kepada",
+    "verifying": "Mengesahkan...",
+    "verifyEmailBtn": "Sahkan E-mel",
+    "codeResent": "Kod dihantar semula!",
+    "resendCode": "Hantar semula kod",
+    "saving": "Menyimpan...",
+    "signUp": "Daftar"
   },
   "artists": {
     "title": "Cari Artis Solekan",
@@ -270,7 +306,6 @@
     "pointsHistory": "Sejarah Mata",
     "empty": "Belum ada aktiviti mata. Tempah artis atau tinggalkan ulasan untuk mula mengumpul!"
   },
-
   "studioDetail": {
     "backToStudios": "Kembali ke Studio",
     "location": "Lokasi",
@@ -692,7 +727,6 @@
       "pageInfo": "Halaman {page} dari {totalPages} ({total} jumlah)"
     }
   },
-
   "errorState": {
     "heading": "Something went wrong",
     "fallbackMessage": "An unexpected error occurred. Please try again.",

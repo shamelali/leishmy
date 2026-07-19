@@ -155,7 +155,43 @@
     "creatingAccount": "正在创建账户...",
     "signUpGoogle": "使用Google注册",
     "haveAccount": "已有账户？",
-    "logInLink": "登录"
+    "logInLink": "登录",
+    "checkEmail": "检查您的邮箱",
+    "resetLinkSent": "我们已向以下邮箱发送了密码重置链接",
+    "backToLogin": "返回登录",
+    "resetPassword": "重置密码",
+    "resetInstructions": "输入您的邮箱，我们将发送重置链接",
+    "sending": "发送中...",
+    "sendResetLink": "发送重置链接",
+    "rememberPassword": "记得密码？",
+    "resetSuccessHeading": "密码已重置",
+    "resetSuccessText": "您的密码已成功更新。",
+    "invalidLink": "链接无效",
+    "invalidLinkText": "此密码重置链接无效或已过期。",
+    "newResetLink": "申请新的重置链接",
+    "setNewPassword": "设置新密码",
+    "enterNewPassword": "在下方输入您的新密码",
+    "newPasswordLabel": "新密码",
+    "confirmPassword": "确认密码",
+    "confirmPlaceholder": "重新输入密码",
+    "resetting": "重置中...",
+    "resetPasswordBtn": "重置密码",
+    "completeProfile": "完善您的资料",
+    "profileDetails": "再填写一些信息即可开始",
+    "onboardingNamePlaceholder": "您的姓名",
+    "completeSetup": "完成设置",
+    "emailVerified": "邮箱已验证！",
+    "emailVerifiedText": "您的邮箱已验证成功，现在可以登录。",
+    "missingEmail": "缺少邮箱",
+    "missingEmailText": "未提供用于验证的邮箱地址。",
+    "verifyEmailTitle": "验证您的邮箱",
+    "enterCode": "输入发送至以下邮箱的6位验证码",
+    "verifying": "验证中...",
+    "verifyEmailBtn": "验证邮箱",
+    "codeResent": "验证码已重新发送！",
+    "resendCode": "重新发送验证码",
+    "saving": "保存中...",
+    "signUp": "注册"
   },
   "artists": {
     "title": "浏览化妆师",
@@ -270,7 +306,6 @@
     "pointsHistory": "积分历史",
     "empty": "暂无积分活动。预约化妆师或发表评价开始赚取积分！"
   },
-
   "studioDetail": {
     "backToStudios": "返回工作室列表",
     "location": "位置",
@@ -692,7 +727,6 @@
       "pageInfo": "第 {page} 页，共 {totalPages} 页（共 {total} 项）"
     }
   },
-
   "errorState": {
     "heading": "Something went wrong",
     "fallbackMessage": "An unexpected error occurred. Please try again.",

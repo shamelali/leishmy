@@ -52,10 +52,10 @@ vars in BOTH `.env` (for dev) and Vercel (for production):
 
 | Var | Value |
 |---|---|
-| `CLOUDINARY_CLOUD_NAME` | `dwunxyssk` |
-| `CLOUDINARY_API_KEY` | `566459419113617` |
-| `CLOUDINARY_API_SECRET` | `IAOgF4Y2IRNQmtNpXyyh4rFb_JA` |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | `dwunxyssk` |
+| `CLOUDINARY_CLOUD_NAME` | Set in Vercel env |
+| `CLOUDINARY_API_KEY` | Set in Vercel env |
+| `CLOUDINARY_API_SECRET` | Set in Vercel env |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Set in Vercel env |
 
 To verify after any rotation:
 
@@ -73,7 +73,6 @@ counts it when verifying, so the signature mismatches. The fix is in
 `e2e/cloudinary.spec.ts` file has a structural test that catches this
 regression.
 
-A historical note: the previous credentials in this repo (key
-`325638819856727`, secret `5GNEWro9z8bqn0REtEDt_wplUlg`) were valid for
+A historical note: the previous credentials in this repo were valid for
 SDK direct uploads (HTTP Basic auth) but were rejected by Cloudinary for
 signed browser uploads. The current pair is verified end-to-end.
