@@ -15,7 +15,7 @@ test("GET /api/studios returns array", async ({ request }) => {
 });
 
 test("GET /api/services returns array when artistId is provided", async ({ request }) => {
-  const res = await request.get("/api/services?artistId=58");
+  const res = await request.get("/api/services?artistId=61");
   expect(res.status()).toBe(200);
   const body = await res.json();
   expect(Array.isArray(body.services)).toBe(true);

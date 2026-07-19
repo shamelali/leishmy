@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count } from "drizzle-orm";
+import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count, notLike } from "drizzle-orm";
 import { categories } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     let rows: typeof artists.$inferSelect[] = [];
     let total = 0;
 
-    const baseFilters = [];
+    const baseFilters: any[] = [notLike(artists.userId, "artist-seed%")];
 
     if (search) {
       baseFilters.push(

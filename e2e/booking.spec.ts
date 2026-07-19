@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const ARTIST_SLUG = "leiynda-rahman-e192e";
+const ARTIST_SLUG = "amiera-38385";
 
 test.describe("Booking Flow", () => {
   test("create booking via API and verify it appears on the booking detail page", async ({
@@ -16,7 +16,7 @@ test.describe("Booking Flow", () => {
 
     const res = await request.post("/api/bookings", {
       data: {
-        artistId: 58,
+        artistId: 61,
         clientName: "E2E Test User",
         clientEmail: `e2e-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
@@ -54,7 +54,7 @@ test.describe("Booking Flow", () => {
     // Create booking
     const postRes = await request.post("/api/bookings", {
       data: {
-        artistId: 58,
+        artistId: 61,
         clientName: "API Test User",
         clientEmail: `api-test-${Date.now()}@leish-testing.com`,
         service: "Event Glam",
@@ -65,7 +65,7 @@ test.describe("Booking Flow", () => {
     expect(postRes.status()).toBe(200);
     const postBody = await postRes.json();
     expect(postBody.success).toBe(true);
-    expect(postBody.booking.artistId).toBe(58);
+    expect(postBody.booking.artistId).toBe(61);
 
     // Fetch the specific booking (guest-friendly) to verify it appears
     const bookingId = String(postBody.booking.id);
@@ -74,14 +74,14 @@ test.describe("Booking Flow", () => {
     const getBody = await getRes.json();
     expect(getBody.booking).toBeDefined();
     expect(getBody.booking.clientName).toBe("API Test User");
-    expect(getBody.booking.artistName).toBe("Leiynda Rahman");
+    expect(getBody.booking.artistName).toBe("Amiera");
   });
 
   test("booking form renders correctly on artist detail page", async ({ page }) => {
     test.setTimeout(60_000);
 
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1")).toContainText("Leiynda Rahman", { timeout: 20000 });
+    await expect(page.locator("h1")).toContainText("Amiera", { timeout: 20000 });
 
     await expect(page.getByPlaceholder("Siti Nurhaliza")).toBeVisible();
     await expect(page.getByPlaceholder("you@example.com")).toBeVisible();
@@ -104,8 +104,8 @@ test.describe("Booking Flow", () => {
     test.setTimeout(60_000);
 
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1")).toContainText("Leiynda Rahman", { timeout: 20000 });
-    await expect(page.getByText("Book Leiynda Rahman")).toBeVisible();
+    await expect(page.locator("h1")).toContainText("Amiera", { timeout: 20000 });
+    await expect(page.getByText("Book Amiera")).toBeVisible();
     await expect(page.getByText("Starting from MYR")).toBeVisible();
   });
 });
