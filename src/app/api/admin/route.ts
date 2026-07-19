@@ -3,16 +3,7 @@ import { db } from "@/db";
 import { users, artists, studios, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
-import { prefixedEnvReader } from "@/lib/env-prefix";
-
-const billplz = prefixedEnvReader("BILLPLZ_");
-
-function billplzAuth() {
-  return `Basic ${Buffer.from(billplz.require("API_KEY") + ":").toString("base64")}`;
-}
-function billplzApiUrl() {
-  return billplz.get("API_URL");
-}
+import { reconcilePayment } from "@/lib/payment-reconcile";
 
 export async function GET(request: NextRequest) {
   try {
@@ -328,31 +319,22 @@ export async function GET(request: NextRequest) {
 
       const allPayments = await db.select().from(payments);
 
-      // Flag payments that are still "pending" but have a Billplz bill we can
-      // re-check, so the dashboard can surface "paid but webhook missed" cases.
+      // Flag payments that are still "pending"/"held" but have a Billplz bill
+      // we can re-check, so the dashboard can surface "paid but webhook
+      // missed" cases. Reuse the shared helper (dryRun) so the Billplz
+      // query path stays in one place.
       const pendingOrHeld = allPayments.filter(
         (p) => p.billplzId && (p.status === "pending" || p.status === "held"),
       );
 
       const reconcile: { paymentId: number; billplzId: string | null; billplzPaid: boolean | null; localStatus: string | null }[] = [];
       for (const p of pendingOrHeld) {
-        let billplzPaid: boolean | null = null;
-        try {
-          const res = await fetch(`${billplzApiUrl()}/bills/${p.billplzId}`, {
-            headers: { Authorization: billplzAuth() },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            billplzPaid = Boolean(data.paid_at);
-          }
-        } catch {
-          billplzPaid = null;
-        }
+        const r = await reconcilePayment(p.id, { dryRun: true });
         reconcile.push({
-          paymentId: p.id,
-          billplzId: p.billplzId,
-          billplzPaid,
-          localStatus: p.status,
+          paymentId: r.paymentId,
+          billplzId: r.billplzId,
+          billplzPaid: r.billplzPaid,
+          localStatus: r.localStatus,
         });
       }
 
@@ -530,37 +512,11 @@ export async function POST(request: NextRequest) {
       if (!paymentId) {
         return NextResponse.json({ error: "paymentId required" }, { status: 400 });
       }
-      const [payment] = await db
-        .select()
-        .from(payments)
-        .where(eq(payments.id, Number(paymentId)))
-        .limit(1);
-      if (!payment || !payment.billplzId) {
+      const result = await reconcilePayment(Number(paymentId));
+      if (result.billplzId === null && !result.updated) {
         return NextResponse.json({ error: "Payment not found or has no Billplz bill" }, { status: 404 });
       }
-      const res = await fetch(`${billplzApiUrl()}/bills/${payment.billplzId}`, {
-        headers: { Authorization: billplzAuth() },
-      });
-      if (!res.ok) {
-        return NextResponse.json({ error: "Billplz lookup failed" }, { status: 502 });
-      }
-      const data = await res.json();
-      const billplzPaid = Boolean(data.paid_at);
-      let updated = false;
-      if (billplzPaid && payment.status !== "paid") {
-        await db
-          .update(payments)
-          .set({ status: "paid", updatedAt: new Date() })
-          .where(eq(payments.id, payment.id));
-        if (payment.bookingId) {
-          await db
-            .update(bookings)
-            .set({ status: "completed", updatedAt: new Date() })
-            .where(eq(bookings.id, payment.bookingId));
-        }
-        updated = true;
-      }
-      return NextResponse.json({ success: true, billplzPaid, localStatus: payment.status, updated });
+      return NextResponse.json({ success: true, ...result });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
