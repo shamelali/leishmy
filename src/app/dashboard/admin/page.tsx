@@ -8,6 +8,7 @@ import {
   BookOpen, CreditCard, RefreshCw, CheckCircle, XCircle,
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
   ChevronLeft, ChevronRight, Mail, MessageSquare, X, MoreHorizontal,
+  Webhook,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -35,7 +36,7 @@ interface ReceivedEmail {
   createdAt: string;
 }
 
-type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events" | "inbox";
+type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events" | "inbox" | "webhooks";
 
 interface AdminStats {
   totalUsers: number;
@@ -64,7 +65,11 @@ const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "payments", label: "Payments", icon: CreditCard },
   { key: "events", label: "Events", icon: Calendar },
   { key: "inbox", label: "Inbox", icon: Mail },
+  { key: "webhooks", label: "Webhooks", icon: Webhook },
 ];
+
+interface WebhookEvent { id: number; event: string; status: string; createdAt: string; payload: any; }
+interface WebhookReconcile { paymentId: number; billplzId: string | null; billplzPaid: boolean | null; localStatus: string | null; }
 
 function PaymentBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -104,12 +109,16 @@ export default function DashboardAdmin() {
   const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
   const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<ReceivedEmail | null>(null);
+  const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([]);
+  const [webhookReconcile, setWebhookReconcile] = useState<WebhookReconcile[]>([]);
+  const [webhookSummary, setWebhookSummary] = useState<{ total: number; received: number; rejected: number }>({ total: 0, received: 0, rejected: 0 });
+  const [webhookSyncing, setWebhookSyncing] = useState<number | null>(null);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
-    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, overview: 1,
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, webhooks: 1, overview: 1,
   });
   const [total, setTotal] = useState<Record<Tab, number>>({
-    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, inbox: 0, overview: 0,
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, inbox: 0, webhooks: 0, overview: 0,
   });
 
   const fetchData = useCallback(async (t: Tab, p?: number) => {
@@ -136,6 +145,17 @@ export default function DashboardAdmin() {
           setTotal((prev) => ({ ...prev, inbox: data.total || 0 }));
         } else {
           setFetchError("Failed to load inbox");
+        }
+      } else if (t === "webhooks") {
+        const res = await fetch(`/api/admin?action=webhooks&limit=${pageSize}`);
+        if (res.ok) {
+          const data = await res.json();
+          setWebhookEvents(data.events || []);
+          setWebhookReconcile(data.reconcile || []);
+          setWebhookSummary(data.summary || { total: 0, received: 0, rejected: 0 });
+          setTotal((prev) => ({ ...prev, webhooks: data.summary?.total || 0 }));
+        } else {
+          setFetchError("Failed to load webhook data");
         }
       } else if (t === "events") {
         const res = await fetch("/api/events?admin=true");
@@ -184,6 +204,24 @@ export default function DashboardAdmin() {
     setSearch("");
     setPage((prev) => ({ ...prev, [t]: 1 }));
     fetchData(t, 1);
+  };
+
+  const reconcilePayment = async (paymentId: number) => {
+    setWebhookSyncing(paymentId);
+    try {
+      const res = await fetch("/api/admin?action=reconcile-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId }),
+      });
+      if (res.ok) {
+        await fetchData("webhooks");
+      } else {
+        setFetchError("Reconcile failed");
+      }
+    } finally {
+      setWebhookSyncing(null);
+    }
   };
 
   const toggleVerify = async (artistId: string, verified: boolean) => {
@@ -750,6 +788,97 @@ export default function DashboardAdmin() {
             {total.inbox > pageSize && (
               <Pagination page={page.inbox} total={total.inbox} pageSize={pageSize} onPage={(p) => goToPage("inbox", p)} />
             )}
+          </div>
+        )}
+
+        {tab === "webhooks" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard label="Webhook Events" value={String(webhookSummary.total)} icon={Webhook} color="text-gray-600 dark:text-gray-300" bg="bg-gray-100 dark:bg-neutral-800" />
+              <StatCard label="Received" value={String(webhookSummary.received)} icon={CheckCircle} color="text-green-600 dark:text-green-400" bg="bg-green-50 dark:bg-green-950/30" />
+              <StatCard label="Rejected (bad sig)" value={String(webhookSummary.rejected)} icon={XCircle} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/30" />
+            </div>
+
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
+                <h2 className="font-semibold text-gray-900 dark:text-white">Reconciliation — paid on Billplz but not yet synced</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">These payments are still pending/held locally while Billplz reports them paid. Click sync to update.</p>
+              </div>
+              {webhookReconcile.length === 0 ? (
+                <p className="p-6 text-center text-gray-400">No pending/held payments to reconcile. 🎉</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[640px]">
+                    <thead className="bg-gray-50 dark:bg-neutral-800">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Billplz ID</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Local Status</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Billplz Paid</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {webhookReconcile.map((r) => (
+                        <tr key={r.paymentId}>
+                          <td className="p-3 font-medium text-gray-900 dark:text-white">{r.paymentId}</td>
+                          <td className="p-3 text-gray-600 dark:text-gray-300 text-xs break-all">{r.billplzId}</td>
+                          <td className="p-3"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">{r.localStatus}</span></td>
+                          <td className="p-3">{r.billplzPaid === null ? <span className="text-gray-400">lookup failed</span> : r.billplzPaid ? <span className="text-green-600 dark:text-green-400">yes</span> : <span className="text-gray-400">no</span>}</td>
+                          <td className="p-3">
+                            <button
+                              disabled={webhookSyncing === r.paymentId}
+                              onClick={() => reconcilePayment(r.paymentId)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${webhookSyncing === r.paymentId ? "animate-spin" : ""}`} />
+                              {webhookSyncing === r.paymentId ? "Syncing…" : "Sync"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
+                <h2 className="font-semibold text-gray-900 dark:text-white">Webhook Event Log</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Every Billplz callback we receive (or reject) is recorded here for verification.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead className="bg-gray-50 dark:bg-neutral-800">
+                    <tr>
+                      <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                      <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Event</th>
+                      <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                      <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Received</th>
+                      <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payload</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                    {loading ? (
+                      <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                    ) : webhookEvents.length === 0 ? (
+                      <tr><td colSpan={5} className="p-8 text-center text-gray-400">No webhook events recorded yet.</td></tr>
+                    ) : webhookEvents.map((e) => (
+                      <tr key={e.id}>
+                        <td className="p-3 font-medium text-gray-900 dark:text-white">{e.id}</td>
+                        <td className="p-3 text-gray-600 dark:text-gray-300">{e.event}</td>
+                        <td className="p-3">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${e.status === "rejected" ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400" : "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400"}`}>{e.status}</span>
+                        </td>
+                        <td className="p-3 text-gray-400 text-xs">{new Date(e.createdAt).toLocaleString()}</td>
+                        <td className="p-3 text-gray-500 dark:text-gray-400 text-xs max-w-[320px] truncate" title={JSON.stringify(e.payload)}>{JSON.stringify(e.payload)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

@@ -26,11 +26,29 @@ export async function POST(request: NextRequest) {
   const headerBuf = Buffer.from(signatureHeader, "utf-8");
 
   if (computedBuf.length !== headerBuf.length || !timingSafeEqual(computedBuf, headerBuf)) {
+    // Log rejected attempts so missed deliveries are visible instead of silent.
+    await db
+      .insert(webhookEvents)
+      .values({
+        event: "billplz.payment.rejected",
+        payload: { reason: "invalid_signature", signatureHeader, body: rawBody.slice(0, 500) },
+        status: "rejected",
+      })
+      .catch(() => {});
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   try {
-    const body = JSON.parse(rawBody);
+    // Billplz delivers webhooks as application/x-www-form-urlencoded, but we
+    // also accept JSON for local/testing. Normalize to an object either way.
+    let body: Record<string, any>;
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      body = JSON.parse(rawBody);
+    } else {
+      const params = new URLSearchParams(rawBody);
+      body = Object.fromEntries(params.entries());
+    }
 
     await db.insert(webhookEvents).values({
       event: "billplz.payment",
