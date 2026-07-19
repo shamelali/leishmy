@@ -52,7 +52,7 @@ export const stepProfessionalSchema = z.object({
     .max(80),
   languages: arrayOf(z.string().min(1).max(40), 10),
   specialties: arrayOf(z.string().min(1).max(60), 20),
-  categoryIds: arrayOf(z.number().int().positive(), 10),
+  categoryIds: arrayOf(z.string().min(1).max(60), 10),
   instagramUrl: optionalUrl,
   tiktokUrl: optionalUrl,
   willingToTravel: z.boolean().default(false),

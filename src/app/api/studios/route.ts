@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { studios, artists, bookings, payments, users } from "@/db/schema";
-import { eq, ilike, or, desc, inArray } from "drizzle-orm";
+import { profiles, users, bookings, payments } from "@/db/schema";
+import { eq, ilike, or, and, desc, inArray } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +13,23 @@ export async function GET(request: NextRequest) {
 
     if (action === "dashboard" && userId) {
       const [studio] = await db
-        .select()
-        .from(studios)
-        .where(eq(studios.userId, userId))
+        .select({
+          userId: profiles.userId,
+          slug: profiles.slug,
+          description: profiles.description,
+          price: profiles.price,
+          rating: profiles.rating,
+          reviewCount: profiles.reviewCount,
+          featured: profiles.featured,
+          name: users.name,
+          image: users.image,
+          email: users.email,
+          phone: users.phone,
+          location: users.location,
+        })
+        .from(profiles)
+        .innerJoin(users, eq(users.id, profiles.userId))
+        .where(and(eq(profiles.role, "studio"), eq(profiles.userId, userId)))
         .limit(1);
 
       if (!studio) {
@@ -23,17 +37,21 @@ export async function GET(request: NextRequest) {
       }
 
       const [artistRows, bookingRows, studioPaymentRows] = await Promise.all([
-        db.select().from(artists).where(eq(artists.userId, userId)),
+        db
+          .select({ userId: profiles.userId, name: users.name })
+          .from(profiles)
+          .innerJoin(users, eq(users.id, profiles.userId))
+          .where(and(eq(profiles.studioId, userId), eq(profiles.role, "artist"))),
         db
           .select()
           .from(bookings)
-          .where(eq(bookings.studioId, studio.id))
+          .where(eq(bookings.studioId, userId))
           .orderBy(desc(bookings.createdAt))
           .limit(10),
         db.select().from(payments).where(
           inArray(
             payments.bookingId,
-            db.select({ id: bookings.id }).from(bookings).where(eq(bookings.studioId, studio.id)),
+            db.select({ id: bookings.id }).from(bookings).where(eq(bookings.studioId, userId)),
           ),
         ),
       ]);
@@ -47,19 +65,23 @@ export async function GET(request: NextRequest) {
         .reduce((sum, p) => sum + (p.amount || 0), 0);
 
       const bookingUserIds = bookingRows.map((b) => b.userId).filter(Boolean);
-      const bookingArtistIds = bookingRows.map((b) => b.artistId).filter(Boolean) as number[];
+      const bookingArtistIds = bookingRows.map((b) => b.artistId).filter(Boolean) as string[];
 
       const [userRows, artistNameRows] = await Promise.all([
         bookingUserIds.length > 0
           ? db.select().from(users).where(inArray(users.id, bookingUserIds))
           : Promise.resolve([]),
         bookingArtistIds.length > 0
-          ? db.select().from(artists).where(inArray(artists.id, bookingArtistIds))
+          ? db
+              .select({ userId: profiles.userId, name: users.name })
+              .from(profiles)
+              .innerJoin(users, eq(users.id, profiles.userId))
+              .where(inArray(profiles.userId, bookingArtistIds))
           : Promise.resolve([]),
       ]);
 
       const userMap = new Map(userRows.map((u) => [u.id, u.name || "Anonymous"]));
-      const artistNameMap = new Map(artistNameRows.map((a) => [a.id, a.name || "Artist"]));
+      const artistNameMap = new Map(artistNameRows.map((a) => [a.userId, a.name || "Artist"]));
 
       const recentBookings = bookingRows.map((b) => ({
         id: String(b.id),
@@ -84,19 +106,36 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const query = db.select().from(studios).limit(limit);
-
+    const filters: any[] = [eq(profiles.role, "studio")];
     if (search) {
-      query.where(
+      filters.push(
         or(
-          ilike(studios.name, `%${search}%`),
-          ilike(studios.location, `%${search}%`),
-          ilike(studios.description, `%${search}%`),
-        ),
+          ilike(users.name, `%${search}%`),
+          ilike(users.location, `%${search}%`),
+          ilike(profiles.description, `%${search}%`),
+        )!,
       );
     }
 
-    const rows = await query;
+    const rows = await db
+      .select({
+        id: profiles.userId,
+        userId: profiles.userId,
+        slug: profiles.slug,
+        description: profiles.description,
+        price: profiles.price,
+        rating: profiles.rating,
+        reviewCount: profiles.reviewCount,
+        featured: profiles.featured,
+        name: users.name,
+        image: users.image,
+        email: users.email,
+        location: users.location,
+      })
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId))
+      .where(and(...filters))
+      .limit(limit);
 
     return NextResponse.json({ studios: rows });
   } catch (error) {

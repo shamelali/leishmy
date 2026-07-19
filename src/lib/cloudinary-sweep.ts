@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
-import { sql } from "drizzle-orm";
+import { profiles, users } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import {
   CLOUDINARY_USER_PREFIX,
   deleteAssets,
@@ -64,9 +64,9 @@ async function sweepUserOrphans(): Promise<number> {
     const portfolioPrefix = `${CLOUDINARY_USER_PREFIX}${userId}/artist/portfolio/`;
 
     const [artist] = await db
-      .select({ portfolio: artists.portfolio })
-      .from(artists)
-      .where(sql`${artists.userId} = ${userId}`)
+      .select({ portfolio: profiles.portfolio })
+      .from(profiles)
+      .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
       .limit(1);
 
     const referenced = new Set<string>();

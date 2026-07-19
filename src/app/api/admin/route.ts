@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, artists, studios, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
+import { users, profiles, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getAuthSession } from "@/lib/auth/server";
 import { reconcilePayment } from "@/lib/payment-reconcile";
 
@@ -28,18 +29,18 @@ export async function GET(request: NextRequest) {
         pendingVerificationResult,
       ] = await Promise.all([
         db.select({ count: count() }).from(users),
-        db.select({ count: count() }).from(artists),
-        db.select({ count: count() }).from(studios),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.role, "artist")),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.role, "studio")),
         db.select({ count: count() }).from(bookings),
         db.select().from(payments),
         db.select({ count: count() }).from(users).where(gte(users.createdAt, startOfMonth)),
-        db.select({ count: count() }).from(artists).where(gte(artists.createdAt, startOfMonth)),
+        db.select({ count: count() }).from(profiles).where(and(eq(profiles.role, "artist"), gte(profiles.createdAt, startOfMonth))),
         db.select({ count: count() }).from(bookings).where(gte(bookings.createdAt, startOfMonth)),
         db.select({ count: count() }).from(users).where(and(gte(users.createdAt, startOfLastMonth), lt(users.createdAt, startOfMonth))),
-        db.select({ count: count() }).from(artists).where(and(gte(artists.createdAt, startOfLastMonth), lt(artists.createdAt, startOfMonth))),
+        db.select({ count: count() }).from(profiles).where(and(eq(profiles.role, "artist"), gte(profiles.createdAt, startOfLastMonth), lt(profiles.createdAt, startOfMonth))),
         db.select({ count: count() }).from(bookings).where(and(gte(bookings.createdAt, startOfLastMonth), lt(bookings.createdAt, startOfMonth))),
-        db.select({ avg: avg(sql`CAST(${artists.rating} AS DECIMAL)`) }).from(artists),
-        db.select({ count: count() }).from(artists).where(eq(artists.status, "pending_verification")),
+        db.select({ avg: avg(sql`CAST(${profiles.rating} AS DECIMAL)`) }).from(profiles).where(eq(profiles.role, "artist")),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.status, "pending_verification")),
       ]);
 
       const paidPayments = paymentRows.filter((p) => p.status === "paid" || p.status === "released");
@@ -84,14 +85,31 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * pageSize;
 
     if (action === "artists") {
+      const artistUsers = alias(users, "artist_users");
       const [rows, [{ count: total }]] = await Promise.all([
-        db.select().from(artists).limit(pageSize).offset(offset),
-        db.select({ count: count() }).from(artists),
+        db
+          .select({
+            id: profiles.userId,
+            name: artistUsers.name,
+            email: artistUsers.email,
+            phone: artistUsers.phone,
+            location: artistUsers.location,
+            rating: profiles.rating,
+            reviewCount: profiles.reviewCount,
+            verified: profiles.verified,
+            available: profiles.available,
+            createdAt: profiles.createdAt,
+          })
+          .from(profiles)
+          .innerJoin(artistUsers, eq(artistUsers.id, profiles.userId))
+          .where(eq(profiles.role, "artist"))
+          .limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.role, "artist")),
       ]);
       return NextResponse.json({
         artists: rows.map((a) => ({
-          id: String(a.id),
-          name: a.name,
+          id: a.id,
+          name: a.name || "",
           email: a.email || "",
           phone: a.phone || "",
           location: a.location || "",
@@ -106,14 +124,28 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "studios") {
+      const studioUsers = alias(users, "studio_users");
       const [rows, [{ count: total }]] = await Promise.all([
-        db.select().from(studios).limit(pageSize).offset(offset),
-        db.select({ count: count() }).from(studios),
+        db
+          .select({
+            id: profiles.userId,
+            name: studioUsers.name,
+            email: studioUsers.email,
+            phone: studioUsers.phone,
+            location: studioUsers.location,
+            rating: profiles.rating,
+            createdAt: profiles.createdAt,
+          })
+          .from(profiles)
+          .innerJoin(studioUsers, eq(studioUsers.id, profiles.userId))
+          .where(eq(profiles.role, "studio"))
+          .limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.role, "studio")),
       ]);
       return NextResponse.json({
         studios: rows.map((s) => ({
-          id: String(s.id),
-          name: s.name,
+          id: s.id,
+          name: s.name || "",
           email: s.email || "",
           phone: s.phone || "",
           location: s.location || "",
@@ -143,6 +175,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "bookings") {
+      const artistUsers = alias(users, "artist_users");
       const [rows, [{ count: total }]] = await Promise.all([
         db.select({
           id: bookings.id,
@@ -155,11 +188,12 @@ export async function GET(request: NextRequest) {
           userId: bookings.userId,
           artistId: bookings.artistId,
           userName: users.name,
-          artistName: artists.name,
+          artistName: artistUsers.name,
         })
         .from(bookings)
         .leftJoin(users, eq(bookings.userId, users.id))
-        .leftJoin(artists, eq(bookings.artistId, artists.id))
+        .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+        .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
         .limit(pageSize).offset(offset),
         db.select({ count: count() }).from(bookings),
       ]);
@@ -203,8 +237,8 @@ export async function GET(request: NextRequest) {
       const [recentUsers, recentArtists, recentBookings] = await Promise.all([
         db.select({ id: users.id, name: users.name, createdAt: users.createdAt })
           .from(users).orderBy(users.createdAt).limit(5),
-        db.select({ id: artists.id, name: artists.name, createdAt: artists.createdAt, verified: artists.verified })
-          .from(artists).orderBy(artists.createdAt).limit(5),
+        db.select({ id: profiles.userId, name: users.name, createdAt: profiles.createdAt, verified: profiles.verified })
+          .from(profiles).innerJoin(users, eq(users.id, profiles.userId)).where(eq(profiles.role, "artist")).orderBy(profiles.createdAt).limit(5),
         db.select({ id: bookings.id, status: bookings.status, amount: bookings.amount, createdAt: bookings.createdAt })
           .from(bookings).orderBy(bookings.createdAt).limit(5),
       ]);
@@ -233,15 +267,38 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "pending-artists") {
+      const pendingUsers = alias(users, "pending_users");
       const [rows, [{ count: total }]] = await Promise.all([
-        db.select().from(artists).where(eq(artists.status, "pending_verification")).orderBy(desc(artists.createdAt)).limit(pageSize).offset(offset),
-        db.select({ count: count() }).from(artists).where(eq(artists.status, "pending_verification")),
+        db
+          .select({
+            id: profiles.userId,
+            name: pendingUsers.name,
+            slug: profiles.slug,
+            email: pendingUsers.email,
+            phone: pendingUsers.phone,
+            location: pendingUsers.location,
+            image: pendingUsers.image,
+            bio: profiles.bio,
+            rating: profiles.rating,
+            price: profiles.price,
+            specialties: profiles.specialties,
+            languages: profiles.languages,
+            experience: profiles.experience,
+            verified: profiles.verified,
+            createdAt: profiles.createdAt,
+          })
+          .from(profiles)
+          .innerJoin(pendingUsers, eq(pendingUsers.id, profiles.userId))
+          .where(eq(profiles.status, "pending_verification"))
+          .orderBy(desc(profiles.createdAt))
+          .limit(pageSize).offset(offset),
+        db.select({ count: count() }).from(profiles).where(eq(profiles.status, "pending_verification")),
       ]);
       return NextResponse.json({
         artists: rows.map((a) => ({
-          id: String(a.id),
-          name: a.name,
-          slug: a.slug,
+          id: a.id,
+          name: a.name || "",
+          slug: a.slug || "",
           email: a.email || "",
           phone: a.phone || "",
           location: a.location || "",
@@ -401,19 +458,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "name is required" }, { status: 400 });
       }
       const artistSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const userId = crypto.randomUUID();
+      await db.insert(users).values({
+        id: userId,
+        name,
+        email: email || `${artistSlug}@leish.local`,
+        phone: phone || null,
+        location: location || null,
+        image: image || null,
+        role: "artist",
+        emailVerified: verified ?? true,
+      });
       const [artist] = await db
-        .insert(artists)
+        .insert(profiles)
         .values({
-          name,
+          userId,
+          role: "artist",
           slug: artistSlug,
-          email: email || null,
-          phone: phone || null,
-          location: location || null,
-          image: image || null,
           bio: bio || null,
           price: price ? String(price) : "0",
           verified: verified ?? true,
           available: true,
+          status: "verified",
         })
         .returning();
       return NextResponse.json({ success: true, artist });
@@ -425,9 +491,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "artistId required" }, { status: 400 });
       }
       await db
-        .update(artists)
+        .update(profiles)
         .set({ status: "verified", verified: true, rejectionReason: null })
-        .where(eq(artists.id, Number(artistId)));
+        .where(eq(profiles.userId, String(artistId)));
       return NextResponse.json({ success: true });
     }
 
@@ -437,9 +503,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "artistId required" }, { status: 400 });
       }
       await db
-        .update(artists)
+        .update(profiles)
         .set({ status: "rejected", verified: false, rejectionReason: reason || null })
-        .where(eq(artists.id, Number(artistId)));
+        .where(eq(profiles.userId, String(artistId)));
       return NextResponse.json({ success: true });
     }
 
@@ -447,9 +513,9 @@ export async function POST(request: NextRequest) {
       const { artistId, verified } = body;
       if (artistId) {
         await db
-          .update(artists)
+          .update(profiles)
           .set({ verified })
-          .where(eq(artists.id, Number(artistId)));
+          .where(eq(profiles.userId, String(artistId)));
       }
       return NextResponse.json({ success: true });
     }
@@ -470,8 +536,8 @@ export async function POST(request: NextRequest) {
       const { artistId } = body;
       if (artistId) {
         await db
-          .delete(artists)
-          .where(eq(artists.id, Number(artistId)));
+          .delete(profiles)
+          .where(eq(profiles.userId, String(artistId)));
       }
       return NextResponse.json({ success: true });
     }

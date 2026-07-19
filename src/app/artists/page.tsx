@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
-import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq, inArray, and, notLike } from "drizzle-orm";
+import { profiles, users, categories as categoriesTable } from "@/db/schema";
+import { eq, and, notLike, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -46,84 +47,64 @@ export default async function ArtistsPage({ searchParams }: Props) {
 
   let displayArtists: DisplayArtist[] | undefined;
   try {
-    let query;
+    const artistUsers = alias(users, "artist_users");
+    const where = [eq(profiles.role, "artist"), notLike(profiles.userId, "artist-seed%")] as any[];
 
     if (category) {
       const categoryRow = await db
-        .select({ id: categoriesTable.id })
+        .select({ slug: categoriesTable.slug })
         .from(categoriesTable)
         .where(eq(categoriesTable.slug, category))
         .limit(1);
 
       if (categoryRow.length > 0) {
-        const matchingArtistIds = await db
-          .select({ artistId: artistCategories.artistId })
-          .from(artistCategories)
-          .where(eq(artistCategories.categoryId, categoryRow[0].id));
-
-        if (matchingArtistIds.length > 0) {
-          query = db
-            .select()
-            .from(artists)
-            .where(and(
-              inArray(artists.id, matchingArtistIds.map((r) => r.artistId)),
-              notLike(artists.userId, "artist-seed%"),
-            ))
-            .limit(50);
-        } else {
-          displayArtists = [];
-        }
+        where.push(sql`${profiles.categories} @> ARRAY[${category}]::text[]`);
       } else {
         displayArtists = [];
       }
-    } else {
-      query = db
-        .select()
-        .from(artists)
-        .where(notLike(artists.userId, "artist-seed%"))
-        .limit(50);
     }
 
-    if (!displayArtists && query) {
-      const rows = await query;
-      if (rows.length > 0) {
-        const artistIds = rows.map((a) => a.id);
+    if (!displayArtists) {
+      const rows = await db
+        .select({
+          id: profiles.userId,
+          name: artistUsers.name,
+          slug: profiles.slug,
+          image: artistUsers.image,
+          location: artistUsers.location,
+          rating: profiles.rating,
+          reviewCount: profiles.reviewCount,
+          price: profiles.price,
+          verified: profiles.verified,
+          responseTime: profiles.responseTime,
+          categories: profiles.categories,
+          languages: profiles.languages,
+          bio: profiles.bio,
+          portfolio: profiles.portfolio,
+        })
+        .from(profiles)
+        .innerJoin(artistUsers, eq(artistUsers.id, profiles.userId))
+        .where(and(...where))
+        .limit(50);
 
-        const categoryLinks = await db
-          .select({
-            artistId: artistCategories.artistId,
-            categoryName: categoriesTable.name,
-          })
-          .from(artistCategories)
-          .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
-          .where(inArray(artistCategories.artistId, artistIds));
-
-        const categoriesByArtist = new Map<number, string[]>();
-        for (const link of categoryLinks) {
-          const list = categoriesByArtist.get(link.artistId) || [];
-          list.push(link.categoryName);
-          categoriesByArtist.set(link.artistId, list);
-        }
-
-        displayArtists = rows.map((a) => ({
-          id: String(a.id),
-          name: a.name,
-          slug: a.slug,
-          image: a.image || "/placeholder.svg",
-          location: a.location || "",
-          rating: Number(a.rating) || 0,
-          reviewCount: a.reviewCount || 0,
-          price: Number(a.price) || 0,
-          verified: a.verified || false,
-          responseTime: a.responseTime || "",
-          categories: categoriesByArtist.get(a.id) || [],
-          specialties: [] as string[],
-          languages: (a.languages || []) as string[],
-          bio: a.bio || "",
-          portfolio: (a.portfolio || []) as string[],
-          featured: false,
-        }));
-      }
+      displayArtists = rows.map((a) => ({
+        id: a.id,
+        name: a.name || "",
+        slug: a.slug,
+        image: a.image || "/placeholder.svg",
+        location: a.location || "",
+        rating: Number(a.rating) || 0,
+        reviewCount: a.reviewCount || 0,
+        price: Number(a.price) || 0,
+        verified: a.verified || false,
+        responseTime: a.responseTime || "",
+        categories: (a.categories || []) as string[],
+        specialties: [] as string[],
+        languages: (a.languages || []) as string[],
+        bio: a.bio || "",
+        portfolio: (a.portfolio || []) as string[],
+        featured: false,
+      }));
     }
   } catch {
     console.error("Failed to fetch artists");

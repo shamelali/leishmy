@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { inquiries, artists } from "@/db/schema";
+import { inquiries, profiles, users } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/brevo";
 import { limit } from "@/lib/rate-limit";
@@ -33,9 +33,10 @@ export async function POST(request: NextRequest) {
     }
 
     const [artist] = await db
-      .select({ id: artists.id, name: artists.name, email: artists.email })
-      .from(artists)
-      .where(eq(artists.id, Number(artistId)))
+      .select({ userId: profiles.userId, name: users.name, email: users.email })
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId))
+      .where(and(eq(profiles.userId, String(artistId)), eq(profiles.role, "artist")))
       .limit(1);
 
     if (!artist) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const [inquiry] = await db
       .insert(inquiries)
       .values({
-        artistId: Number(artistId),
+        artistId: String(artistId),
         name,
         email,
         phone: phone ? phone.replace(/[\s-]/g, "") : null,
@@ -98,9 +99,9 @@ export async function GET(request: NextRequest) {
     }
 
     const [artist] = await db
-      .select({ id: artists.id, userId: artists.userId })
-      .from(artists)
-      .where(eq(artists.id, Number(artistId)))
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, String(artistId)), eq(profiles.role, "artist")))
       .limit(1);
 
     if (!artist || artist.userId !== session.user.id) {
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
 
     const status = searchParams.get("status");
-    const conditions = [eq(inquiries.artistId, Number(artistId))];
+    const conditions = [eq(inquiries.artistId, String(artistId))];
     if (status && ["pending", "read", "replied", "closed"].includes(status)) {
       conditions.push(eq(inquiries.status, status));
     }

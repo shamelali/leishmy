@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { referrals, artists, studios, users } from "@/db/schema";
+import { referrals, profiles, users } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { awardPoints } from "@/lib/loyalty";
 import { eq, and, inArray } from "drizzle-orm";
@@ -25,24 +25,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "referrerType must be 'artist' or 'studio'" }, { status: 400 });
     }
 
-    const referrerIdNum = Number(referrerId);
-    if (!Number.isFinite(referrerIdNum) || referrerIdNum <= 0) {
-      return NextResponse.json({ error: "Invalid referrerId" }, { status: 400 });
-    }
+    const [referrer] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.slug, String(referrerId)), eq(profiles.role, referrerType)))
+      .limit(1);
 
-    const referrerUserId = referrerType === "artist"
-      ? await db
-          .select({ userId: artists.userId })
-          .from(artists)
-          .where(eq(artists.id, referrerIdNum))
-          .limit(1)
-          .then((r) => r[0]?.userId)
-      : await db
-          .select({ userId: studios.userId })
-          .from(studios)
-          .where(eq(studios.id, referrerIdNum))
-          .limit(1)
-          .then((r) => r[0]?.userId);
+    const referrerUserId = referrer?.userId;
 
     if (!referrerUserId) {
       return NextResponse.json({ error: "Referrer not found" }, { status: 404 });
@@ -58,7 +47,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(referrals.referrerType, referrerType),
-          eq(referrals.referrerId, referrerIdNum),
+          eq(referrals.referrerUserId, referrerUserId),
           eq(referrals.referredUserId, session.id),
           inArray(referrals.status, ["registered", "booked", "rewarded"]),
         ),
@@ -86,7 +75,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(referrals.referrerType, referrerType),
-          eq(referrals.referrerId, referrerIdNum),
+          eq(referrals.referrerUserId, referrerUserId),
           eq(referrals.referredUserId, session.id),
           inArray(referrals.status, ["clicked", "registered"]),
         ),
@@ -110,7 +99,7 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(referrals.referrerType, referrerType),
-            eq(referrals.referrerId, referrerIdNum),
+            eq(referrals.referrerUserId, referrerUserId),
             eq(referrals.referredUserId, session.id),
           ),
         );

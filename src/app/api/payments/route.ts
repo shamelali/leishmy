@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, muaBankAccounts, bookings, artists } from "@/db/schema";
+import { payments, payouts, bookings, profiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
       if (!session || session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+      const artistUsers = alias(users, "artist_users");
       const rows = await db
         .select({
           id: payments.id,
@@ -35,11 +37,12 @@ export async function GET(request: NextRequest) {
           method: payments.method,
           createdAt: payments.createdAt,
           bookingId: payments.bookingId,
-          artistName: artists.name,
+          artistName: artistUsers.name,
         })
         .from(payments)
         .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-        .leftJoin(artists, eq(bookings.artistId, artists.id))
+        .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+        .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
         .where(eq(bookings.userId, userId))
         .orderBy(payments.createdAt);
 
@@ -61,12 +64,17 @@ export async function GET(request: NextRequest) {
       if (!session || session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      const [payoutRows, bankRows] = await Promise.all([
+      const [payoutRows, bankProfiles] = await Promise.all([
         db.select().from(payouts).where(eq(payouts.userId, userId)),
         db
-          .select()
-          .from(muaBankAccounts)
-          .where(eq(muaBankAccounts.userId, userId)),
+          .select({
+            userId: profiles.userId,
+            bankName: profiles.bankName,
+            accountNumber: profiles.accountNumber,
+            accountHolder: profiles.accountHolder,
+          })
+          .from(profiles)
+          .where(eq(profiles.userId, userId)),
       ]);
 
       const pendingBalance = payoutRows
@@ -81,8 +89,8 @@ export async function GET(request: NextRequest) {
           createdAt: p.createdAt?.toISOString() || "",
           updatedAt: p.updatedAt?.toISOString() || undefined,
         })),
-        bankAccounts: bankRows.map((b) => ({
-          id: String(b.id),
+        bankAccounts: bankProfiles.map((b) => ({
+          id: b.userId,
           bankName: b.bankName,
           accountNumber: b.accountNumber,
           accountHolder: b.accountHolder,
@@ -240,9 +248,15 @@ export async function POST(request: NextRequest) {
       }
 
       const [bank] = await db
-        .insert(muaBankAccounts)
-        .values({ userId, bankName, accountNumber, accountHolder })
-        .returning();
+        .update(profiles)
+        .set({ bankName, accountNumber, accountHolder })
+        .where(eq(profiles.userId, userId))
+        .returning({
+          id: profiles.userId,
+          bankName: profiles.bankName,
+          accountNumber: profiles.accountNumber,
+          accountHolder: profiles.accountHolder,
+        });
 
       return NextResponse.json({ success: true, bank });
     }

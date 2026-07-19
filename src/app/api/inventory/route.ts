@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { studioInventory, studios } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { studioInventory, profiles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     }
 
     const [studio] = await db
-      .select({ userId: studios.userId })
-      .from(studios)
-      .where(eq(studios.id, Number(studioId)))
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, studioId), eq(profiles.role, "studio")))
       .limit(1);
 
     if (!studio || studio.userId !== session.id) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const rows = await db
       .select()
       .from(studioInventory)
-      .where(eq(studioInventory.studioId, Number(studioId)))
+      .where(eq(studioInventory.studioId, studioId))
       .orderBy(studioInventory.name);
 
     return NextResponse.json({ items: rows });
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const [item] = await db
       .insert(studioInventory)
       .values({
-        studioId: Number(studioId),
+        studioId: String(studioId),
         name,
         category: category || null,
         quantity: quantity != null ? Number(quantity) : 0,
@@ -96,9 +96,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const [studio] = await db
-      .select({ userId: studios.userId })
-      .from(studios)
-      .where(eq(studios.id, item.studioId))
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, item.studioId), eq(profiles.role, "studio")))
       .limit(1);
 
     if (!studio || studio.userId !== session.id) {

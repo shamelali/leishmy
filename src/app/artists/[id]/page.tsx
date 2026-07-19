@@ -17,12 +17,12 @@ import {
 } from "lucide-react";
 import { db } from "@/db";
 import {
-  artists,
-  artistCategories,
-  categories as categoriesTable,
+  profiles,
+  users,
   services as servicesTable,
 } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { BookingForm } from "@/components/BookingForm";
 import ArtistReviews from "@/components/ArtistReviews";
 import ShareButtons from "@/components/ShareButtons";
@@ -48,33 +48,54 @@ function formatAvailability(value: string): string {
 
 async function findArtist(slug: string) {
   try {
-    const rows = await db.select().from(artists).where(eq(artists.slug, slug)).limit(1);
+    const artistUsers = alias(users, "artist_users");
+    const rows = await db
+      .select({
+        userId: profiles.userId,
+        name: artistUsers.name,
+        slug: profiles.slug,
+        image: artistUsers.image,
+        location: artistUsers.location,
+        area: profiles.area,
+        district: profiles.district,
+        rating: profiles.rating,
+        reviewCount: profiles.reviewCount,
+        price: profiles.price,
+        verified: profiles.verified,
+        responseTime: profiles.responseTime,
+        categories: profiles.categories,
+        specialties: profiles.specialties,
+        languages: profiles.languages,
+        bio: profiles.bio,
+        portfolio: profiles.portfolio,
+        instagramUrl: profiles.instagramUrl,
+        tiktokUrl: profiles.tiktokUrl,
+        certifications: profiles.certifications,
+        availability: profiles.availability,
+      })
+      .from(profiles)
+      .innerJoin(artistUsers, eq(artistUsers.id, profiles.userId))
+      .where(and(eq(profiles.slug, slug), eq(profiles.role, "artist")))
+      .limit(1);
     if (rows.length > 0) {
       const a = rows[0];
 
-      const [categoryLinks, serviceRows] = await Promise.all([
-        db
-          .select({ categoryName: categoriesTable.name })
-          .from(artistCategories)
-          .innerJoin(categoriesTable, eq(artistCategories.categoryId, categoriesTable.id))
-          .where(eq(artistCategories.artistId, a.id)),
-        db
-          .select({
-            id: servicesTable.id,
-            name: servicesTable.name,
-            description: servicesTable.description,
-            duration: servicesTable.duration,
-            price: servicesTable.price,
-            popular: servicesTable.popular,
-          })
-          .from(servicesTable)
-          .where(eq(servicesTable.artistId, a.id))
-          .orderBy(desc(servicesTable.popular), servicesTable.name),
-      ]);
+      const serviceRows = await db
+        .select({
+          id: servicesTable.id,
+          name: servicesTable.name,
+          description: servicesTable.description,
+          duration: servicesTable.duration,
+          price: servicesTable.price,
+          popular: servicesTable.popular,
+        })
+        .from(servicesTable)
+        .where(eq(servicesTable.artistId, a.userId))
+        .orderBy(desc(servicesTable.popular), servicesTable.name);
 
       return {
-        id: String(a.id),
-        name: a.name,
+        id: a.userId,
+        name: a.name || "",
         slug: a.slug,
         image: a.image || "/placeholder.svg",
         location: a.location || "",
@@ -85,7 +106,7 @@ async function findArtist(slug: string) {
         price: Number(a.price) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
-        categories: categoryLinks.map((l) => l.categoryName),
+        categories: (a.categories || []) as string[],
         specialties: ((a.specialties as string[] | null) || []) as string[],
         languages: (a.languages || []) as string[],
         bio: a.bio || "",

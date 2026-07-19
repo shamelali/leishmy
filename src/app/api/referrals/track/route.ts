@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { referrals } from "@/db/schema";
+import { referrals, profiles } from "@/db/schema";
 import { limit } from "@/lib/rate-limit";
 import { eq, and } from "drizzle-orm";
 
@@ -25,14 +25,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "referrerType must be 'artist' or 'studio'" }, { status: 400 });
     }
 
-    const referrerIdNum = Number(referrerId);
-    if (!Number.isFinite(referrerIdNum) || referrerIdNum <= 0) {
-      return NextResponse.json({ error: "Invalid referrerId" }, { status: 400 });
+    const [referrer] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.slug, String(referrerId)), eq(profiles.role, referrerType)))
+      .limit(1);
+
+    if (!referrer) {
+      return NextResponse.json({ error: "Referrer not found" }, { status: 404 });
     }
 
     await db.insert(referrals).values({
       referrerType,
-      referrerId: referrerIdNum,
+      referrerUserId: referrer.userId,
       status: "clicked",
     });
 

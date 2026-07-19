@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { artists, studios, referrals } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { profiles, referrals } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -21,15 +21,15 @@ export async function GET(
   }
 
   const [artist] = await db
-    .select({ id: artists.id, slug: artists.slug })
-    .from(artists)
-    .where(eq(artists.slug, cleanSlug))
+    .select({ userId: profiles.userId, slug: profiles.slug })
+    .from(profiles)
+    .where(and(eq(profiles.slug, cleanSlug), eq(profiles.role, "artist")))
     .limit(1);
 
   if (artist) {
     db.insert(referrals).values({
       referrerType: "artist",
-      referrerId: artist.id,
+      referrerUserId: artist.userId,
       status: "clicked",
     }).catch(() => {});
 
@@ -38,7 +38,7 @@ export async function GET(
       301,
     );
 
-    response.cookies.set("leish_ref", JSON.stringify({ t: "artist", id: artist.id }), {
+    response.cookies.set("leish_ref", JSON.stringify({ t: "artist", id: artist.slug }), {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
@@ -50,15 +50,15 @@ export async function GET(
   }
 
   const [studio] = await db
-    .select({ id: studios.id, slug: studios.slug })
-    .from(studios)
-    .where(eq(studios.slug, cleanSlug))
+    .select({ userId: profiles.userId, slug: profiles.slug })
+    .from(profiles)
+    .where(and(eq(profiles.slug, cleanSlug), eq(profiles.role, "studio")))
     .limit(1);
 
   if (studio) {
     db.insert(referrals).values({
       referrerType: "studio",
-      referrerId: studio.id,
+      referrerUserId: studio.userId,
       status: "clicked",
     }).catch(() => {});
 
@@ -67,7 +67,7 @@ export async function GET(
       301,
     );
 
-    response.cookies.set("leish_ref", JSON.stringify({ t: "studio", id: studio.id }), {
+    response.cookies.set("leish_ref", JSON.stringify({ t: "studio", id: studio.slug }), {
       httpOnly: true,
       secure: true,
       sameSite: "lax",

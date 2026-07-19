@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
+import { profiles, users, categories as categoriesTable } from "@/db/schema";
 import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count, notLike } from "drizzle-orm";
 import { categories } from "@/lib/data";
 
@@ -17,17 +17,44 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const offset = (page - 1) * pageSize;
 
-    let rows: typeof artists.$inferSelect[] = [];
-    let total = 0;
+    // Artists are profiles with role = 'artist'.
+    const selectFields = {
+      id: profiles.userId,
+      userId: profiles.userId,
+      slug: profiles.slug,
+      bio: profiles.bio,
+      area: profiles.area,
+      district: profiles.district,
+      rating: profiles.rating,
+      reviewCount: profiles.reviewCount,
+      price: profiles.price,
+      verified: profiles.verified,
+      available: profiles.available,
+      responseTime: profiles.responseTime,
+      specialties: profiles.specialties,
+      categories: profiles.categories,
+      languages: profiles.languages,
+      portfolio: profiles.portfolio,
+      featured: profiles.featured,
+      name: users.name,
+      image: users.image,
+      location: users.location,
+    };
 
-    const baseFilters: any[] = [notLike(artists.userId, "artist-seed%")];
+    const baseQuery = db
+      .select(selectFields)
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId));
+
+    const baseFilters: any[] = [notLike(profiles.userId, "artist-seed%")];
 
     if (search) {
       baseFilters.push(
         or(
-          ilike(artists.name, `%${search}%`),
-          ilike(artists.location, `%${search}%`),
-          ilike(artists.bio, `%${search}%`),
+          ilike(users.name, `%${search}%`),
+          ilike(users.location, `%${search}%`),
+          ilike(profiles.bio, `%${search}%`),
+          ilike(profiles.area, `%${search}%`),
         ),
       );
     }
@@ -35,72 +62,69 @@ export async function GET(request: NextRequest) {
     if (location) {
       baseFilters.push(
         or(
-          ilike(artists.location, `%${location}%`),
-          ilike(artists.area, `%${location}%`),
-          ilike(artists.district, `%${location}%`),
+          ilike(users.location, `%${location}%`),
+          ilike(profiles.area, `%${location}%`),
+          ilike(profiles.district, `%${location}%`),
         ),
       );
     }
 
     if (minPrice) {
-      baseFilters.push(gte(artists.price, String(minPrice)));
+      baseFilters.push(gte(profiles.price, String(minPrice)));
     }
 
     if (maxPrice) {
-      baseFilters.push(lte(artists.price, String(maxPrice)));
+      baseFilters.push(lte(profiles.price, String(maxPrice)));
     }
 
     const sortMap: Record<string, any> = {
-      rating: desc(artists.rating),
-      price_asc: asc(artists.price),
-      price_desc: desc(artists.price),
-      name: asc(artists.name),
-      newest: desc(artists.createdAt),
+      rating: desc(profiles.rating),
+      price_asc: asc(profiles.price),
+      price_desc: desc(profiles.price),
+      name: asc(users.name),
+      newest: desc(profiles.createdAt),
     };
 
-    const orderBy = sortMap[sort] || desc(artists.rating);
+    const orderBy = sortMap[sort] || desc(profiles.rating);
+
+    let rows: any[] = [];
+    let total = 0;
 
     if (category) {
       const categoryRow = await db
-        .select({ id: categoriesTable.id })
+        .select({ slug: categoriesTable.slug })
         .from(categoriesTable)
         .where(eq(categoriesTable.slug, category))
         .limit(1);
 
       if (categoryRow.length > 0) {
-        const matchingArtistIds = await db
-          .select({ artistId: artistCategories.artistId })
-          .from(artistCategories)
-          .where(eq(artistCategories.categoryId, categoryRow[0].id));
-
-        total = matchingArtistIds.length;
-
-        if (matchingArtistIds.length > 0) {
-          const ids = matchingArtistIds.map((r) => r.artistId);
-          const catFilters = [inArray(artists.id, ids), ...baseFilters];
-          rows = await db
-            .select()
-            .from(artists)
-            .where(and(...catFilters))
-            .orderBy(orderBy)
-            .limit(pageSize)
-            .offset(offset);
-        }
+        const catFilter = and(
+          eq(profiles.role, "artist"),
+          ...baseFilters,
+          sql`${profiles.categories} @> ARRAY[${category}]::text[]`,
+        );
+        const matched = await db
+          .select(selectFields)
+          .from(profiles)
+          .innerJoin(users, eq(users.id, profiles.userId))
+          .where(catFilter);
+        total = matched.length;
+        rows = matched.slice(offset, offset + pageSize);
       }
     } else {
-      let query = db.select().from(artists);
-      let countQuery = db.select({ count: count() }).from(artists);
-
-      if (baseFilters.length > 0) {
-        const where = and(...baseFilters);
-        query.where(where);
-        countQuery.where(where);
-      }
-
-      const [totalResult] = await countQuery;
+      const where = and(eq(profiles.role, "artist"), ...baseFilters);
+      const [totalResult] = await db
+        .select({ count: count() })
+        .from(profiles)
+        .innerJoin(users, eq(users.id, profiles.userId))
+        .where(where);
       total = totalResult?.count ?? 0;
 
-      rows = await query.orderBy(orderBy).limit(pageSize).offset(offset);
+      rows = await baseQuery
+        .where(where)
+        .orderBy(orderBy)
+        .limit(pageSize)
+        .offset(offset);
     }
 
     return NextResponse.json({

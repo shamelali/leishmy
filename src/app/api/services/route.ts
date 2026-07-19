@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const rows = await db
       .select()
       .from(services)
-      .where(artistId ? eq(services.artistId, Number(artistId)) : eq(services.studioId, Number(studioId)));
+      .where(artistId ? eq(services.artistId, artistId) : eq(services.studioId, studioId!));
 
     return NextResponse.json({ services: rows });
   } catch (error) {
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         duration: duration || null,
         price,
-        artistId: artistId ? Number(artistId) : null,
-        studioId: studioId ? Number(studioId) : null,
+        artistId: artistId ? String(artistId) : null,
+        studioId: studioId ? String(studioId) : null,
         popular: popular || false,
       })
       .returning();

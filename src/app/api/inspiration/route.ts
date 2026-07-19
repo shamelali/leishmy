@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           boardId: Number(boardId),
           userId,
           imageUrl,
-          sourceArtistId: sourceArtistId ? Number(sourceArtistId) : null,
+          sourceArtistId: sourceArtistId ? String(sourceArtistId) : null,
           sourceType: sourceType || "user_upload",
           caption: caption || null,
           tags: tags || [],

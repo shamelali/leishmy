@@ -26,12 +26,68 @@ export const users = pgTable(
     location: text("location"),
     avatar: text("avatar"),
     bio: text("bio"),
-    specialties: jsonb("specialties").$type<string[]>().default([]),
     role: text("role").default("customer"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("user_email_idx").on(table.email)],
+);
+
+// One profile row per user. Collapses the old `artists` and `studios`
+// tables into a single person record keyed by `user.id`, so a person can
+// be created/edited/deleted in exactly one place.
+export const profileRoleValues = ["customer", "artist", "studio", "admin"] as const;
+export type ProfileRole = (typeof profileRoleValues)[number];
+
+export const profiles = pgTable(
+  "profiles",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").default("customer").notNull(),
+    status: varchar("status", { length: 32 }).default("draft").notNull(),
+    verified: boolean("verified").default(false),
+    available: boolean("available").default(true),
+    slug: varchar("slug", { length: 255 }),
+    bio: text("bio"),
+    description: text("description"),
+    portfolio: text("portfolio").array(),
+    categories: text("categories").array(),
+    specialties: jsonb("specialties").$type<string[]>().default([]),
+    languages: text("languages").array(),
+    certifications: text("certifications"),
+    availability: text("availability"),
+    instagramUrl: varchar("instagram_url", { length: 500 }),
+    tiktokUrl: varchar("tiktok_url", { length: 500 }),
+    willingToTravel: boolean("willing_to_travel").default(false),
+    travelCoverage: varchar("travel_coverage", { length: 50 }),
+    operatingDays: jsonb("operating_days").$type<string[]>().default([]),
+    experience: integer("experience").default(0),
+    responseTime: varchar("response_time", { length: 50 }),
+    price: decimal("price", { precision: 10, scale: 2 }).default("0"),
+    rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
+    reviewCount: integer("review_count").default(0),
+    area: varchar("area", { length: 100 }),
+    district: varchar("district", { length: 100 }),
+    featured: boolean("featured").default(false),
+    bankName: varchar("bank_name", { length: 255 }),
+    accountNumber: varchar("account_number", { length: 100 }),
+    accountHolder: varchar("account_holder", { length: 255 }),
+    onboardingStep: integer("onboarding_step").default(0).notNull(),
+    rejectionReason: text("rejection_reason"),
+    studioId: text("studio_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("profiles_slug_idx").on(table.slug),
+    index("profiles_role_idx").on(table.role),
+    index("profiles_status_idx").on(table.status),
+    index("profiles_user_id_idx").on(table.userId),
+  ],
 );
 
 export const accounts = pgTable(
@@ -89,116 +145,16 @@ export const categories = pgTable(
   (table) => [uniqueIndex("categories_slug_idx").on(table.slug)],
 );
 
-export const artistStatusValues = [
-  "draft",
-  "pending_verification",
-  "verified",
-  "rejected",
-  "suspended",
-] as const;
-export type ArtistStatus = (typeof artistStatusValues)[number];
-
-export const artists = pgTable(
-  "artists",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 255 }).notNull(),
-    slug: varchar("slug", { length: 255 }).unique(),
-    email: varchar("email", { length: 255 }),
-    image: text("image"),
-    phone: varchar("phone", { length: 50 }),
-    location: varchar("location", { length: 255 }),
-    area: varchar("area", { length: 100 }),
-    district: varchar("district", { length: 100 }),
-    rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
-    reviewCount: integer("review_count").default(0),
-    bio: text("bio"),
-    portfolio: text("portfolio").array(),
-    available: boolean("available").default(true),
-    verified: boolean("verified").default(false),
-    experience: integer("experience").default(0),
-    languages: text("languages").array(),
-    responseTime: varchar("response_time", { length: 50 }),
-    price: decimal("price", { precision: 10, scale: 2 }).default("0"),
-    specialties: jsonb("specialties").$type<string[]>().default([]),
-    instagramUrl: varchar("instagram_url", { length: 500 }),
-    tiktokUrl: varchar("tiktok_url", { length: 500 }),
-    willingToTravel: boolean("willing_to_travel").default(false),
-    travelCoverage: varchar("travel_coverage", { length: 50 }),
-    operatingDays: jsonb("operating_days").$type<string[]>().default([]),
-    certifications: text("certifications"),
-    availability: text("availability"),
-    onboardingStep: integer("onboarding_step").default(0).notNull(),
-    status: varchar("status", { length: 32 }).default("draft").notNull(),
-    rejectionReason: text("rejection_reason"),
-    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-    studioId: integer("studio_id").references(() => studios.id, {
-      onDelete: "set null",
-    }),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
-  },
-  (table) => [
-    index("artists_status_idx").on(table.status),
-    index("artists_user_id_idx").on(table.userId),
-  ],
-);
-
-export const artistCategories = pgTable(
-  "artist_categories",
-  {
-    artistId: integer("artist_id")
-      .notNull()
-      .references(() => artists.id, { onDelete: "cascade" }),
-    categoryId: integer("category_id")
-      .notNull()
-      .references(() => categories.id, { onDelete: "cascade" }),
-  },
-  (table) => [primaryKey({ columns: [table.artistId, table.categoryId] })],
-);
-
-export const studios = pgTable("studios", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }),
-  email: varchar("email", { length: 255 }),
-  image: text("image"),
-  phone: varchar("phone", { length: 50 }),
-  location: varchar("location", { length: 255 }),
-  area: varchar("area", { length: 100 }),
-  rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
-  reviewCount: integer("review_count").default(0),
-  description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).default("0"),
-  featured: boolean("featured").default(false),
-  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
-});
-
-export const studioCategories = pgTable(
-  "studio_categories",
-  {
-    studioId: integer("studio_id")
-      .notNull()
-      .references(() => studios.id, { onDelete: "cascade" }),
-    categoryId: integer("category_id")
-      .notNull()
-      .references(() => categories.id, { onDelete: "cascade" }),
-  },
-  (table) => [primaryKey({ columns: [table.studioId, table.categoryId] })],
-);
-
 export const services = pgTable("services", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   duration: varchar("duration", { length: 50 }),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  artistId: integer("artist_id").references(() => artists.id, {
+  artistId: text("artist_id").references(() => users.id, {
     onDelete: "cascade",
   }),
-  studioId: integer("studio_id").references(() => studios.id, {
+  studioId: text("studio_id").references(() => users.id, {
     onDelete: "cascade",
   }),
   popular: boolean("popular").default(false),
@@ -213,10 +169,10 @@ export const reviews = pgTable("reviews", {
   authorAvatar: text("author_avatar"),
   service: varchar("service", { length: 255 }),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  artistId: integer("artist_id").references(() => artists.id, {
+  artistId: text("artist_id").references(() => users.id, {
     onDelete: "cascade",
   }),
-  studioId: integer("studio_id").references(() => studios.id, {
+  studioId: text("studio_id").references(() => users.id, {
     onDelete: "cascade",
   }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -227,10 +183,10 @@ export const bookings = pgTable("bookings", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  artistId: integer("artist_id").references(() => artists.id, {
+  artistId: text("artist_id").references(() => users.id, {
     onDelete: "set null",
   }),
-  studioId: integer("studio_id").references(() => studios.id, {
+  studioId: text("studio_id").references(() => users.id, {
     onDelete: "set null",
   }),
   serviceId: integer("service_id").references(() => services.id, {
@@ -254,9 +210,9 @@ export const favorites = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    artistId: integer("artist_id")
+    artistId: text("artist_id")
       .notNull()
-      .references(() => artists.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   },
   (table) => [
@@ -296,17 +252,6 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });
 
-export const muaBankAccounts = pgTable("mua_bank_accounts", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  bankName: varchar("bank_name", { length: 255 }).notNull(),
-  accountNumber: varchar("account_number", { length: 100 }).notNull(),
-  accountHolder: varchar("account_holder", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-});
-
 export const payouts = pgTable("payouts", {
   id: serial("id").primaryKey(),
   userId: text("user_id")
@@ -314,10 +259,6 @@ export const payouts = pgTable("payouts", {
     .references(() => users.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
   status: varchar("status", { length: 50 }).default("pending"),
-  bankAccountId: integer("bank_account_id").references(
-    () => muaBankAccounts.id,
-    { onDelete: "set null" },
-  ),
   paymentId: integer("payment_id").references(() => payments.id, {
     onDelete: "set null",
   }),
@@ -329,10 +270,10 @@ export const availabilitySlots = pgTable(
   "availability_slots",
   {
     id: serial("id").primaryKey(),
-    artistId: integer("artist_id").references(() => artists.id, {
+    artistId: text("artist_id").references(() => users.id, {
       onDelete: "cascade",
     }),
-    studioId: integer("studio_id").references(() => studios.id, {
+    studioId: text("studio_id").references(() => users.id, {
       onDelete: "cascade",
     }),
     date: timestamp("date", { mode: "date" }).notNull(),
@@ -390,9 +331,9 @@ export const inquiries = pgTable(
   "inquiries",
   {
     id: serial("id").primaryKey(),
-    artistId: integer("artist_id")
+    artistId: text("artist_id")
       .notNull()
-      .references(() => artists.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     email: varchar("email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
@@ -409,9 +350,9 @@ export const inquiries = pgTable(
 
 export const studioInventory = pgTable("studio_inventory", {
   id: serial("id").primaryKey(),
-  studioId: integer("studio_id")
+  studioId: text("studio_id")
     .notNull()
-    .references(() => studios.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   category: varchar("category", { length: 100 }),
   quantity: integer("quantity").default(0),
@@ -509,7 +450,7 @@ export const savedInspiration = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     imageUrl: text("image_url").notNull(),
-    sourceArtistId: integer("source_artist_id").references(() => artists.id, {
+    sourceArtistId: text("source_artist_id").references(() => users.id, {
       onDelete: "set null",
     }),
     sourceType: varchar("source_type", { length: 50 }).default("user_upload"),
@@ -668,7 +609,9 @@ export const referrals = pgTable(
   {
     id: serial("id").primaryKey(),
     referrerType: varchar("referrer_type", { length: 50 }).notNull(),
-    referrerId: integer("referrer_id").notNull(),
+    referrerUserId: text("referrer_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     referredUserId: text("referred_user_id").references(() => users.id, { onDelete: "set null" }),
     referredEmail: text("referred_email"),
     status: varchar("status", { length: 50 }).notNull().default("clicked"),
@@ -680,7 +623,7 @@ export const referrals = pgTable(
     rewardedAt: timestamp("rewarded_at", { mode: "date" }),
   },
   (table) => [
-    index("referrals_referrer_idx").on(table.referrerType, table.referrerId),
+    index("referrals_referrer_idx").on(table.referrerType, table.referrerUserId),
     index("referrals_status_idx").on(table.status),
     index("referrals_referred_user_idx").on(table.referredUserId),
   ],

@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { submitProfile, type ActionResult } from "../actions";
-import type { ArtistStatus } from "@/db/schema";
 import { FormError } from "./FormBits";
 
 interface StepReviewProps {
@@ -20,7 +19,7 @@ interface StepReviewProps {
     serviceCount: number;
   };
   prevHref: string;
-  status: ArtistStatus;
+  status: string;
 }
 
 export function StepReview({ summary, prevHref, status }: StepReviewProps) {

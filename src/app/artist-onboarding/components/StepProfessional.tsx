@@ -13,8 +13,8 @@ interface StepProfessionalProps {
   initial: StepProfessionalData;
   nextHref: string;
   prevHref: string;
-  categories: { id: number; name: string; icon: string | null }[];
-  selectedCategoryIds: number[];
+  categories: { id: number; name: string; slug: string; icon: string | null }[];
+  selectedCategoryIds: string[];
 }
 
 const LANGUAGES = [
@@ -214,12 +214,12 @@ export function StepProfessional({
         </legend>
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => {
-            const active = (form.categoryIds ?? []).includes(c.id);
+            const active = (form.categoryIds ?? []).includes(c.slug);
             return (
               <button
                 type="button"
-                key={c.id}
-                onClick={() => toggleArrayItem("categoryIds", c.id)}
+                key={c.slug}
+                onClick={() => toggleArrayItem("categoryIds", c.slug)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                   active
                     ? "bg-rose-500 text-white border-rose-500"

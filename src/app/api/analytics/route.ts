@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { artists, bookings, payments, reviews } from "@/db/schema";
+import { profiles, bookings, payments, reviews } from "@/db/schema";
 import { eq, and, count, sum, avg, gte, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const id = Number(artistId);
+    const id = artistId;
 
     if (session.role !== "admin") {
       const [artist] = await db
-        .select({ userId: artists.userId })
-        .from(artists)
-        .where(eq(artists.id, id))
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(and(eq(profiles.userId, id), eq(profiles.role, "artist")))
         .limit(1);
       if (!artist || artist.userId !== session.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });

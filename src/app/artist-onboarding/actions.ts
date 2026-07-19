@@ -5,10 +5,9 @@ import { redirect } from "next/navigation";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  artistCategories,
-  artists,
+  profiles,
+  users,
   services,
-  type ArtistStatus,
 } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { limit } from "@/lib/rate-limit";
@@ -53,30 +52,107 @@ async function requireUser() {
   return session;
 }
 
-async function getOrCreateArtist(userId: string) {
-  const [existing] = await db
-    .select()
-    .from(artists)
-    .where(eq(artists.userId, userId))
-    .limit(1);
-  if (existing) return existing;
+type ArtistRow = {
+  userId: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  image: string | null;
+  location: string | null;
+  slug: string | null;
+  bio: string | null;
+  experience: number | null;
+  languages: string[] | null;
+  specialties: any | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
+  willingToTravel: boolean | null;
+  travelCoverage: string | null;
+  operatingDays: any | null;
+  responseTime: string | null;
+  portfolio: string[] | null;
+  price: string | null;
+  onboardingStep: number | null;
+  status: string | null;
+  rejectionReason: string | null;
+};
 
-  const tempName = `Draft-${userId.slice(0, 8)}`;
-  const [created] = await db
-    .insert(artists)
+async function getOrCreateArtist(userId: string): Promise<ArtistRow> {
+  const [existing] = await db
+    .select({
+      userId: profiles.userId,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      image: users.image,
+      location: users.location,
+      slug: profiles.slug,
+      bio: profiles.bio,
+      experience: profiles.experience,
+      languages: profiles.languages,
+      specialties: profiles.specialties,
+      instagramUrl: profiles.instagramUrl,
+      tiktokUrl: profiles.tiktokUrl,
+      willingToTravel: profiles.willingToTravel,
+      travelCoverage: profiles.travelCoverage,
+      operatingDays: profiles.operatingDays,
+      responseTime: profiles.responseTime,
+      portfolio: profiles.portfolio,
+      price: profiles.price,
+      onboardingStep: profiles.onboardingStep,
+      status: profiles.status,
+      rejectionReason: profiles.rejectionReason,
+    })
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
+    .limit(1);
+
+  if (existing) return existing as ArtistRow;
+
+  await db
+    .insert(profiles)
     .values({
-      name: tempName,
-      slug: null,
       userId,
+      role: "artist",
       status: "draft",
       onboardingStep: 0,
+    });
+
+  const [created] = await db
+    .select({
+      userId: profiles.userId,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      image: users.image,
+      location: users.location,
+      slug: profiles.slug,
+      bio: profiles.bio,
+      experience: profiles.experience,
+      languages: profiles.languages,
+      specialties: profiles.specialties,
+      instagramUrl: profiles.instagramUrl,
+      tiktokUrl: profiles.tiktokUrl,
+      willingToTravel: profiles.willingToTravel,
+      travelCoverage: profiles.travelCoverage,
+      operatingDays: profiles.operatingDays,
+      responseTime: profiles.responseTime,
+      portfolio: profiles.portfolio,
+      price: profiles.price,
+      onboardingStep: profiles.onboardingStep,
+      status: profiles.status,
+      rejectionReason: profiles.rejectionReason,
     })
-    .returning();
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(eq(profiles.userId, userId))
+    .limit(1);
 
   if (!created) {
     throw new Error("Failed to initialize artist profile");
   }
-  return created;
+  return created as ArtistRow;
 }
 
 function assertOwnership(artist: { userId: string | null }, userId: string) {
@@ -90,9 +166,9 @@ async function generateUniqueSlug(name: string): Promise<string> {
   for (let attempt = 0; attempt < 25; attempt += 1) {
     const candidate = attempt === 0 ? base : withSuffix(base, attempt);
     const [taken] = await db
-      .select({ id: artists.id })
-      .from(artists)
-      .where(eq(artists.slug, candidate))
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(eq(profiles.slug, candidate))
       .limit(1);
     if (!taken) return candidate;
   }
@@ -120,29 +196,34 @@ export async function saveStepBasics(input: unknown): Promise<ActionResult<{ id:
   assertOwnership(current, session.id);
 
   let slug = current.slug;
-  if (!slug || current.name.startsWith("Draft-")) {
+  if (!slug || (current.name ?? "").startsWith("Draft-")) {
     slug = await generateUniqueSlug(data.name);
   }
 
-  const [updated] = await db
-    .update(artists)
+  await db
+    .update(users)
     .set({
       name: data.name,
-      slug,
       email: data.email,
       phone: data.phone || null,
       image: data.image || null,
       location: data.location,
+    })
+    .where(eq(users.id, session.id));
+
+  await db
+    .update(profiles)
+    .set({
+      slug,
       area: data.area || null,
       district: data.district || null,
       onboardingStep: Math.max(current.onboardingStep ?? 0, 1),
       updatedAt: new Date(),
     })
-    .where(eq(artists.id, current.id))
-    .returning({ id: artists.id, onboardingStep: artists.onboardingStep });
+    .where(eq(profiles.userId, session.id));
 
   revalidatePath("/artist-onboarding/create");
-  return { ok: true, data: { id: updated.id, step: updated.onboardingStep ?? 1 } };
+  return { ok: true, data: { id: 0, step: 1 } };
 }
 
 export async function saveStepProfessional(input: unknown): Promise<ActionResult<{ step: number }>> {
@@ -170,7 +251,7 @@ export async function saveStepProfessional(input: unknown): Promise<ActionResult
   }
 
   await db
-    .update(artists)
+    .update(profiles)
     .set({
       bio: data.bio,
       experience: data.experience,
@@ -182,22 +263,11 @@ export async function saveStepProfessional(input: unknown): Promise<ActionResult
       travelCoverage: data.willingToTravel ? data.travelCoverage || null : null,
       operatingDays: data.operatingDays,
       responseTime: data.responseTime || null,
+      categories: data.categoryIds as string[],
       onboardingStep: Math.max(current.onboardingStep ?? 0, 2),
       updatedAt: new Date(),
     })
-    .where(eq(artists.id, current.id));
-
-  await db
-    .delete(artistCategories)
-    .where(eq(artistCategories.artistId, current.id));
-  if (data.categoryIds.length > 0) {
-    await db.insert(artistCategories).values(
-      data.categoryIds.map((categoryId) => ({
-        artistId: current.id,
-        categoryId,
-      })),
-    );
-  }
+    .where(eq(profiles.userId, session.id));
 
   revalidatePath("/artist-onboarding/create");
   return { ok: true, data: { step: 2 } };
@@ -242,13 +312,13 @@ export async function saveStepPortfolio(input: unknown): Promise<ActionResult<{ 
   }
 
   await db
-    .update(artists)
+    .update(profiles)
     .set({
       portfolio: urls,
       onboardingStep: Math.max(current.onboardingStep ?? 0, 3),
       updatedAt: new Date(),
     })
-    .where(eq(artists.id, current.id));
+    .where(eq(profiles.userId, session.id));
 
   if (removedPublicIds.length > 0) {
     void deleteAssets(removedPublicIds).catch((err) => {
@@ -293,11 +363,11 @@ export async function saveStepServices(input: unknown): Promise<ActionResult<{ s
   }
 
   await db.transaction(async (tx) => {
-    await tx.delete(services).where(eq(services.artistId, current.id));
+    await tx.delete(services).where(eq(services.artistId, session.id));
     if (parsed.data.services.length > 0) {
       await tx.insert(services).values(
         parsed.data.services.map((s) => ({
-          artistId: current.id,
+          artistId: session.id,
           name: s.name,
           description: s.description || null,
           duration: s.duration || null,
@@ -307,20 +377,20 @@ export async function saveStepServices(input: unknown): Promise<ActionResult<{ s
       );
     }
     await tx
-      .update(artists)
+      .update(profiles)
       .set({
         price: String(parsed.data.price),
         onboardingStep: Math.max(current.onboardingStep ?? 0, 4),
         updatedAt: new Date(),
       })
-      .where(eq(artists.id, current.id));
+      .where(eq(profiles.userId, session.id));
   });
 
   revalidatePath("/artist-onboarding/create");
   return { ok: true, data: { step: 4, count: parsed.data.services.length } };
 }
 
-export async function submitProfile(input: unknown): Promise<ActionResult<{ status: ArtistStatus; slug: string | null }>> {
+export async function submitProfile(input: unknown): Promise<ActionResult<{ status: string; slug: string | null }>> {
   const session = await requireUser();
   const rl = await limit(`onboarding:submit:${session.id}`);
   if (!rl.success) {
@@ -337,10 +407,18 @@ export async function submitProfile(input: unknown): Promise<ActionResult<{ stat
   }
 
   const [current] = await db
-    .select()
-    .from(artists)
-    .where(eq(artists.userId, session.id))
+    .select({
+      userId: profiles.userId,
+      name: users.name,
+      slug: profiles.slug,
+      portfolio: profiles.portfolio,
+      onboardingStep: profiles.onboardingStep,
+    })
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(and(eq(profiles.userId, session.id), eq(profiles.role, "artist")))
     .limit(1);
+
   if (!current) {
     return { ok: false, error: "No profile found. Please complete the previous steps." };
   }
@@ -350,38 +428,34 @@ export async function submitProfile(input: unknown): Promise<ActionResult<{ stat
     return { ok: false, error: "Please complete all steps before submitting." };
   }
 
-  const [portfolioCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(artists)
-    .where(and(eq(artists.id, current.id), sql`cardinality(${artists.portfolio}) > 0`));
-  if (!portfolioCount?.count) {
+  if (!current.portfolio || current.portfolio.length === 0) {
     return { ok: false, error: "Add at least one portfolio image." };
   }
 
   const [servicesCount] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(services)
-    .where(eq(services.artistId, current.id));
+    .where(eq(services.artistId, session.id));
   if (!servicesCount?.count) {
     return { ok: false, error: "Add at least one service." };
   }
 
   const [updated] = await db
-    .update(artists)
+    .update(profiles)
     .set({
       status: "pending_verification",
       onboardingStep: 5,
       rejectionReason: null,
       updatedAt: new Date(),
     })
-    .where(eq(artists.id, current.id))
-    .returning({ status: artists.status, slug: artists.slug });
+    .where(eq(profiles.userId, session.id))
+    .returning({ status: profiles.status, slug: profiles.slug });
 
   revalidatePath("/artist-onboarding/create");
   revalidatePath("/dashboard/artist");
   return {
     ok: true,
-    data: { status: updated.status as ArtistStatus, slug: updated.slug },
+    data: { status: updated.status ?? "pending_verification", slug: updated.slug },
   };
 }
 
@@ -389,13 +463,40 @@ export async function getArtistProfileForEdit() {
   const session = await getAuthSession();
   if (!session) return null;
   const [row] = await db
-    .select()
-    .from(artists)
-    .where(eq(artists.userId, session.id))
+    .select({
+      userId: profiles.userId,
+      name: users.name,
+      slug: profiles.slug,
+      email: users.email,
+      phone: users.phone,
+      image: users.image,
+      location: users.location,
+      area: profiles.area,
+      district: profiles.district,
+      bio: profiles.bio,
+      experience: profiles.experience,
+      languages: profiles.languages,
+      specialties: profiles.specialties,
+      instagramUrl: profiles.instagramUrl,
+      tiktokUrl: profiles.tiktokUrl,
+      willingToTravel: profiles.willingToTravel,
+      travelCoverage: profiles.travelCoverage,
+      operatingDays: profiles.operatingDays,
+      responseTime: profiles.responseTime,
+      portfolio: profiles.portfolio,
+      price: profiles.price,
+      onboardingStep: profiles.onboardingStep,
+      status: profiles.status,
+      rejectionReason: profiles.rejectionReason,
+      categories: profiles.categories,
+    })
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(and(eq(profiles.userId, session.id), eq(profiles.role, "artist")))
     .limit(1);
   if (!row) return null;
   return {
-    id: row.id,
+    id: row.userId,
     name: row.name,
     slug: row.slug,
     email: row.email,
@@ -408,6 +509,7 @@ export async function getArtistProfileForEdit() {
     experience: row.experience ?? 0,
     languages: row.languages ?? [],
     specialties: (row.specialties as string[] | null) ?? [],
+    categories: (row.categories as string[] | null) ?? [],
     instagramUrl: row.instagramUrl,
     tiktokUrl: row.tiktokUrl,
     willingToTravel: row.willingToTravel ?? false,
@@ -417,7 +519,7 @@ export async function getArtistProfileForEdit() {
     portfolio: row.portfolio ?? [],
     price: row.price ? Number(row.price) : 0,
     onboardingStep: row.onboardingStep ?? 0,
-    status: row.status as ArtistStatus,
+    status: row.status ?? "draft",
     rejectionReason: row.rejectionReason,
   };
 }

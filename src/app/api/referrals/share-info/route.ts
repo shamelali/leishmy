@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { artists, studios, referrals } from "@/db/schema";
+import { profiles, users, referrals } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { eq, and, sql, desc } from "drizzle-orm";
 
@@ -20,36 +20,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "role must be 'artist' or 'studio'" }, { status: 400 });
     }
 
-    let profile: { id: number; slug: string | null; name: string };
+    let profile: { userId: string; slug: string | null; name: string | null };
 
-    if (role === "artist") {
-      const [artist] = await db
-        .select({ id: artists.id, slug: artists.slug, name: artists.name })
-        .from(artists)
-        .where(eq(artists.userId, session.id))
-        .limit(1);
-      if (!artist || !artist.slug) {
-        return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
-      }
-      profile = artist;
-    } else {
-      const [studio] = await db
-        .select({ id: studios.id, slug: studios.slug, name: studios.name })
-        .from(studios)
-        .where(eq(studios.userId, session.id))
-        .limit(1);
-      if (!studio || !studio.slug) {
-        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
-      }
-      profile = studio;
+    const [p] = await db
+      .select({ userId: profiles.userId, slug: profiles.slug, name: users.name })
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId))
+      .where(and(eq(profiles.userId, session.id), eq(profiles.role, role)))
+      .limit(1);
+
+    if (!p || !p.slug) {
+      return NextResponse.json({ error: `${role} profile not found` }, { status: 404 });
     }
+    profile = p;
 
     const shareLink = `${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/r/${profile.slug}`;
 
     const [clickResult] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, role), eq(referrals.referrerId, profile.id)))
+      .where(and(eq(referrals.referrerType, role), eq(referrals.referrerUserId, profile.userId)))
       .then((r) => [{ count: Number(r[0]?.count || 0) }]);
 
     const [rewardResult] = await db
@@ -61,7 +51,7 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(referrals.referrerType, role),
-          eq(referrals.referrerId, profile.id),
+          eq(referrals.referrerUserId, profile.userId),
           eq(referrals.status, "rewarded"),
         ),
       )
@@ -78,7 +68,7 @@ export async function GET(request: NextRequest) {
         rewardedAt: referrals.rewardedAt,
       })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, role), eq(referrals.referrerId, profile.id)))
+      .where(and(eq(referrals.referrerType, role), eq(referrals.referrerUserId, profile.userId)))
       .orderBy(desc(referrals.clickedAt))
       .limit(10);
 

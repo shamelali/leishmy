@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Star, MapPin, Users, ArrowLeft, Wifi, Car, Crown, Coffee } from "lucide-react";
 import { db } from "@/db";
-import { studios } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { profiles, users } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
 import ShareButtons from "@/components/ShareButtons";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
@@ -22,13 +24,30 @@ const amenityIcons: Record<string, typeof Wifi> = {
 
 async function findStudio(slug: string) {
   try {
-    const rows = await db.select().from(studios).where(eq(studios.slug, slug)).limit(1);
+    const studioUsers = alias(users, "studio_users");
+    const rows = await db
+      .select({
+        userId: profiles.userId,
+        name: studioUsers.name,
+        slug: profiles.slug,
+        image: studioUsers.image,
+        location: studioUsers.location,
+        rating: profiles.rating,
+        reviewCount: profiles.reviewCount,
+        price: profiles.price,
+        description: profiles.description,
+        featured: profiles.featured,
+      })
+      .from(profiles)
+      .innerJoin(studioUsers, eq(studioUsers.id, profiles.userId))
+      .where(and(eq(profiles.slug, slug), eq(profiles.role, "studio")))
+      .limit(1);
     if (rows.length > 0) {
       const s = rows[0];
       return {
-        id: String(s.id),
-        name: s.name,
-        slug: s.slug || String(s.id),
+        id: s.userId,
+        name: s.name || "",
+        slug: s.slug || s.userId,
         image: s.image || "/placeholder.svg",
         location: s.location || "",
         rating: Number(s.rating) || 0,

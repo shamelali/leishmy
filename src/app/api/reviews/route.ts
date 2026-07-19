@@ -69,12 +69,10 @@ export async function GET(request: NextRequest) {
     const query = db.select().from(reviews);
 
     if (artistId) {
-      const id = Number(artistId);
-      if (!isNaN(id)) query.where(eq(reviews.artistId, id));
+      query.where(eq(reviews.artistId, artistId));
     }
     if (studioId) {
-      const id = Number(studioId);
-      if (!isNaN(id)) query.where(eq(reviews.studioId, id));
+      query.where(eq(reviews.studioId, studioId));
     }
 
     const rows = await query;

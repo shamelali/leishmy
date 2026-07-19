@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, artists, studios } from "@/db/schema";
+import { bookings, users, profiles } from "@/db/schema";
 import { eq, and, gte, lt } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -23,9 +24,9 @@ export async function GET(request: NextRequest) {
     if (session.role !== "admin") {
       if (artistId) {
         const [artist] = await db
-          .select({ userId: artists.userId })
-          .from(artists)
-          .where(eq(artists.id, Number(artistId)))
+          .select({ userId: profiles.userId })
+          .from(profiles)
+          .where(and(eq(profiles.userId, artistId), eq(profiles.role, "artist")))
           .limit(1);
         if (!artist || artist.userId !== session.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -33,9 +34,9 @@ export async function GET(request: NextRequest) {
       }
       if (studioId) {
         const [studio] = await db
-          .select({ userId: studios.userId })
-          .from(studios)
-          .where(eq(studios.id, Number(studioId)))
+          .select({ userId: profiles.userId })
+          .from(profiles)
+          .where(and(eq(profiles.userId, studioId), eq(profiles.role, "studio")))
           .limit(1);
         if (!studio || studio.userId !== session.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -50,10 +51,12 @@ export async function GET(request: NextRequest) {
     const end = new Date(year, m, 1);
 
     const where = and(
-      studioId ? eq(bookings.studioId, Number(studioId)) : eq(bookings.artistId, Number(artistId)),
+      studioId ? eq(bookings.studioId, studioId) : eq(bookings.artistId, artistId!),
       gte(bookings.date, start),
       lt(bookings.date, end),
     );
+
+    const artistUsers = alias(users, "artist_users");
 
     const rows = await db
       .select({
@@ -65,11 +68,12 @@ export async function GET(request: NextRequest) {
         userId: bookings.userId,
         artistId: bookings.artistId,
         clientName: users.name,
-        artistName: artists.name,
+        artistName: artistUsers.name,
       })
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
-      .leftJoin(artists, eq(bookings.artistId, artists.id))
+      .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+      .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
       .where(where)
       .orderBy(bookings.date, bookings.time);
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { referrals, artists, studios } from "@/db/schema";
+import { referrals, profiles } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { eq, and, sql, desc } from "drizzle-orm";
 
@@ -17,79 +17,55 @@ export async function GET(request: NextRequest) {
     const referrerType = searchParams.get("referrerType") || "artist";
     const referrerId = searchParams.get("referrerId");
 
-    let resolvedReferrerId: number | null = null;
+    let resolvedReferrerUserId: string | null = null;
 
     if (referrerId) {
-      const idNum = Number(referrerId);
-      if (referrerType === "artist") {
-        const [artist] = await db
-          .select({ id: artists.id, userId: artists.userId })
-          .from(artists)
-          .where(eq(artists.id, idNum))
-          .limit(1);
-        if (!artist) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
-        if (session.role !== "admin" && artist.userId !== session.id) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-        resolvedReferrerId = artist.id;
-      } else {
-        const [studio] = await db
-          .select({ id: studios.id, userId: studios.userId })
-          .from(studios)
-          .where(eq(studios.id, idNum))
-          .limit(1);
-        if (!studio) return NextResponse.json({ error: "Studio not found" }, { status: 404 });
-        if (session.role !== "admin" && studio.userId !== session.id) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-        resolvedReferrerId = studio.id;
+      const [profile] = await db
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(and(eq(profiles.slug, String(referrerId)), eq(profiles.role, referrerType)))
+        .limit(1);
+      if (!profile) return NextResponse.json({ error: `${referrerType} not found` }, { status: 404 });
+      if (session.role !== "admin" && profile.userId !== session.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+      resolvedReferrerUserId = profile.userId;
     } else {
-      if (referrerType === "artist") {
-        const [artist] = await db
-          .select({ id: artists.id })
-          .from(artists)
-          .where(eq(artists.userId, session.id))
-          .limit(1);
-        if (!artist) return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
-        resolvedReferrerId = artist.id;
-      } else {
-        const [studio] = await db
-          .select({ id: studios.id })
-          .from(studios)
-          .where(eq(studios.userId, session.id))
-          .limit(1);
-        if (!studio) return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
-        resolvedReferrerId = studio.id;
-      }
+      const [profile] = await db
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(and(eq(profiles.userId, session.id), eq(profiles.role, referrerType)))
+        .limit(1);
+      if (!profile) return NextResponse.json({ error: `${referrerType} profile not found` }, { status: 404 });
+      resolvedReferrerUserId = profile.userId;
     }
 
-    if (!resolvedReferrerId) {
+    if (!resolvedReferrerUserId) {
       return NextResponse.json({ error: "Could not resolve referrer" }, { status: 400 });
     }
 
     const clicks = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerId, resolvedReferrerId)))
+      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerUserId, resolvedReferrerUserId)))
       .then((r) => Number(r[0]?.count || 0));
 
     const registrations = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerId, resolvedReferrerId), eq(referrals.status, "registered")))
+      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerUserId, resolvedReferrerUserId), eq(referrals.status, "registered")))
       .then((r) => Number(r[0]?.count || 0));
 
     const bookings = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerId, resolvedReferrerId), eq(referrals.status, "booked")))
+      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerUserId, resolvedReferrerUserId), eq(referrals.status, "booked")))
       .then((r) => Number(r[0]?.count || 0));
 
     const rewarded = await db
       .select({ count: sql<number>`count(*)::int`, points: sql<number>`coalesce(sum(points_awarded), 0)::int` })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerId, resolvedReferrerId), eq(referrals.status, "rewarded")))
+      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerUserId, resolvedReferrerUserId), eq(referrals.status, "rewarded")))
       .then((r) => ({ count: Number(r[0]?.count || 0), points: Number(r[0]?.points || 0) }));
 
     const recent = await db
@@ -103,7 +79,7 @@ export async function GET(request: NextRequest) {
         rewardedAt: referrals.rewardedAt,
       })
       .from(referrals)
-      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerId, resolvedReferrerId)))
+      .where(and(eq(referrals.referrerType, referrerType), eq(referrals.referrerUserId, resolvedReferrerUserId)))
       .orderBy(desc(referrals.clickedAt))
       .limit(20);
 

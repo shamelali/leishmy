@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { artistCategories, categories, services } from "@/db/schema";
+import { categories, services, profiles } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { limit } from "@/lib/rate-limit";
 
@@ -32,7 +32,7 @@ export type ArtistServiceRow = {
   popular: boolean;
 };
 
-export async function listArtistServices(artistId: number): Promise<ArtistServiceRow[]> {
+export async function listArtistServices(artistId: string): Promise<ArtistServiceRow[]> {
   const session = await getAuthSession();
   if (!session) return [];
   const rl = await limit(`onboarding:read:${session.id}`);
@@ -51,12 +51,13 @@ export async function listArtistServices(artistId: number): Promise<ArtistServic
   }));
 }
 
-export async function listSelectedCategoryIds(artistId: number): Promise<number[]> {
+export async function listSelectedCategoryIds(artistId: string): Promise<string[]> {
   const session = await getAuthSession();
   if (!session) return [];
-  const rows = await db
-    .select({ id: artistCategories.categoryId })
-    .from(artistCategories)
-    .where(eq(artistCategories.artistId, artistId));
-  return rows.map((r) => r.id);
+  const [row] = await db
+    .select({ categories: profiles.categories })
+    .from(profiles)
+    .where(eq(profiles.userId, artistId))
+    .limit(1);
+  return (row?.categories as string[] | null) ?? [];
 }

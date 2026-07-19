@@ -13,7 +13,6 @@ import { StepProfessional } from "../components/StepProfessional";
 import { StepPortfolio } from "../components/StepPortfolio";
 import { StepServices } from "../components/StepServices";
 import { StepReview } from "../components/StepReview";
-import type { ArtistStatus } from "@/db/schema";
 import { extractPublicId, isCloudinaryUrl } from "@/lib/cloudinary-client";
 
 export const dynamic = "force-dynamic";
@@ -72,11 +71,11 @@ export default async function WizardCreatePage({
     redirect(`/artist-onboarding/create?step=${furthestReached + 1}`);
   }
 
-  const status = profile.status as ArtistStatus;
+  const status = profile.status;
   const isReadOnly = status === "pending_verification" || status === "verified";
 
-  let categories: { id: number; name: string; icon: string | null }[] = [];
-  let selectedCategoryIds: number[] = [];
+  let categories: { id: number; name: string; slug: string; icon: string | null }[] = [];
+  let selectedCategoryIds: string[] = [];
   let artistServices: Awaited<ReturnType<typeof listArtistServices>> = [];
   let portfolioItems: { url: string; publicId: string; alt?: string }[] = [];
 
@@ -140,7 +139,7 @@ export default async function WizardCreatePage({
           <WizardStepper
             current={requested}
             furthestReached={furthestReached}
-            status={status}
+            status={status as "draft" | "verified" | "pending_verification" | "rejected" | "suspended"}
           />
         </div>
 
@@ -213,7 +212,7 @@ export default async function WizardCreatePage({
                 serviceCount: artistServices.length,
               }}
               prevHref={prevHref ?? ""}
-              status={status}
+              status={status as "draft" | "pending_verification" | "verified" | "rejected" | "suspended"}
             />
           )}
         </div>

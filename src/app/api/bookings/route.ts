@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, artists, studios, notifications, referrals } from "@/db/schema";
+import { bookings, users, profiles, notifications, referrals } from "@/db/schema";
 import { eq, and, count } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { getAuthSession } from "@/lib/auth/server";
 import { awardPoints } from "@/lib/loyalty";
@@ -65,13 +66,13 @@ async function ensureCustomer(
   return { id: newId, name: body.clientName || body.name || "Guest", email };
 }
 
-async function resolveAmount(body: any, artistId: number | null): Promise<string> {
+async function resolveAmount(body: any, artistId: string | null): Promise<string> {
   if (body.amount) return String(body.amount);
   if (artistId) {
     const [artist] = await db
-      .select({ price: artists.price })
-      .from(artists)
-      .where(eq(artists.id, artistId))
+      .select({ price: profiles.price })
+      .from(profiles)
+      .where(and(eq(profiles.userId, artistId), eq(profiles.role, "artist")))
       .limit(1);
     if (artist?.price) return String(artist.price);
   }
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { artistId, studioId, serviceId, date, time, status } = body;
-    const artistIdNum = artistId ? Number(artistId) : null;
+    const artistIdStr = artistId ? String(artistId) : null;
 
     const session = await getAuthSession();
     const customer = await ensureCustomer(body, session);
@@ -93,13 +94,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amount = await resolveAmount(body, artistIdNum);
+    const amount = await resolveAmount(body, artistIdStr);
 
     const [booking] = await db
       .insert(bookings)
       .values({
         userId: customer.id,
-        artistId: artistIdNum,
+        artistId: artistIdStr,
         studioId: studioId || null,
         serviceId: serviceId || null,
         service: body.service || null,
@@ -112,8 +113,12 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    const artist = artistIdNum
-      ? await db.select().from(artists).where(eq(artists.id, artistIdNum)).limit(1).then((r) => r[0])
+    const artist = artistIdStr
+      ? await db.select().from(profiles).where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist"))).limit(1).then((r) => r[0])
+      : undefined;
+
+    const providerUser = artist?.userId
+      ? await db.select().from(users).where(eq(users.id, artist.userId)).limit(1).then((r) => r[0])
       : undefined;
 
     const formattedDate = new Date(date).toLocaleDateString("en-MY", {
@@ -137,17 +142,17 @@ export async function POST(request: NextRequest) {
       customerName: customer.name || "Valued Customer",
       bookingId: String(booking.id),
       serviceName,
-      providerName: artist?.name || "Your Provider",
+      providerName: providerUser?.name || artist?.bio || "Your Provider",
       date: formattedDate,
       time: time || "To be confirmed",
       amount: Number(amount),
       paymentType: "full",
     }).catch((err) => console.error("sendBookingConfirmationEmail failed:", err));
 
-    if (artist?.email) {
+    if (providerUser?.email) {
       sendProviderNewBookingEmail({
-        email: artist.email,
-        providerName: artist.name,
+        email: providerUser.email,
+        providerName: providerUser.name || "Your Provider",
         customerName: customer.name || "A customer",
         bookingId: String(booking.id),
         serviceName,
@@ -161,72 +166,69 @@ export async function POST(request: NextRequest) {
       try {
         const ref = JSON.parse(refCookie.value);
         if (ref?.t === "artist" && ref?.id) {
-          const referrerIdNum = Number(ref.id);
-          if (referrerIdNum !== artist.id) {
-            const referrerOwnerId = await db
-              .select({ uid: artists.userId })
-              .from(artists)
-              .where(eq(artists.id, referrerIdNum))
-              .limit(1)
-              .then(r => r[0]?.uid);
+          const [referrer] = await db
+            .select({ userId: profiles.userId })
+            .from(profiles)
+            .where(and(eq(profiles.slug, String(ref.id)), eq(profiles.role, "artist")))
+            .limit(1);
+          const referrerOwnerId = referrer?.userId;
 
-            if (referrerOwnerId && referrerOwnerId !== customer.id) {
-              const [existingReferral] = await db
-                .select({ id: referrals.id, status: referrals.status })
-                .from(referrals)
-                .where(and(
-                  eq(referrals.referrerType, "artist"),
-                  eq(referrals.referrerId, referrerIdNum),
-                  eq(referrals.referredUserId, customer.id),
-                ))
-                .limit(1);
+          if (referrerOwnerId && referrerOwnerId !== customer.id) {
+            const [existingReferral] = await db
+              .select({ id: referrals.id, status: referrals.status })
+              .from(referrals)
+              .where(and(
+                eq(referrals.referrerType, "artist"),
+                eq(referrals.referrerUserId, referrerOwnerId),
+                eq(referrals.referredUserId, customer.id),
+              ))
+              .limit(1);
 
-              if (existingReferral && (existingReferral.status === "clicked" || existingReferral.status === "registered")) {
+            if (existingReferral && (existingReferral.status === "clicked" || existingReferral.status === "registered")) {
+              await db.update(referrals).set({
+                bookingId: booking.id,
+                status: "booked",
+                bookedAt: new Date(),
+              }).where(eq(referrals.id, existingReferral.id));
+            } else if (!existingReferral) {
+              await db.insert(referrals).values({
+                referrerType: "artist",
+                referrerUserId: referrerOwnerId,
+                referredUserId: customer.id,
+                referredEmail: customer.email,
+                bookingId: booking.id,
+                status: "booked",
+                bookedAt: new Date(),
+              });
+            }
+
+            if (existingReferral?.status !== "rewarded") {
+              const pointsAwarded = await awardPoints(
+                referrerOwnerId,
+                "referral",
+                String(booking.id),
+                `Referral booking #${booking.id}`,
+              );
+              if (pointsAwarded) {
                 await db.update(referrals).set({
-                  bookingId: booking.id,
-                  status: "booked",
-                  bookedAt: new Date(),
-                }).where(eq(referrals.id, existingReferral.id));
-              } else if (!existingReferral) {
-                await db.insert(referrals).values({
-                  referrerType: "artist",
-                  referrerId: referrerIdNum,
-                  referredUserId: customer.id,
-                  referredEmail: customer.email,
-                  bookingId: booking.id,
-                  status: "booked",
-                  bookedAt: new Date(),
-                });
-              }
-
-              if (existingReferral?.status !== "rewarded") {
-                const pointsAwarded = await awardPoints(
-                  referrerOwnerId,
-                  "referral",
-                  String(booking.id),
-                  `Referral booking #${booking.id}`,
+                  status: "rewarded",
+                  pointsAwarded,
+                  rewardedAt: new Date(),
+                }).where(
+                  and(
+                    eq(referrals.referrerType, "artist"),
+                    eq(referrals.referrerUserId, referrerOwnerId),
+                    eq(referrals.referredUserId, customer.id),
+                  ),
                 );
-                if (pointsAwarded) {
-                  await db.update(referrals).set({
-                    status: "rewarded",
-                    pointsAwarded,
-                    rewardedAt: new Date(),
-                  }).where(
-                    and(
-                      eq(referrals.referrerType, "artist"),
-                      eq(referrals.referrerId, referrerIdNum),
-                      eq(referrals.referredUserId, customer.id),
-                    ),
-                  );
 
-                  await db.insert(notifications).values({
-                    userId: referrerOwnerId,
-                    type: "loyalty",
-                    title: "🎉 Referral Reward!",
-                    body: `You earned ${pointsAwarded} loyalty points from a referral booking!`,
-                    data: { link: "/dashboard/artist/share", pointsAwarded: String(pointsAwarded) },
-                  }).catch(() => {});
-                }
+                await db.insert(notifications).values({
+                  userId: referrerOwnerId,
+                  type: "loyalty",
+                  title: "🎉 Referral Reward!",
+                  body: `You earned ${pointsAwarded} loyalty points from a referral booking!`,
+                  data: { link: "/dashboard/artist/share", pointsAwarded: String(pointsAwarded) },
+                }).catch(() => {});
               }
             }
           }
@@ -249,6 +251,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
+    const artistUsers = alias(users, "artist_users");
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -281,9 +284,10 @@ export async function GET(request: NextRequest) {
       let artistName = "";
       if (booking.artistId) {
         const [artist] = await db
-          .select()
-          .from(artists)
-          .where(eq(artists.id, booking.artistId))
+          .select({ name: users.name })
+          .from(profiles)
+          .innerJoin(users, eq(users.id, profiles.userId))
+          .where(and(eq(profiles.userId, booking.artistId), eq(profiles.role, "artist")))
           .limit(1);
         artistName = artist?.name || "";
       }
@@ -328,10 +332,11 @@ export async function GET(request: NextRequest) {
           status: bookings.status,
           createdAt: bookings.createdAt,
           updatedAt: bookings.updatedAt,
-          artistName: artists.name,
+          artistName: artistUsers.name,
         })
         .from(bookings)
-        .leftJoin(artists, eq(bookings.artistId, artists.id))
+        .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+        .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
         .where(eq(bookings.userId, userId))
         .limit(pageSize)
         .offset(offset);
@@ -378,9 +383,10 @@ export async function GET(request: NextRequest) {
         let artistName = "";
         if (b.artistId) {
           const [artist] = await db
-            .select({ name: artists.name })
-            .from(artists)
-            .where(eq(artists.id, b.artistId))
+            .select({ name: users.name })
+            .from(profiles)
+            .innerJoin(users, eq(users.id, profiles.userId))
+            .where(and(eq(profiles.userId, b.artistId), eq(profiles.role, "artist")))
             .limit(1);
           artistName = artist?.name || "";
         }

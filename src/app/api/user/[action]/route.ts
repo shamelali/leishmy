@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { db } from "@/db";
-import { users, favorites, notifications, bookings, artists, studios, categories, artistCategories, referrals } from "@/db/schema";
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import {
+  users,
+  profiles,
+  favorites,
+  notifications,
+  bookings,
+  categories,
+  referrals,
+} from "@/db/schema";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth/auth";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
@@ -10,6 +18,18 @@ import { revalidatePath } from "next/cache";
 
 const MAX_PORTFOLIO_ITEMS = 12;
 const MAX_URL_LENGTH = 500;
+
+// Map a user-friendly specialty label to a category slug so we can record
+// the artist's categories on their single `profiles` row.
+const specialtyToSlug: Record<string, string> = {
+  "Bridal Makeup": "bridal",
+  "Soft Glam": "event",
+  "Editorial / Photoshoot": "editorial",
+  "Hijab Styling": "hijab",
+  "Airbrush Makeup": "airbrush",
+  "SFX / Creative": "sfx",
+  Hairstyling: "hair",
+};
 
 export async function GET(
   request: NextRequest,
@@ -47,42 +67,36 @@ export async function GET(
     if (action === "bookings") {
       let rows;
 
-      const [artist] = await db
+      const [profile] = await db
         .select()
-        .from(artists)
-        .where(eq(artists.userId, userId))
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId)))
         .limit(1);
 
-      if (artist) {
+      if (profile && (profile.role === "artist" || profile.role === "studio")) {
         rows = await db
           .select()
           .from(bookings)
-          .where(eq(bookings.artistId, artist.id));
+          .where(
+            profile.role === "artist"
+              ? eq(bookings.artistId, userId)
+              : eq(bookings.studioId, userId),
+          );
       } else {
-        const [studio] = await db
+        rows = await db
           .select()
-          .from(studios)
-          .where(eq(studios.userId, userId))
-          .limit(1);
-
-        if (studio) {
-          rows = await db
-            .select()
-            .from(bookings)
-            .where(eq(bookings.studioId, studio.id));
-        } else {
-          rows = await db
-            .select()
-            .from(bookings)
-            .where(eq(bookings.userId, userId));
-        }
+          .from(bookings)
+          .where(eq(bookings.userId, userId));
       }
 
       const clientUserIds = (rows || []).map((b) => b.userId).filter(Boolean);
-      const clientRows = clientUserIds.length > 0
-        ? await db.select().from(users).where(inArray(users.id, clientUserIds))
-        : [];
-      const clientNameMap = new Map(clientRows.map((u) => [u.id, u.name || "Anonymous"]));
+      const clientRows =
+        clientUserIds.length > 0
+          ? await db.select().from(users).where(inArray(users.id, clientUserIds))
+          : [];
+      const clientNameMap = new Map(
+        clientRows.map((u) => [u.id, u.name || "Anonymous"]),
+      );
 
       const enrichedBookings = (rows || []).map((b) => ({
         ...b,
@@ -98,76 +112,82 @@ export async function GET(
     }
 
     if (action === "artist-profile") {
-      const [row] = await db
-        .select({
-          artist: artists,
-          userName: users.name,
-          userEmail: users.email,
-        })
-        .from(artists)
-        .leftJoin(users, eq(users.id, artists.userId))
-        .where(eq(artists.userId, userId))
+      const [profile] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
         .limit(1);
 
-      if (!row || !row.artist) {
+      if (!profile) {
         return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
       }
 
-      const artist = row.artist;
+      const [userRow] = await db
+        .select({ name: users.name, email: users.email, image: users.image, phone: users.phone, location: users.location })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
       return NextResponse.json({
         artist: {
-          id: String(artist.id),
-          name: row.userName || artist.name,
-          email: row.userEmail || artist.email || "",
-          slug: artist.slug,
-          image: artist.image || "",
-          phone: artist.phone || "",
-          location: artist.location || "",
-          area: artist.area || "",
-          district: artist.district || "",
-          bio: artist.bio || "",
-          experience: artist.experience || 0,
-          languages: artist.languages || [],
-          specialties: (artist.specialties as string[] | null) || [],
-          responseTime: artist.responseTime || "",
-          price: Number(artist.price) || 0,
-          portfolio: artist.portfolio || [],
-          verified: artist.verified || false,
-          available: artist.available ?? true,
-          instagramUrl: artist.instagramUrl || "",
-          tiktokUrl: artist.tiktokUrl || "",
-          certifications: artist.certifications || "",
-          availability: artist.availability || "",
+          id: profile.userId,
+          name: userRow?.name || "",
+          email: userRow?.email || "",
+          slug: profile.slug || "",
+          image: userRow?.image || "",
+          phone: userRow?.phone || "",
+          location: userRow?.location || "",
+          area: profile.area || "",
+          district: profile.district || "",
+          bio: profile.bio || "",
+          experience: profile.experience || 0,
+          languages: profile.languages || [],
+          specialties: (profile.specialties as string[] | null) || [],
+          categories: profile.categories || [],
+          responseTime: profile.responseTime || "",
+          price: Number(profile.price) || 0,
+          portfolio: profile.portfolio || [],
+          verified: profile.verified || false,
+          available: profile.available ?? true,
+          instagramUrl: profile.instagramUrl || "",
+          tiktokUrl: profile.tiktokUrl || "",
+          certifications: profile.certifications || "",
+          availability: profile.availability || "",
         },
       });
     }
 
     if (action === "studio-profile") {
-      const [studio] = await db
+      const [profile] = await db
         .select()
-        .from(studios)
-        .where(eq(studios.userId, userId))
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "studio")))
         .limit(1);
 
-      if (!studio) {
+      if (!profile) {
         return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
       }
 
+      const [userRow] = await db
+        .select({ name: users.name, email: users.email, image: users.image, phone: users.phone, location: users.location })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
       return NextResponse.json({
         studio: {
-          id: String(studio.id),
-          name: studio.name,
-          slug: studio.slug,
-          image: studio.image || "",
-          phone: studio.phone || "",
-          location: studio.location || "",
-          email: studio.email || "",
-          description: studio.description || "",
-          price: Number(studio.price) || 0,
-          rating: studio.rating || "0",
-          reviewCount: studio.reviewCount || 0,
-          featured: studio.featured || false,
+          id: profile.userId,
+          name: userRow?.name || "",
+          slug: profile.slug || "",
+          image: userRow?.image || "",
+          phone: userRow?.phone || "",
+          location: userRow?.location || "",
+          email: userRow?.email || "",
+          description: profile.description || "",
+          price: Number(profile.price) || 0,
+          rating: profile.rating || "0",
+          reviewCount: profile.reviewCount || 0,
+          featured: profile.featured || false,
         },
       });
     }
@@ -179,9 +199,9 @@ export async function GET(
       }
 
       const [studio] = await db
-        .select({ userId: studios.userId })
-        .from(studios)
-        .where(eq(studios.id, Number(studioId)))
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(and(eq(profiles.userId, studioId), eq(profiles.role, "studio")))
         .limit(1);
 
       if (!studio || studio.userId !== userId) {
@@ -190,17 +210,17 @@ export async function GET(
 
       const rows = await db
         .select()
-        .from(artists)
-        .where(eq(artists.studioId, Number(studioId)));
+        .from(profiles)
+        .where(and(eq(profiles.studioId, studioId), eq(profiles.role, "artist")));
 
       return NextResponse.json({
         staff: rows.map((a) => ({
-          id: String(a.id),
-          name: a.name,
-          email: a.email || "",
-          phone: a.phone || "",
-          image: a.image || "",
-          location: a.location || "",
+          id: a.userId,
+          name: a.slug || a.userId,
+          email: "",
+          phone: "",
+          image: "",
+          location: a.area || "",
           rating: a.rating || "0",
           reviewCount: a.reviewCount || 0,
           verified: a.verified || false,
@@ -279,109 +299,81 @@ export async function POST(
         avatar,
       });
 
+      const slug =
+        name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
+        "-" +
+        userId.slice(-5);
+
+      const profileValues: Record<string, unknown> = {
+        userId,
+        role: userRole,
+        status: "draft",
+        slug,
+        available: true,
+        verified: false,
+      };
+
       if (userRole === "artist") {
-        const slug =
-          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
-          "-" +
-          userId.slice(-5);
-
-        const [newArtist] = await db
-          .insert(artists)
-          .values({
-            name,
-            slug,
-            email,
-            image: avatar,
-            phone: userPhone,
-            location: userLocation,
-            bio: "",
-            available: true,
-            verified: false,
-            userId,
-          })
-          .returning();
-
         const specialties: string[] = body.specialties || [];
-        const specialtyToSlug: Record<string, string> = {
-          "Bridal Makeup": "bridal",
-          "Soft Glam": "event",
-          "Editorial / Photoshoot": "editorial",
-          "Hijab Styling": "hijab",
-          "Airbrush Makeup": "airbrush",
-          "SFX / Creative": "sfx",
-          Hairstyling: "hair",
-        };
-
         const categorySlugs = specialties
           .map((s: string) => specialtyToSlug[s])
           .filter(Boolean);
 
         if (categorySlugs.length > 0) {
-          const matchedCategories = await db
-            .select({ id: categories.id })
+          const matched = await db
+            .select({ slug: categories.slug })
             .from(categories)
             .where(inArray(categories.slug, categorySlugs));
-
-          if (matchedCategories.length > 0) {
-            await db.insert(artistCategories).values(
-              matchedCategories.map((c) => ({
-                artistId: newArtist.id,
-                categoryId: c.id,
-              })),
-            );
-          }
+          profileValues.categories = matched.map((c) => c.slug);
         }
       }
 
-      if (userRole === "studio") {
-        const slug =
-          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
-          "-" +
-          userId.slice(-5);
-
-        await db.insert(studios).values({
-          name,
-          slug,
-          email,
-          image: avatar,
-          phone: userPhone,
-          location: userLocation,
-          description: "",
-          userId,
+      await db
+        .insert(profiles)
+        .values(profileValues as any)
+        .onConflictDoUpdate({
+          target: profiles.userId,
+          set: { role: userRole, slug, status: "draft" },
         });
-      }
 
       const refCookie = request.cookies.get("leish_ref");
       if (refCookie?.value) {
         try {
           const ref = JSON.parse(refCookie.value);
           if (ref?.t && ref?.id && (ref.t === "artist" || ref.t === "studio")) {
-            const referrerOwnerId = ref.t === "artist"
-              ? await db.select({ uid: artists.userId }).from(artists).where(eq(artists.id, Number(ref.id))).limit(1).then(r => r[0]?.uid)
-              : await db.select({ uid: studios.userId }).from(studios).where(eq(studios.id, Number(ref.id))).limit(1).then(r => r[0]?.uid);
+            // Referrer cookie stored the profile slug; resolve to its user_id.
+            const [referrer] = await db
+              .select({ userId: profiles.userId })
+              .from(profiles)
+              .where(and(eq(profiles.slug, String(ref.id)), eq(profiles.role, ref.t)))
+              .limit(1);
 
-            if (referrerOwnerId && referrerOwnerId !== userId) {
-              const referrerIdNum = Number(ref.id);
+            if (referrer?.userId && referrer.userId !== userId) {
               const [existing] = await db
                 .select()
                 .from(referrals)
-                .where(and(
-                  eq(referrals.referrerType, ref.t),
-                  eq(referrals.referrerId, referrerIdNum),
-                  eq(referrals.referredEmail, email),
-                ))
+                .where(
+                  and(
+                    eq(referrals.referrerType, ref.t),
+                    eq(referrals.referrerUserId, referrer.userId),
+                    eq(referrals.referredEmail, email),
+                  ),
+                )
                 .limit(1);
 
               if (existing) {
-                await db.update(referrals).set({
-                  referredUserId: userId,
-                  status: "registered",
-                  registeredAt: new Date(),
-                }).where(eq(referrals.id, existing.id));
+                await db
+                  .update(referrals)
+                  .set({
+                    referredUserId: userId,
+                    status: "registered",
+                    registeredAt: new Date(),
+                  })
+                  .where(eq(referrals.id, existing.id));
               } else {
                 await db.insert(referrals).values({
                   referrerType: ref.t,
-                  referrerId: referrerIdNum,
+                  referrerUserId: referrer.userId,
                   referredUserId: userId,
                   referredEmail: email,
                   status: "registered",
@@ -395,10 +387,13 @@ export async function POST(
         }
       }
 
-      const roleForEmail = userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");
+      const roleForEmail =
+        userRole === "customer" ? "client" : (userRole as "client" | "artist" | "studio");
       sendWelcomeEmail({ email, name, role: roleForEmail }).catch((err) => {
         console.error("sendWelcomeEmail failed:", err);
-        Sentry.captureException(err, { extra: { email, name, role: roleForEmail, context: "create-profile" } });
+        Sentry.captureException(err, {
+          extra: { email, name, role: roleForEmail, context: "create-profile" },
+        });
       });
 
       return NextResponse.json({ success: true });
@@ -413,7 +408,7 @@ export async function POST(
           .where(
             and(
               eq(favorites.userId, userId),
-              eq(favorites.artistId, Number(artistId)),
+              eq(favorites.artistId, String(artistId)),
             ),
           );
         return NextResponse.json({ success: true, favorited: false });
@@ -425,7 +420,7 @@ export async function POST(
         .where(
           and(
             eq(favorites.userId, userId),
-            eq(favorites.artistId, Number(artistId)),
+            eq(favorites.artistId, String(artistId)),
           ),
         )
         .limit(1);
@@ -433,7 +428,7 @@ export async function POST(
       if (!existing) {
         await db.insert(favorites).values({
           userId,
-          artistId: Number(artistId),
+          artistId: String(artistId),
         });
       }
 
@@ -458,16 +453,9 @@ export async function POST(
         await db
           .update(notifications)
           .set({ readAt: new Date() })
-          .where(
-            and(
-              eq(notifications.userId, userId),
-              isNull(notifications.readAt),
-            ),
-          );
+          .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
       } else if (notifAction === "clear-all") {
-        await db
-          .delete(notifications)
-          .where(eq(notifications.userId, userId));
+        await db.delete(notifications).where(eq(notifications.userId, userId));
       }
 
       return NextResponse.json({ success: true });
@@ -488,19 +476,18 @@ export async function POST(
     }
 
     if (action === "artist-profile") {
-      const [artist] = await db
+      const [profile] = await db
         .select()
-        .from(artists)
-        .where(eq(artists.userId, userId))
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
         .limit(1);
 
-      if (!artist) {
+      if (!profile) {
         return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
       }
 
       const updateData: Record<string, unknown> = {};
       const allowedFields = [
-        "image",
         "bio",
         "experience",
         "languages",
@@ -620,9 +607,9 @@ export async function POST(
       if (Object.keys(updateData).length > 0) {
         updateData.updatedAt = new Date();
         await db
-          .update(artists)
+          .update(profiles)
           .set(updateData)
-          .where(eq(artists.userId, userId));
+          .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")));
       }
 
       if (Object.keys(userUpdateData).length > 0) {
@@ -653,10 +640,10 @@ export async function POST(
       }
       const [artist] = await db
         .select()
-        .from(artists)
-        .where(eq(artists.userId, userId))
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
         .limit(1);
-      if (!artist || booking.artistId !== artist.id) {
+      if (!artist || booking.artistId !== artist.userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
       }
       await db
@@ -685,10 +672,10 @@ export async function POST(
       }
       const [artist] = await db
         .select()
-        .from(artists)
-        .where(eq(artists.userId, userId))
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
         .limit(1);
-      if (!artist || booking.artistId !== artist.id) {
+      if (!artist || booking.artistId !== artist.userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
       }
       await db
@@ -729,7 +716,7 @@ export async function DELETE(
           .where(
             and(
               eq(favorites.userId, userId),
-              eq(favorites.artistId, Number(artistId)),
+              eq(favorites.artistId, String(artistId)),
             ),
           );
       }

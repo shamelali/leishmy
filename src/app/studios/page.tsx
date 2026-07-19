@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Star, MapPin, Users, ArrowRight } from "lucide-react";
 import { db } from "@/db";
-import { studios } from "@/db/schema";
+import { profiles, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -15,12 +17,29 @@ export async function generateMetadata(): Promise<Metadata> {
 
 async function getStudios() {
   try {
-    const rows = await db.select().from(studios).limit(50);
+    const studioUsers = alias(users, "studio_users");
+    const rows = await db
+      .select({
+        id: profiles.userId,
+        name: studioUsers.name,
+        slug: profiles.slug,
+        image: studioUsers.image,
+        location: studioUsers.location,
+        rating: profiles.rating,
+        reviewCount: profiles.reviewCount,
+        price: profiles.price,
+        description: profiles.description,
+        featured: profiles.featured,
+      })
+      .from(profiles)
+      .innerJoin(studioUsers, eq(studioUsers.id, profiles.userId))
+      .where(eq(profiles.role, "studio"))
+      .limit(50);
     if (rows.length > 0) {
       return rows.map((s) => ({
-        id: String(s.id),
-        name: s.name,
-        slug: s.slug || String(s.id),
+        id: s.id,
+        name: s.name || "",
+        slug: s.slug || s.id,
         image: s.image || "/placeholder.svg",
         location: s.location || "",
         rating: Number(s.rating) || 0,
