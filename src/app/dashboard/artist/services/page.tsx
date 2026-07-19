@@ -10,7 +10,7 @@ export default function ArtistServices() {
   const { user } = useAuth();
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [artistId, setArtistId] = useState<number | null>(null);
+  const [artistId, setArtistId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", duration: "", price: "" });
 
@@ -20,7 +20,7 @@ export default function ArtistServices() {
       .then((r) => r.json())
       .then((data) => {
         if (data?.artist?.id) {
-          const id = Number(data.artist.id);
+          const id = String(data.artist.id);
           setArtistId(id);
           return fetch(`/api/services?artistId=${id}`);
         }

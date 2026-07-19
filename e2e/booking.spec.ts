@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 const ARTIST_SLUG = "amiera-38385";
+const ARTIST_ID = "7f06fdbd-804e-46b6-8e74-c5d221638385";
 
 test.describe("Booking Flow", () => {
   test("create booking via API and verify it appears on the booking detail page", async ({
@@ -15,8 +16,8 @@ test.describe("Booking Flow", () => {
     const dateStr = tomorrow.toISOString().split("T")[0];
 
     const res = await request.post("/api/bookings", {
-      data: {
-        artistId: 61,
+    data: {
+    artistId: ARTIST_ID,
         clientName: "E2E Test User",
         clientEmail: `e2e-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
@@ -54,7 +55,7 @@ test.describe("Booking Flow", () => {
     // Create booking
     const postRes = await request.post("/api/bookings", {
       data: {
-        artistId: 61,
+        artistId: ARTIST_ID,
         clientName: "API Test User",
         clientEmail: `api-test-${Date.now()}@leish-testing.com`,
         service: "Event Glam",
@@ -65,7 +66,7 @@ test.describe("Booking Flow", () => {
     expect(postRes.status()).toBe(200);
     const postBody = await postRes.json();
     expect(postBody.success).toBe(true);
-    expect(postBody.booking.artistId).toBe(61);
+    expect(postBody.booking.artistId).toBe(ARTIST_ID);
 
     // Fetch the specific booking (guest-friendly) to verify it appears
     const bookingId = String(postBody.booking.id);
