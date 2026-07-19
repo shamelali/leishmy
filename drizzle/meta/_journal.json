@@ -85,6 +85,13 @@
       "when": 1751900000001,
       "tag": "0011_add_referral_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784475600000,
+      "tag": "0014_profiles_collapse",
+      "breakpoints": true
     }
   ]
 }
