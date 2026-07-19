@@ -53,7 +53,7 @@ const phases = [
         details: [
           'Descriptive Packages: Instead of "Makeup," use "Signature Bridal Look (Inc. Premium Lashes & Trial)."',
           "Duration Accuracy: Set realistic time slots (e.g., 90 mins for Glam, 120 mins for Bridal). This builds trust when you arrive and finish on time.",
-          'Travel Policy: Clearly define your travel radius. If you offer "Home Services," specify any surcharge for locations beyond 20km from Kuala Lumpur.',
+          'Travel Policy: Clearly define your travel radius. If you offer "Home Services," specify any surcharge for locations beyond 20km from Cyberjaya.',
         ],
       },
       {

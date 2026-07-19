@@ -121,7 +121,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             value={form.location ?? ""}
             onChange={(e) => update("location", e.target.value)}
             className="form-input"
-            placeholder="Kuala Lumpur"
+            placeholder="Cyberjaya"
           />
         </Field>
         <Field id="area" label={t("area")} error={fieldErrors.area?.[0]}>

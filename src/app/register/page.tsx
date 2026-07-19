@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [state, setState] = useState("Kuala Lumpur");
+  const [state, setState] = useState("Selangor");
   const [district, setDistrict] = useState("");
   const [password, setPassword] = useState("");
   const [specialties, setSpecialties] = useState<string[]>(["Bridal Makeup", "Soft Glam"]);

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
 import { artists, artistCategories, categories as categoriesTable } from "@/db/schema";
-import { eq, inArray, and, ne } from "drizzle-orm";
+import { eq, inArray, and, ne, notLike } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
@@ -68,6 +68,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
             .where(and(
               inArray(artists.id, matchingArtistIds.map((r) => r.artistId)),
               ne(artists.slug, "leiynda-rahman-e192e"),
+              notLike(artists.userId, "artist-seed%"),
             ))
             .limit(50);
         } else {
@@ -77,7 +78,14 @@ export default async function ArtistsPage({ searchParams }: Props) {
         displayArtists = [];
       }
     } else {
-      query = db.select().from(artists).where(ne(artists.slug, "leiynda-rahman-e192e")).limit(50);
+      query = db
+        .select()
+        .from(artists)
+        .where(and(
+          ne(artists.slug, "leiynda-rahman-e192e"),
+          notLike(artists.userId, "artist-seed%"),
+        ))
+        .limit(50);
     }
 
     if (!displayArtists && query) {
@@ -131,7 +139,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
       <section className="bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6 px-4 py-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-sm text-amber-700 dark:text-amber-300">
-            We are currently onboarding selected makeup artists in Kuala Lumpur and Selangor.
+            We are currently onboarding selected makeup artists in Cyberjaya and Selangor.
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 dark:text-white">
             Browse Makeup Artists

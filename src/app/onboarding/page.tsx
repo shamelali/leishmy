@@ -27,7 +27,7 @@ export default function OnboardingPage() {
   const [role, setRole] = useState<"customer" | "artist" | "studio">("customer");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [state, setState] = useState("Kuala Lumpur");
+  const [state, setState] = useState("Selangor");
   const [district, setDistrict] = useState("");
   const [specialties, setSpecialties] = useState<string[]>(["Bridal Makeup", "Soft Glam"]);
   const [error, setError] = useState("");
