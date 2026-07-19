@@ -26,7 +26,7 @@ async function getJwks() {
 
   const baseUrl = neauth.get("BASE_URL");
   if (!baseUrl) throw new Error("NEON_AUTH_BASE_URL is not configured");
-  const jwksUrl = baseUrl.replace(/\/auth$/, "") + "/.well-known/jwks.json";
+  const jwksUrl = baseUrl.replace(/\/$/, "") + "/.well-known/jwks.json";
 
   jwksFetching = (async () => {
     const res = await fetch(jwksUrl);
