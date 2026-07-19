@@ -618,6 +618,16 @@ export async function POST(
       ) {
         userUpdateData.email = body.email.trim().toLowerCase().slice(0, 255);
       }
+      if (typeof body.image === "string") {
+        if (body.image === "" || isAllowedImageUrl(body.image)) {
+          userUpdateData.image = body.image;
+        } else {
+          return NextResponse.json(
+            { error: "image must be a valid HTTPS URL on an allowlisted host" },
+            { status: 400 },
+          );
+        }
+      }
 
       if (Object.keys(updateData).length > 0) {
         updateData.updatedAt = new Date();
