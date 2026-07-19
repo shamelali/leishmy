@@ -73,11 +73,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const unread = notifications.filter((n) => !n.read).length;
 
-  const fetchFromServer = useCallback(async () => {
+  const fetchFromServer = useCallback(async (signal?: AbortSignal) => {
     if (!user?.id) return;
     try {
       const res = await fetch(
         `/api/user/notifications`,
+        { signal },
       );
       if (res.ok) {
         const data = await res.json();
@@ -92,13 +93,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         }));
         setNotifications(mapped);
       }
-    } catch { console.error("Failed to fetch notifications"); }
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      console.error("Failed to fetch notifications");
+    }
   }, [user]);
 
   const syncToServer = useCallback(
     async (
       action: "mark-read" | "mark-all-read" | "delete" | "clear-all",
       id?: string,
+      signal?: AbortSignal,
     ) => {
       if (!user?.id) return;
       try {
@@ -106,17 +111,23 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, notificationId: id }),
+          signal,
         });
-      } catch { console.error("Failed to sync notification"); }
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return;
+        console.error("Failed to sync notification");
+      }
     },
     [user],
   );
 
   useEffect(() => {
     if (mounted && user?.id) {
+      const controller = new AbortController();
       /* eslint-disable react-hooks/set-state-in-effect */
-      fetchFromServer();
+      fetchFromServer(controller.signal);
       /* eslint-enable react-hooks/set-state-in-effect */
+      return () => controller.abort();
     }
   }, [mounted, user?.id, fetchFromServer]);
 
