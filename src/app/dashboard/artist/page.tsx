@@ -535,7 +535,11 @@ export default function DashboardArtist() {
               </div>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {bankAccounts.length > 0
-                  ? `${bankAccounts[0].bankName} •••• ${bankAccounts[0].accountNumber.slice(-4)}`
+                  ? `${bankAccounts[0].bankName}${
+                      bankAccounts[0].accountNumber
+                        ? ` •••• ${bankAccounts[0].accountNumber.slice(-4)}`
+                        : ""
+                    }`
                   : "Not registered"}
               </p>
             </div>
