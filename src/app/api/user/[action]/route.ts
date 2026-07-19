@@ -136,13 +136,23 @@ export async function GET(
           slug: profile.slug || "",
           image: userRow?.image || "",
           phone: userRow?.phone || "",
-          location: userRow?.location || "",
-          area: profile.area || "",
-          district: profile.district || "",
+          area:
+            profile.area ||
+            (userRow?.location && !profile.district
+              ? (userRow.location.split(", ")[1] || userRow.location)
+              : ""),
+          district:
+            profile.district ||
+            (userRow?.location ? userRow.location.split(", ")[0] || "" : ""),
+          location: profile.area || profile.district ? userRow?.location || "" : "",
           bio: profile.bio || "",
           experience: profile.experience || 0,
           languages: profile.languages || [],
-          specialties: (profile.specialties as string[] | null) || [],
+          specialties: (
+            (profile.specialties as string[] | null)?.length
+              ? (profile.specialties as string[])
+              : (profile.categories as string[] | null) || []
+          ),
           categories: profile.categories || [],
           responseTime: profile.responseTime || "",
           price: Number(profile.price) || 0,
@@ -304,6 +314,8 @@ export async function POST(
         "-" +
         userId.slice(-5);
 
+      const [regDistrict, regArea] = userLocation.split(", ");
+
       const profileValues: Record<string, unknown> = {
         userId,
         role: userRole,
@@ -311,10 +323,13 @@ export async function POST(
         slug,
         available: true,
         verified: false,
+        district: regDistrict || "",
+        area: regArea || userLocation,
       };
 
       if (userRole === "artist") {
         const specialties: string[] = body.specialties || [];
+        profileValues.specialties = specialties;
         const categorySlugs = specialties
           .map((s: string) => specialtyToSlug[s])
           .filter(Boolean);
