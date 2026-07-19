@@ -118,6 +118,14 @@ export async function GET(request: NextRequest) {
               .set({ status: "paid", updatedAt: new Date() })
               .where(eq(payments.id, Number(paymentId)));
             result.payment.status = "paid";
+
+            if (payment.bookingId) {
+              await db
+                .update(bookings)
+                .set({ status: "completed", updatedAt: new Date() })
+                .where(eq(bookings.id, payment.bookingId));
+              result.payment.bookingStatus = "completed";
+            }
           }
 
           result.billplz = billplzData;
