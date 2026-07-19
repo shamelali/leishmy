@@ -283,6 +283,9 @@ export default function DashboardAdmin() {
           <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
             <Settings className="w-4 h-4" />Settings
           </Link>
+          <Link href="/dashboard/admin/people" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <Users className="w-4 h-4" />People
+          </Link>
         </div>
 
         {tab !== "overview" && (

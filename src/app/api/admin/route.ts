@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, profiles, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
-import { eq, count, and, gte, lt, avg, sql, desc } from "drizzle-orm";
+import { eq, count, and, gte, lt, avg, sql, desc, ilike, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getAuthSession } from "@/lib/auth/server";
 import { reconcilePayment } from "@/lib/payment-reconcile";
@@ -171,6 +171,77 @@ export async function GET(request: NextRequest) {
           createdAt: u.createdAt?.toISOString() || "",
         })),
         total, page, pageSize,
+      });
+    }
+
+    if (action === "people") {
+      const peopleUsers = alias(users, "people_users");
+      const roleFilter = searchParams.get("role");
+      const statusFilter = searchParams.get("status");
+      const searchTerm = searchParams.get("search")?.trim();
+
+      const filters = [];
+      if (roleFilter) filters.push(eq(profiles.role, roleFilter));
+      if (statusFilter) filters.push(eq(profiles.status, statusFilter));
+      if (searchTerm) {
+        filters.push(
+          or(
+            ilike(peopleUsers.name, `%${searchTerm}%`),
+            ilike(peopleUsers.email, `%${searchTerm}%`),
+          )!,
+        );
+      }
+
+      const [rows, [{ count: total }]] = await Promise.all([
+        db
+          .select({
+            id: profiles.userId,
+            name: peopleUsers.name,
+            email: peopleUsers.email,
+            phone: peopleUsers.phone,
+            location: peopleUsers.location,
+            image: peopleUsers.image,
+            role: profiles.role,
+            status: profiles.status,
+            verified: profiles.verified,
+            available: profiles.available,
+            rating: profiles.rating,
+            reviewCount: profiles.reviewCount,
+            slug: profiles.slug,
+            createdAt: profiles.createdAt,
+          })
+          .from(profiles)
+          .innerJoin(peopleUsers, eq(peopleUsers.id, profiles.userId))
+          .where(filters.length ? and(...filters) : undefined)
+          .orderBy(desc(profiles.createdAt))
+          .limit(pageSize)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(profiles)
+          .innerJoin(peopleUsers, eq(peopleUsers.id, profiles.userId))
+          .where(filters.length ? and(...filters) : undefined),
+      ]);
+      return NextResponse.json({
+        people: rows.map((p) => ({
+          id: p.id,
+          name: p.name || "",
+          email: p.email || "",
+          phone: p.phone || "",
+          location: p.location || "",
+          image: p.image || "",
+          role: p.role || "customer",
+          status: p.status || "draft",
+          verified: p.verified || false,
+          available: p.available ?? true,
+          rating: p.rating || "0",
+          reviewCount: p.reviewCount || 0,
+          slug: p.slug || "",
+          createdAt: p.createdAt?.toISOString() || "",
+        })),
+        total,
+        page,
+        pageSize,
       });
     }
 
