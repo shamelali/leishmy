@@ -35,12 +35,16 @@ interface ArtistProfileEditFormProps {
 
 const expertiseOptions = [
   "Bridal Makeup",
+  "Events",
   "Fashion/Editorial",
   "Special Effects (SFX)",
   "Theater/Stage",
   "Commercial/TV/Film",
+  "Class/Workshop",
   "Other",
 ];
+
+const languageOptions = ["English", "Malay", "Chinese", "Indian"];
 
 const availabilityOptions = [
   { value: "weekdays", label: "Weekdays only" },
@@ -87,8 +91,12 @@ export function ArtistProfileEditForm({
   const [district, setDistrict] = useState(initial.district);
   const [bio, setBio] = useState(initial.bio);
   const [experience, setExperience] = useState(initial.experience);
-  const [languagesText, setLanguagesText] = useState(initial.languages.join(", "));
+  const [languages, setLanguages] = useState<string[]>(initial.languages);
   const [specialties, setSpecialties] = useState<string[]>(initial.specialties);
+  const [otherSpecialty, setOtherSpecialty] = useState(() => {
+    const otherEntry = initial.specialties.find((s) => s.startsWith("Other:"));
+    return otherEntry ? otherEntry.slice(7).trim() : "";
+  });
   const [responseTime, setResponseTime] = useState(initial.responseTime);
   const [price, setPrice] = useState(initial.price);
   const [portfolio, setPortfolio] = useState<string[]>(initial.portfolio);
@@ -114,6 +122,12 @@ export function ArtistProfileEditForm({
   function toggleSpecialty(area: string) {
     setSpecialties((prev) =>
       prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
+    );
+  }
+
+  function toggleLanguage(lang: string) {
+    setLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang],
     );
   }
 
@@ -249,11 +263,15 @@ export function ArtistProfileEditForm({
             district,
             bio: bio.trim(),
             experience: Number(experience) || 0,
-            languages: languagesText
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-            specialties,
+            languages,
+            specialties: [
+              ...specialties.filter((s) => s !== "Other"),
+              ...(specialties.includes("Other") && otherSpecialty.trim()
+                ? [`Other: ${otherSpecialty.trim()}`]
+                : specialties.includes("Other")
+                  ? ["Other"]
+                  : []),
+            ],
             responseTime,
             price: Number(price) || 0,
             portfolio: allPortfolio,
@@ -293,11 +311,15 @@ export function ArtistProfileEditForm({
         district,
         bio: bio.trim(),
         experience: Number(experience) || 0,
-        languages: languagesText
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        specialties,
+        languages,
+        specialties: [
+          ...specialties.filter((s) => s !== "Other"),
+          ...(specialties.includes("Other") && otherSpecialty.trim()
+            ? [`Other: ${otherSpecialty.trim()}`]
+            : specialties.includes("Other")
+              ? ["Other"]
+              : []),
+        ],
         portfolio: allPortfolio,
         responseTime,
         price: Number(price) || 0,
@@ -528,15 +550,38 @@ export function ArtistProfileEditForm({
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Languages (comma-separated)
+            Languages (select all that apply)
           </label>
-          <input
-            type="text"
-            value={languagesText}
-            onChange={(e) => setLanguagesText(e.target.value)}
-            placeholder="English, Malay, Mandarin"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-          />
+          <div className="grid grid-cols-2 gap-2">
+            {languageOptions.map((lang) => (
+              <label
+                key={lang}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
+                  languages.includes(lang)
+                    ? "bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-700"
+                    : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:border-rose-200 dark:hover:border-rose-800"
+                }`}
+              >
+                <div
+                  onClick={() => toggleLanguage(lang)}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                    languages.includes(lang)
+                      ? "bg-rose-500 border-rose-500"
+                      : "border-gray-300 dark:border-neutral-600"
+                  }`}
+                >
+                  {languages.includes(lang) && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
+                  {lang}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -591,6 +636,15 @@ export function ArtistProfileEditForm({
             </label>
           ))}
         </div>
+        {specialties.includes("Other") && (
+          <input
+            type="text"
+            value={otherSpecialty}
+            onChange={(e) => setOtherSpecialty(e.target.value)}
+            placeholder="Specify other specialty..."
+            className="mt-2 w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+          />
+        )}
       </div>
 
       <div>
