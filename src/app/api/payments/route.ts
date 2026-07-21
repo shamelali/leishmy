@@ -89,12 +89,14 @@ export async function GET(request: NextRequest) {
           createdAt: p.createdAt?.toISOString() || "",
           updatedAt: p.updatedAt?.toISOString() || undefined,
         })),
-        bankAccounts: bankProfiles.map((b) => ({
-          id: b.userId,
-          bankName: b.bankName,
-          accountNumber: b.accountNumber,
-          accountHolder: b.accountHolder,
-        })),
+        bankAccounts: bankProfiles
+          .filter((b) => b.bankName)
+          .map((b) => ({
+            id: b.userId,
+            bankName: b.bankName,
+            accountNumber: b.accountNumber,
+            accountHolder: b.accountHolder,
+          })),
         pendingBalance,
       });
     }

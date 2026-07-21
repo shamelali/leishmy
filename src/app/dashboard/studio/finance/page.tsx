@@ -14,6 +14,13 @@ interface Payout {
   updatedAt?: string;
 }
 
+interface BankAccount {
+  id: string;
+  bankName: string | null;
+  accountNumber: string | null;
+  accountHolder: string | null;
+}
+
 const payoutStatusIcon: Record<string, typeof Clock> = {
   paid: CheckCircle,
   pending: Clock,
@@ -32,6 +39,9 @@ export default function StudioFinance() {
   const [revenue, setRevenue] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [showBankForm, setShowBankForm] = useState(false);
+  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountHolder: "" });
 
   useEffect(() => {
     if (!user?.id) return;
@@ -44,11 +54,29 @@ export default function StudioFinance() {
         ]);
         if (paymentsData?.pendingBalance !== undefined) setPendingBalance(paymentsData.pendingBalance);
         if (paymentsData?.payouts) setPayouts(paymentsData.payouts);
+        if (paymentsData?.bankAccounts) setBankAccounts(paymentsData.bankAccounts);
         if (studioData?.stats?.revenue !== undefined) setRevenue(studioData.stats.revenue);
       } catch { console.error("Failed to load finance data"); }
       setLoading(false);
     })();
   }, [user?.id]);
+
+  const handleRegisterBank = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    await fetch("/api/payments?action=register-bank", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, ...bankForm }),
+    });
+    setShowBankForm(false);
+    setBankForm({ bankName: "", accountNumber: "", accountHolder: "" });
+    const res = await fetch(`/api/payments?action=payouts&userId=${user.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      setBankAccounts(data.bankAccounts || []);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -73,14 +101,42 @@ export default function StudioFinance() {
                 <p className="text-xl font-bold text-gray-900 dark:text-white">MYR {pendingBalance.toLocaleString()}</p>
               </div>
               <div className="p-5 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/50">
-                <div className="flex items-center gap-2 mb-2"><Banknote className="w-4 h-4 text-blue-500" /><span className="text-xs font-medium text-blue-600 dark:text-blue-400">Commission</span></div>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">15%</p>
+                <div className="flex items-center gap-2 mb-2"><Banknote className="w-4 h-4 text-blue-500" /><span className="text-xs font-medium text-blue-600 dark:text-blue-400">Bank Account</span></div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {bankAccounts.length > 0 && bankAccounts[0].bankName
+                    ? `${bankAccounts[0].bankName}${bankAccounts[0].accountNumber ? ` •••• ${bankAccounts[0].accountNumber.slice(-4)}` : ""}`
+                    : "Not registered"}
+                </p>
               </div>
             </div>
 
             <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 mb-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Payout History</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Payouts</h2>
+                {bankAccounts.length === 0 && (
+                  <button
+                    onClick={() => setShowBankForm(!showBankForm)}
+                    className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors"
+                  >
+                    + Register Bank
+                  </button>
+                )}
+              </div>
+
+              {showBankForm && (
+                <form onSubmit={handleRegisterBank} className="mb-6 p-4 bg-gray-50 dark:bg-neutral-800 rounded-xl space-y-3">
+                  <input placeholder="Bank Name (e.g. Maybank, CIMB)" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+                  <input placeholder="Account Number" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+                  <input placeholder="Account Holder Name" value={bankForm.accountHolder} onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+                  <div className="flex gap-2">
+                    <button type="submit" className="px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors">Save</button>
+                    <button type="button" onClick={() => setShowBankForm(false)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">Cancel</button>
+                  </div>
+                </form>
+              )}
+
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Payout History</h3>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50"><Download className="w-3.5 h-3.5" /> Export</button>
               </div>
               {payouts.length === 0 ? (

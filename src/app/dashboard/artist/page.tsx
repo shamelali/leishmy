@@ -534,7 +534,7 @@ export default function DashboardArtist() {
                 <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Bank Account</span>
               </div>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {bankAccounts.length > 0
+                {bankAccounts.length > 0 && bankAccounts[0].bankName
                   ? `${bankAccounts[0].bankName}${
                       bankAccounts[0].accountNumber
                         ? ` •••• ${bankAccounts[0].accountNumber.slice(-4)}`
