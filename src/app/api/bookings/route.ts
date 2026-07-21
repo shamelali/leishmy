@@ -415,3 +415,48 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, status } = body;
+    if (!id || !status) {
+      return NextResponse.json({ error: "id and status required" }, { status: 400 });
+    }
+
+    const allowedStatuses = ["confirmed", "cancelled", "completed"];
+    if (!allowedStatuses.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, Number(id)))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    if (existing.userId !== session.id && existing.artistId !== session.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const [updated] = await db
+      .update(bookings)
+      .set({ status })
+      .where(eq(bookings.id, Number(id)))
+      .returning();
+
+    return NextResponse.json({ booking: updated });
+  } catch (error) {
+    console.error("Update booking error:", error);
+    return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });
+  }
+}

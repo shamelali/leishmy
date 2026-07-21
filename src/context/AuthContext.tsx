@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = (data: Partial<UserProfile>) => {
     if (!user?.id) return;
-    fetch("/api/user/profile" + user.id, {
+    fetch("/api/user/profile?userId=" + user.id, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

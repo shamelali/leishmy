@@ -45,10 +45,20 @@ export default function BookingsPage() {
     }
   }, [authLoading, user]);
 
-  const handleCancel = (id: number) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b))
-    );
+  const handleCancel = async (id: number) => {
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "cancelled" }),
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b))
+      );
+    } catch {
+      // silent — booking stays confirmed
+    }
   };
 
   const filtered = bookings.filter((b) => {
