@@ -35,11 +35,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/images");
 
   if (!isApiOrStatic) {
-    // If URL has a locale prefix (e.g. /ms-MY/artists), redirect to non-prefixed
-    const localeSegment = pathname.split("/")[1];
-    if (localeSegment && routing.locales.includes(localeSegment as any)) {
-      return withSecurityHeaders(await intlMiddleware(request));
-    }
+    return withSecurityHeaders(await intlMiddleware(request));
   }
 
   if (
