@@ -170,18 +170,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { bookingId, amount, description, name, email, phone } = body;
+      const { bookingId, description, name, email, phone } = body;
 
-      if (!bookingId || !amount) {
+      if (!bookingId) {
         return NextResponse.json(
-          { error: "bookingId and amount required" },
-          { status: 400 },
-        );
-      }
-
-      if (Number(amount) < 1) {
-        return NextResponse.json(
-          { error: "Amount must be RM1.00 or more" },
+          { error: "bookingId is required" },
           { status: 400 },
         );
       }
@@ -200,10 +193,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
+      const realAmount = Number(booking.amount);
+      if (realAmount < 1) {
+        return NextResponse.json(
+          { error: "Booking amount is invalid" },
+          { status: 400 },
+        );
+      }
+
       const billplzBody = new URLSearchParams({
         collection_id: billplz.require("COLLECTION_ID"),
         description: description || "Beauty booking payment",
-        amount: String(Math.round(Number(amount) * 100)),
+        amount: String(Math.round(realAmount * 100)),
         name: name || "Customer",
         email: email || "",
         phone: phone || "",
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
         .insert(payments)
         .values({
           bookingId: Number(bookingId),
-          amount: Math.round(Number(amount) * 100),
+          amount: Math.round(realAmount * 100),
           status: "pending",
           billplzId: billplzData.id,
           method: "billplz",

@@ -23,11 +23,11 @@
     "categories": "Kategori",
     "viewAll": "Lihat Semua",
     "logoAlt": "Leish!",
-    "user": "User",
+    "user": "Pengguna",
     "menu": "Menu"
   },
   "language": {
-    "en": "English",
+    "en": "Bahasa Inggeris",
     "ms-MY": "Bahasa Melayu",
     "zh-MY": "中文",
     "ta-MY": "தமிழ்",
@@ -44,10 +44,10 @@
     "statAvgRating": "Purata Penilaian",
     "statProArtists": "Artis Pro",
     "statBookings": "Tempahan",
-    "imgSoftGlam": "Soft glam makeup",
-    "imgContemporary": "Contemporary beauty",
-    "imgWarmTones": "Warm tones",
-    "imgBeautiful": "Beautiful look"
+    "imgSoftGlam": "Sulam glam lembut",
+    "imgContemporary": "Kecantikan moden",
+    "imgWarmTones": "Nada hangat",
+    "imgBeautiful": "Penampilan yang indah"
   },
   "howItWorks": {
     "label": "Proses",
@@ -107,7 +107,7 @@
     "madeWithLove": "Dibuat dengan kasih sayang untuk komuniti kecantikan Malaysia",
     "logoAlt": "Leish!",
     "whatsappAria": "WhatsApp",
-    "emailAria": "Email"
+    "emailAria": "Emel"
   },
   "auth": {
     "welcomeBack": "Selamat Kembali",
@@ -331,12 +331,12 @@
     "about": "Tentang",
     "specialties": "Pengkhususan",
     "languages": "Bahasa",
-    "portfolio": "Portfolio",
+    "portfolio": "Portofolio",
     "bookArtist": "Tempah {name}",
     "bookSubtitle": "Bermula dari MYR {price}/jam",
     "notFound": "Artis Tidak Ditemui",
     "detailTitle": "{name} — Leish!",
-    "detailNotFound": "Not Found — Leish!"
+    "detailNotFound": "Tidak Dijumpai — Leish!"
   },
   "bookingForm": {
     "yourName": "Nama Anda",
@@ -356,21 +356,21 @@
     "successHeading": "Tempahan Disahkan!",
     "successText": "Tempahan anda dengan {name} telah dihantar. Kami akan mengesahkan temujanji anda tidak lama lagi.",
     "makeAnotherBooking": "Buat Tempahan Lain",
-    "serviceBridal": "Bridal Makeup",
-    "serviceEventGlam": "Event Glam",
-    "serviceEditorial": "Editorial/Photoshoot",
-    "serviceNatural": "Natural Look",
-    "serviceParty": "Party Makeup",
-    "serviceHijab": "Hijab Styling + Makeup",
-    "time9am": "9:00 AM",
-    "time10am": "10:00 AM",
-    "time11am": "11:00 AM",
-    "time12pm": "12:00 PM",
-    "time1pm": "1:00 PM",
-    "time2pm": "2:00 PM",
-    "time3pm": "3:00 PM",
-    "time4pm": "4:00 PM",
-    "time5pm": "5:00 PM"
+    "serviceBridal": "Makeup Kahwin",
+    "serviceEventGlam": "Glamour Acara",
+    "serviceEditorial": "Editorial/Potoshoot",
+    "serviceNatural": "Penampilan Semula",
+    "serviceParty": "Makeup Majlis",
+    "serviceHijab": "Penataan Hijab + Makeup",
+    "time9am": "9:00 PG",
+    "time10am": "10:00 PG",
+    "time11am": "11:00 PG",
+    "time12pm": "12:00 PTG",
+    "time1pm": "1:00 PTG",
+    "time2pm": "2:00 PTG",
+    "time3pm": "3:00 PTG",
+    "time4pm": "4:00 PTG",
+    "time5pm": "5:00 PTG"
   },
   "reviewForm": {
     "writeReview": "Tulis Ulasan",
@@ -396,7 +396,7 @@
     "errorToast": "Gagal menghantar ulasan. Sila cuba lagi.",
     "successHeading": "Terima kasih atas ulasan anda!",
     "successText": "Maklum balas anda membantu pelanggan lain mencari artis yang hebat.",
-    "authorYou": "You"
+    "authorYou": "Anda"
   },
   "faqSection": {
     "searchPlaceholder": "Cari Soalan Lazim...",
@@ -464,7 +464,7 @@
     "twitter": "Twitter / X",
     "facebook": "Facebook",
     "telegram": "Telegram",
-    "shareAria": "Share"
+    "shareAria": "Kongsi"
   },
   "payments": {
     "heading": "Pembayaran",
@@ -528,7 +528,7 @@
     "undertone": "Ton Kulit",
     "undertoneWarm": "Hangat",
     "undertoneCool": "Sejuk",
-    "undertoneNeutral": "Neutral",
+    "undertoneNeutral": "Netral",
     "undertoneOlive": "Zaitun",
     "allergies": "Alahan & Sensitiviti",
     "allergyPlaceholder": "Taip alahan dan tekan Enter...",
@@ -562,7 +562,7 @@
       "networkError": "Ralat rangkaian — periksa sambungan anda",
       "overview": "Ringkasan",
       "services": "Perkhidmatan",
-      "portfolio": "Portfolio",
+      "portfolio": "Portofolio",
       "bookings": "Tempahan",
       "analytics": "Analitik",
       "totalBookings": "Jumlah Tempahan",
@@ -571,7 +571,7 @@
       "reviews": "Ulasan",
       "artistProfile": "Profil Artis",
       "editProfile": "Edit Profil",
-      "bio": "Bio",
+      "bio": "Biografi",
       "experience": "Pengalaman",
       "hourlyRate": "Kadar Setiap Jam",
       "responseTime": "Masa Tindak Balas",
@@ -656,7 +656,7 @@
     "admin": {
       "heading": "Papan Pemuka Admin",
       "subtitle": "Ringkasan dan pengurusan platform",
-      "badge": "Admin",
+      "badge": "Pengguna Pentadbir",
       "overviewLoadError": "Gagal memuat data ringkasan",
       "tabLoadError": "Gagal memuat data {tab}",
       "networkError": "Ralat rangkaian — periksa sambungan anda",
@@ -729,21 +729,21 @@
     }
   },
   "errorState": {
-    "heading": "Something went wrong",
-    "fallbackMessage": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again",
-    "goHome": "Go home"
+    "heading": "Terjadi masalah",
+    "fallbackMessage": "Berlaku ralat yang tidak dijangkakan. Sila cuba lagi.",
+    "tryAgain": "Cuba lagi",
+    "goHome": "Ke halaman utama"
   },
   "locationMap": {
-    "openMaps": "Open Maps",
-    "getDirections": "Get Directions",
-    "responds": "Responds {responseTime}"
+    "openMaps": "Buka Peta",
+    "getDirections": "Dapatkan Arah",
+    "responds": "Merespon {responseTime}"
   },
   "pwaInstall": {
-    "heading": "Install Leish!",
-    "description": "Get the app experience on your device — faster access, offline support.",
-    "install": "Install App",
-    "notNow": "Not now"
+    "heading": "Pasang Leish!",
+    "description": "Dapatkan pengalaman aplikasi pada peranti anda — akses lebih cepat, sokongan tanpa talian.",
+    "install": "Pasang Aplikasi",
+    "notNow": "Tidak sekarang"
   },
   "common": {
     "save": "Simpan",
@@ -753,7 +753,7 @@
     "success": "Berjaya",
     "confirm": "Sahkan",
     "delete": "Padam",
-    "edit": "Edit",
+    "edit": "Sunting",
     "remove": "Buang",
     "close": "Tutup",
     "back": "Kembali",
@@ -770,175 +770,178 @@
     "required": "Wajib"
   },
   "ui": {
-    "themeToggle": "Toggle theme",
-    "backToTop": "Back to top"
+    "themeToggle": "Alihkan tema",
+    "backToTop": "Kembali ke atas"
   },
   "metadata": {
-    "defaultTitle": "Leish! — Beauty Booking Marketplace",
+    "defaultTitle": "Leish! — Pasaran Tempahan Kecantikan",
     "brand": "Leish!",
-    "defaultDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.",
-    "ogTitle": "Leish! — Beauty Booking Marketplace",
-    "ogDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
-    "twitterTitle": "Leish! — Beauty Booking Marketplace",
-    "twitterDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
-    "eventsTitle": "Events — Leish!",
-    "eventsDescription": "Discover beauty events, workshops, and masterclasses across Malaysia.",
-    "privacyPolicyTitle": "Privacy Policy — Leish!",
-    "privacyPolicyDescription": "How Leish collects, uses, and protects your personal data in accordance with Malaysia's PDPA 2010.",
-    "studiosTitle": "Browse Studios — Leish!",
-    "studiosDescription": "Discover premium beauty studios across Malaysia.",
-    "termsOfServiceTitle": "Terms of Service — Leish!",
-    "termsOfServiceDescription": "Terms and conditions governing your use of Leish, a beauty services marketplace.",
-    "faqTitle": "FAQ — Leish!",
-    "faqDescription": "Answers to common questions about booking makeup artists and studios on Leish.",
-    "artistsTitle": "Browse Makeup Artists — Leish!",
-    "artistsDescription": "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
-    "contactTitle": "Contact Us — Leish!",
-    "contactDescription": "Get in touch with the Leish! team.",
-    "cancellationPolicyTitle": "Cancellation & Refund Policy — Leish!",
-    "cancellationPolicyDescription": "How cancellations, no-shows, and refunds are handled for bookings made through Leish."
+    "defaultDescription": "Tempah kecantikan. Di mana-mana. Jumpa ahli makeup dan studio seluruh Malaysia, lihat ketersediaan masa sebenar, dan pastikan tempahan anda dalam minit.",
+    "ogTitle": "Leish! — Pasaran Tempahan Kecantikan",
+    "ogDescription": "Tempah kecantikan. Di mana-mana. Jumpa ahli makeup dan studio seluruh Malaysia.",
+    "twitterTitle": "Leish! — Pasaran Tempahan Kecantikan",
+    "twitterDescription": "Tempah kecantikan. Di mana-mana. Jumpa ahli makeup dan studio seluruh Malaysia.",
+    "eventsTitle": "Acara — Leish!",
+    "eventsDescription": "Jumpa acara kecantikkan, bengkel, dan kelas atas seluruh Malaysia.",
+    "privacyPolicyTitle": "Dasar Privasi — Leish!",
+    "privacyPolicyDescription": "Bagaimana Leish mengumpul, menggunakan, dan melindungi data peribadi anda sesuai dengan Akta Perlindungan Data Peribadi 2010 Malaysia.",
+    "studiosTitle": "Lihat Studio — Leish!",
+    "studiosDescription": "Jumpa studio kecantikkan premium seluruh Malaysia.",
+    "termsOfServiceTitle": "Terma Perkhidmatan — Leish!",
+    "termsOfServiceDescription": "Terma dan peraturan yang mengawal penggunaan anda Leish, pasaran perkhidmatan kecantikan.",
+    "faqTitle": "Soalan Lazim — Leish!",
+    "faqDescription": "Jawapan kepada soalan-soalan biasa mengenai tempahan ahli makeup dan studio di Leish.",
+    "artistsTitle": "Lihat Ahli Makeup — Leish!",
+    "artistsDescription": "Cari dan tempah ahli makeup terbaik Malaysia. Saring mengikut gaya, lokasi, atau bajet.",
+    "contactTitle": "Hubungi Kami — Leish!",
+    "contactDescription": "Hubungi pasukan Leish!",
+    "cancellationPolicyTitle": "Dasar Pembatalan & Pengembalian Wang — Leish!",
+    "cancellationPolicyDescription": "Bagaimana pembatalan, tidak hadir, dan pengembalian wang ditangani untuk tempahan yang dibuat melalui Leish."
   },
   "notFound": {
     "title": "404",
-    "heading": "Page Not Found",
-    "description": "The page you're looking for doesn't exist or has been moved.",
-    "goHome": "Go Home"
+    "heading": "Halaman Tidak Dijumpai",
+    "description": "Halaman yang anda cari tidak wujud atau telah dipindah.",
+    "goHome": "Ke Halaman Utama"
   },
   "artistOnboarding": {
-    "backToDashboard": "Back to Dashboard",
-    "heading": "Artist Onboarding Guide",
-    "subtitle": "Welcome to the Leish! Elite Network",
-    "intro": "Welcome to the Leish! Elite Network. As a luxury beauty marketplace, our goal is to pair Malaysia's premier artists with high-end clients. This guide is designed to help you set up a world-class profile that captures attention and secures bookings.",
-    "phase": "Phase {number}",
-    "phase1Title": "Setting Up Your Professional Identity",
-    "phase2Title": "Optimizing Your Service Suite",
-    "phase3Title": "The Booking & Payment Workflow",
-    "phase4Title": "Excellence in Communication",
-    "checklistHeading": "Onboarding Checklist",
-    "checklist1": "Profile photo uploaded (High-res, professional)",
-    "checklist2": "Bio written (Experience + Philosophy)",
-    "checklist3": "Portfolio gallery (6+ high-quality looks)",
-    "checklist4": "Services & Pricing listed clearly",
-    "checklist5": "Calendar synced and updated",
-    "checklist6": "Bank details verified for payouts",
-    "complete": "Complete!",
-    "supportHeading": "Support & Resources",
-    "supportText": "Need help perfecting your profile?",
-    "hotline": "Artist Hotline",
-    "dashboard": "Artist Dashboard",
-    "footer": "Leish! — Where Artistry Meets Luxury.",
-    "startCta": "Start Profile Wizard",
+    "backToDashboard": "Kembali ke Dashboard",
+    "heading": "Panduan Pengenalan Seniman",
+    "subtitle": "Selamat datang ke Rangkaian Elite Leish!",
+    "intro": "Selamat datang ke Rangkaian Elite Leish! Sebagai tempat perniagaan kecantikan mewah, matlamat kami adalah untuk memasangkan artis terbaik Malaysia dengan klien kelas tinggi. Panduan ini direka untuk membantu anda menyiapkan profil kelas dunia yang menarik perhatian dan menjamin tempahan.",
+    "phase": "Fasa {number}",
+    "phase1Title": "Menyiapkan Identiti Profesional Anda",
+    "phase2Title": "Mengoptimumkan Suite Perkhidmatan Anda",
+    "phase3Title": "Aliran Kerja Tempahan & Pembayaran",
+    "phase4Title": "Kecemerlangan dalam Komunikasi",
+    "checklistHeading": "Senarai Semak Pengenalan",
+    "checklist1": "Foto profil telah dimuat naik (berresolusi tinggi, profesional)",
+    "checklist2": "Bio telah ditulis (Pengalaman + Falsafah)",
+    "checklist3": "Galeri portofolio (6+ penampilan berkualiti tinggi)",
+    "checklist4": "Perkhidmatan & harga disenaraikan dengan jelas",
+    "checklist5": "Kalender disinkronkan dan dikemaskini",
+    "checklist6": "Maklumat bank telah disahkan untuk pembayaran",
+    "complete": "Selesai!",
+    "supportHeading": "Sokongan & Sumber",
+    "supportText": "Perlu bantuan untuk menyempurnakan profil anda?",
+    "hotline": "Hotline Seniman",
+    "dashboard": "Paparan Pemuka Seniman",
+    "footer": "Leish! — Di mana keahlian seni bertemu dengan kemewahan.",
+    "startCta": "Mulakan Penyihir Profil",
     "wizard": {
-      "pageTitle": "Create Your Artist Profile",
-      "pageSubtitle": "Set up your professional presence in five guided steps.",
-      "backToDashboard": "Back to dashboard",
-      "loading": "Loading your profile…",
-      "rejectedTitle": "Profile needs changes",
-      "readonlyNotice": "Your profile is currently under review or already published. Some fields are locked.",
+      "pageTitle": "Cipta profil seni anda",
+      "pageSubtitle": "Siapkan kehadiran profesional anda dalam lima langkah yang diarahkan.",
+      "backToDashboard": "Kembali ke dashboard",
+      "loading": "Memuatkan profil anda…",
+      "rejectedTitle": "Profil memerlukan perubahan",
+      "readonlyNotice": "Profil Anda sedang dalam proses semakan atau telah diterbitkan. Beberapa medan dikunci.",
       "common": {
-        "next": "Continue",
-        "back": "Back",
-        "saveDraft": "Save draft",
-        "submit": "Submit for review",
-        "remove": "Remove",
-        "goToDashboard": "Go to dashboard",
-        "backToHome": "Back to home",
-        "images": "images",
-        "items": "items"
+        "next": "Teruskan",
+        "back": "Kembali",
+        "saveDraft": "Simpan draf",
+        "submit": "Hantar untuk semakan",
+        "remove": "Buang",
+        "goToDashboard": "Pergi ke dashboard",
+        "backToHome": "Kembali ke rumah",
+        "images": "imej",
+        "items": "item"
       },
       "stepper": {
         "basics": {
-          "label": "Basics"
+          "label": "Asas"
         },
         "professional": {
-          "label": "Professional"
+          "label": "Profesional"
         },
         "portfolio": {
-          "label": "Portfolio"
+          "label": "Portofolio"
         },
         "services": {
-          "label": "Services"
+          "label": "Perkhidmatan"
         },
         "review": {
-          "label": "Review"
+          "label": "Semakan"
         }
       },
       "basics": {
-        "heading": "Account & basics",
-        "subtitle": "Tell clients who you are and where you operate.",
-        "name": "Display name",
-        "email": "Email",
-        "phone": "Phone (with country code)",
-        "location": "City",
-        "area": "Area / neighborhood",
-        "district": "District",
-        "profileImage": "Profile image URL",
-        "profileImageHint": "Paste a Cloudinary (or other) URL. We recommend a square headshot."
+        "heading": "Akaun & asas",
+        "subtitle": "Beritahu klien siapa anda dan di mana anda beroperasi.",
+        "name": "Nama paparan",
+        "email": "Emel",
+        "phone": "Telefon (dengan kod negara)",
+        "location": "Bandar",
+        "area": "Area / neighbourhood",
+        "district": "Daerah",
+        "profileImage": "URL imej profil",
+        "profileImageHint": "Tempelkan URL Cloudinary (atau lain). Kami mencadangkan gambar kepala yang berbentuk persegi."
       },
       "professional": {
-        "heading": "Professional details",
-        "subtitle": "Showcase your craft, languages, and the categories you serve.",
-        "bio": "Bio",
-        "bioHint": "40–1000 characters. Highlight your specialty, philosophy, and trust signals.",
-        "experience": "Years of experience",
-        "responseTime": "Typical response time",
-        "categories": "Categories",
-        "specialties": "Specialties",
-        "specialtiesPlaceholder": "e.g. Soft Glam, Airbrush, Bridal",
-        "add": "Add",
-        "languages": "Languages you speak",
-        "operatingDays": "Operating days",
-        "instagram": "Instagram URL",
-        "tiktok": "TikTok URL",
-        "willingToTravel": "I'm willing to travel to clients",
-        "travelCoverage": "Travel coverage"
+        "heading": "Maklumat profesional",
+        "subtitle": "Tunjukkan kemahiran Anda, bahasa yang Anda bicarakan, dan kategori yang Anda perkhidmatkan.",
+        "bio": "Biografi",
+        "bioHint": "40–1000 aksara. Nyatakan keahlian, falsafah, dan isyarat kepercayaan Anda.",
+        "experience": "Tahun pengalaman",
+        "responseTime": "Masa respons biasa",
+        "categories": "Kategori",
+        "specialties": "Keahlian khusus",
+        "specialtiesPlaceholder": "contoh: Soft Glam, Airbrush, Kahwin",
+        "add": "Tambah",
+        "languages": "Bahasa yang Anda bicarakan",
+        "operatingDays": "Hari beroperasi",
+        "instagram": "URL Instagram",
+        "tiktok": "URL TikTok",
+        "willingToTravel": "Saya bersedia berjalan ke tempat klien",
+        "travelCoverage": "Ruang lingkup perjalanan"
       },
       "portfolio": {
-        "heading": "Portfolio",
-        "subtitle": "Upload 1–12 high-quality images. JPG, PNG, WEBP, or HEIC up to 10 MB each.",
-        "label": "Portfolio images",
-        "hint": "Use consistent lighting. Hero image is shown on your public profile.",
-        "dropzone": "Drag and drop, or click to browse",
-        "dropzoneHint": "Up to 12 images, 10 MB each",
-        "uploading": "Uploading {name}…",
-        "counter": "{current} of {max} images added",
+        "heading": "Portofolio",
+        "subtitle": "Muat naik 1–12 imajah berkualiti tinggi. JPG, PNG, WEBP, atau HEIC hingga 10 MB masing-masing.",
+        "label": "Imej portofolio",
+        "hint": "Gunakan pencahayaan yang konsisten. Imej utama akan dipaparkan dalam profil awam Anda.",
+        "dropzone": "Seret dan letak, atau klik untuk menelusuri",
+        "dropzoneHint": "Maksima 12 imajah, 10 MB masing-masing",
+        "uploading": "Memuat naik {name}…",
+        "counter": "{current} daripada {max} imajah telah ditambah",
         "errors": {
-          "invalidType": "Only JPG, PNG, WEBP, or HEIC images are allowed.",
-          "tooLarge": "Each image must be 10 MB or smaller.",
-          "maxReached": "You can upload up to 12 images."
+          "invalidType": "Sahaja imajah berformat JPG, PNG, WEBP, atau HEIC yang dibenarkan.",
+          "tooLarge": "Setiap imajah mesti berukuran 10 MB atau lebih kecil.",
+          "maxReached": "Anda boleh memuat naik hingga 12 imajah."
         },
-        "add": "Add",
-        "dismiss": "Dismiss"
+        "add": "Tambah",
+        "dismiss": "Tutup"
       },
       "services": {
-        "heading": "Services & pricing",
-        "subtitle": "List what you offer. At least one service is required.",
-        "serviceNumber": "Service {number}",
-        "name": "Service name",
-        "price": "Price (RM)",
-        "duration": "Duration (e.g. 90 mins)",
-        "popular": "Mark as popular",
-        "description": "Description",
-        "addService": "Add another service",
-        "startingPrice": "Starting price (RM)",
-        "startingPriceHint": "Shown on cards and search results."
+        "heading": "Perkhidmatan & harga",
+        "subtitle": "Senaraikan apa yang Anda tawarkan. Perlu sekurang-kurangnya satu perkhidmatan.",
+        "serviceNumber": "Perkhidmatan {number}",
+        "name": "Nama perkhidmatan",
+        "price": "Harga (RM)",
+        "duration": "Tempoh (contoh: 90 minit)",
+        "popular": "Andaikan sebagai popular",
+        "description": "Penerangan",
+        "addService": "Tambah perkhidmatan lain",
+        "startingPrice": "Harga permulaan (RM)",
+        "startingPriceHint": "Ditunjukkan pada kad dan hasil carian."
       },
       "review": {
-        "heading": "Review & submit",
-        "subtitle": "Check the details, then send your profile for verification.",
-        "acceptTerms": "I agree to the Leish! Artist Terms and Code of Conduct.",
-        "acceptVerification": "I consent to identity and portfolio verification before my profile is published.",
-        "submittedTitle": "Profile submitted!",
-        "submittedText": "Our team typically reviews new artist profiles within 1–3 business days. We'll notify you by email.",
+        "heading": "Semak & hantar",
+        "subtitle": "Semak butiran, kemudian hantar profil Anda untuk pengesahan.",
+        "acceptTerms": "Saya setuju dengan Syarat Artist Leish! dan Kod Etak.",
+        "acceptVerification": "Saya menyetujui pengesahan identiti dan portofolio sebelum profil saya diterbitkan.",
+        "submittedTitle": "Profil telah dihantar!",
+        "submittedText": "Pasukan kami biasanya akan menilai profil artista baru dalam 1–3 hari bekerja. Kami akan memberi notifikasi melalui emel.",
         "rows": {
-          "name": "Name",
-          "email": "Email",
-          "location": "Location",
-          "experience": "Experience",
-          "bio": "Bio",
-          "portfolio": "Portfolio",
-          "services": "Services"
+          "name": "Nama",
+          "email": "Emel",
+          "location": "Lokasi",
+          "experience": "Pengalaman",
+          "bio": "Biografi",
+          "portfolio": "Portofolio",
+          "services": "Perkhidmatan"
         }
+      },
+      "wizard": {
+        "common": {}
       }
     }
   }

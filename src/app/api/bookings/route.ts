@@ -67,8 +67,7 @@ async function ensureCustomer(
   return { id: newId, name: body.clientName || body.name || "Guest", email };
 }
 
-async function resolveAmount(body: any, artistId: string | null): Promise<string> {
-  if (body.amount) return String(body.amount);
+async function resolveAmount(_body: any, artistId: string | null): Promise<string> {
   if (artistId) {
     const [artist] = await db
       .select({ price: profiles.price })

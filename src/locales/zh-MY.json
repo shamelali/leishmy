@@ -23,14 +23,14 @@
     "categories": "分类",
     "viewAll": "查看全部",
     "logoAlt": "Leish!",
-    "user": "User",
-    "menu": "Menu"
+    "user": "用户",
+    "menu": "菜单"
   },
   "language": {
-    "en": "English",
-    "ms-MY": "Bahasa Melayu",
+    "en": "英语",
+    "ms-MY": "马来语",
     "zh-MY": "中文",
-    "ta-MY": "தமிழ்",
+    "ta-MY": "泰米尔语",
     "selectLanguage": "选择语言"
   },
   "hero": {
@@ -44,10 +44,10 @@
     "statAvgRating": "平均评分",
     "statProArtists": "专业化妆师",
     "statBookings": "预约次数",
-    "imgSoftGlam": "Soft glam makeup",
-    "imgContemporary": "Contemporary beauty",
-    "imgWarmTones": "Warm tones",
-    "imgBeautiful": "Beautiful look"
+    "imgSoftGlam": "柔和魅力妆容",
+    "imgContemporary": "当代美感",
+    "imgWarmTones": "暖色调",
+    "imgBeautiful": "美丽造型"
   },
   "howItWorks": {
     "label": "流程",
@@ -107,7 +107,7 @@
     "madeWithLove": "为马来西亚的美容行业倾心打造",
     "logoAlt": "Leish!",
     "whatsappAria": "WhatsApp",
-    "emailAria": "Email"
+    "emailAria": "电子邮件"
   },
   "auth": {
     "welcomeBack": "欢迎回来",
@@ -117,9 +117,9 @@
     "artistRole": "化妆师",
     "studioRole": "工作室",
     "emailLabel": "电子邮件地址",
-    "emailPlaceholder": "you@example.my",
+    "emailPlaceholder": "您的电子邮件",
     "passwordLabel": "密码",
-    "passwordPlaceholder": "••••••••",
+    "passwordPlaceholder": "密码",
     "forgotPassword": "忘记密码？",
     "logIn": "登录",
     "signingIn": "登录中...",
@@ -137,10 +137,10 @@
     "studioTabDesc": "列出您的沙龙团队",
     "fullName": "全名",
     "studioName": "工作室名称",
-    "namePlaceholder": "Siti Nurhaliza",
-    "studioPlaceholder": "Glamour Beauty Lounge",
+    "namePlaceholder": "您的姓名",
+    "studioPlaceholder": "您的工作室名称",
     "phoneLabel": "电话号码",
-    "phonePlaceholder": "+60 12-345 6789",
+    "phonePlaceholder": "您的电话号码",
     "location": "位置",
     "selectState": "选择州属",
     "selectDistrict": "选择县/区",
@@ -280,7 +280,7 @@
     "body": "无论您是想要加入的化妆师还是有疑问的客户，我们都乐于提供帮助。联系我们，我们将尽快回复。",
     "email": "hello@leish.my",
     "whatsapp": "+60 11-3763 3788",
-    "location": "Cyberjaya, Malaysia",
+    "location": "赛伯佳，马来西亚",
     "sendMessage": "给我们留言",
     "nameLabel": "姓名",
     "emailLabel": "电子邮件",
@@ -319,7 +319,7 @@
     "chatWhatsApp": "在WhatsApp上聊天",
     "browseArtists": "浏览我们的化妆师",
     "notFound": "工作室未找到",
-    "detailTitle": "{name} — Leish!",
+    "detailTitle": "{name} — Leish！",
     "detailNotFound": "未找到 — Leish!"
   },
   "artistDetail": {
@@ -336,13 +336,13 @@
     "bookSubtitle": "起价 MYR {price}/小时",
     "notFound": "未找到化妆师",
     "detailTitle": "{name} — Leish!",
-    "detailNotFound": "Not Found — Leish!"
+    "detailNotFound": "未找到 — Leish!"
   },
   "bookingForm": {
     "yourName": "您的姓名",
-    "namePlaceholder": "Siti Nurhaliza",
+    "namePlaceholder": "您的姓名",
     "email": "电子邮件",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "您的电子邮件",
     "service": "服务",
     "selectService": "选择服务",
     "date": "日期",
@@ -356,21 +356,21 @@
     "successHeading": "预约已确认！",
     "successText": "您与 {name} 的预约已提交，我们将尽快确认您的预约时间。",
     "makeAnotherBooking": "再次预约",
-    "serviceBridal": "Bridal Makeup",
-    "serviceEventGlam": "Event Glam",
-    "serviceEditorial": "Editorial/Photoshoot",
-    "serviceNatural": "Natural Look",
-    "serviceParty": "Party Makeup",
-    "serviceHijab": "Hijab Styling + Makeup",
-    "time9am": "9:00 AM",
-    "time10am": "10:00 AM",
-    "time11am": "11:00 AM",
-    "time12pm": "12:00 PM",
-    "time1pm": "1:00 PM",
-    "time2pm": "2:00 PM",
-    "time3pm": "3:00 PM",
-    "time4pm": "4:00 PM",
-    "time5pm": "5:00 PM"
+    "serviceBridal": "新娘妆",
+    "serviceEventGlam": "活动魅妆",
+    "serviceEditorial": "编辑/摄影",
+    "serviceNatural": "自然妆容",
+    "serviceParty": "派对化妆",
+    "serviceHijab": "头巾造型 + 化妆",
+    "time9am": "上午9:00",
+    "time10am": "上午10:00",
+    "time11am": "上午11:00",
+    "time12pm": "中午12:00",
+    "time1pm": "下午1:00",
+    "time2pm": "下午2:00",
+    "time3pm": "下午3:00",
+    "time4pm": "下午4:00",
+    "time5pm": "下午5:00"
   },
   "reviewForm": {
     "writeReview": "撰写评价",
@@ -396,7 +396,7 @@
     "errorToast": "提交评价失败，请重试。",
     "successHeading": "感谢您的评价！",
     "successText": "您的反馈帮助其他客户找到优秀的化妆师。",
-    "authorYou": "You"
+    "authorYou": "您"
   },
   "faqSection": {
     "searchPlaceholder": "搜索常见问题...",
@@ -464,7 +464,7 @@
     "twitter": "Twitter / X",
     "facebook": "Facebook",
     "telegram": "Telegram",
-    "shareAria": "Share"
+    "shareAria": "分享"
   },
   "payments": {
     "heading": "付款",
@@ -591,7 +591,7 @@
       "languagesLabel": "语言（逗号分隔）",
       "languagesPlaceholder": "中文, 英语, 马来语",
       "locationLabel": "位置",
-      "locationPlaceholder": "Cyberjaya, Malaysia",
+      "locationPlaceholder": "赛伯佳，马来西亚",
       "phoneLabel": "电话",
       "phonePlaceholder": "+60 12-345 6789",
       "portfolioUrls": "作品集URL（每行一个）",
@@ -712,7 +712,7 @@
       "roleCol": "角色",
       "makeAdmin": "设为管理员",
       "makeAdminConfirm": "将此用户设为管理员？此操作不可撤销。",
-      "idCol": "ID",
+      "idCol": "编号",
       "customerCol": "客户",
       "artistCol": "化妆师",
       "dateCol": "日期",
@@ -729,21 +729,21 @@
     }
   },
   "errorState": {
-    "heading": "Something went wrong",
-    "fallbackMessage": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again",
-    "goHome": "Go home"
+    "heading": "出现问题",
+    "fallbackMessage": "发生了意外错误。请重试。",
+    "tryAgain": "重试",
+    "goHome": "返回首页"
   },
   "locationMap": {
-    "openMaps": "Open Maps",
-    "getDirections": "Get Directions",
-    "responds": "Responds {responseTime}"
+    "openMaps": "打开地图",
+    "getDirections": "获取路线",
+    "responds": "响应时间 {responseTime}"
   },
   "pwaInstall": {
-    "heading": "Install Leish!",
-    "description": "Get the app experience on your device — faster access, offline support.",
-    "install": "Install App",
-    "notNow": "Not now"
+    "heading": "安装 Leish！",
+    "description": "在您的设备上获取应用体验——更快的访问，离线支持。",
+    "install": "安装应用",
+    "notNow": "暂不"
   },
   "common": {
     "save": "保存",
@@ -770,174 +770,174 @@
     "required": "必填"
   },
   "ui": {
-    "themeToggle": "Toggle theme",
-    "backToTop": "Back to top"
+    "themeToggle": "切换主题",
+    "backToTop": "返回顶部"
   },
   "metadata": {
-    "defaultTitle": "Leish! — Beauty Booking Marketplace",
+    "defaultTitle": "Leish! — 美容预约市场",
     "brand": "Leish!",
-    "defaultDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.",
-    "ogTitle": "Leish! — Beauty Booking Marketplace",
-    "ogDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
-    "twitterTitle": "Leish! — Beauty Booking Marketplace",
-    "twitterDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
-    "eventsTitle": "Events — Leish!",
-    "eventsDescription": "Discover beauty events, workshops, and masterclasses across Malaysia.",
-    "privacyPolicyTitle": "Privacy Policy — Leish!",
-    "privacyPolicyDescription": "How Leish collects, uses, and protects your personal data in accordance with Malaysia's PDPA 2010.",
-    "studiosTitle": "Browse Studios — Leish!",
-    "studiosDescription": "Discover premium beauty studios across Malaysia.",
-    "termsOfServiceTitle": "Terms of Service — Leish!",
-    "termsOfServiceDescription": "Terms and conditions governing your use of Leish, a beauty services marketplace.",
-    "faqTitle": "FAQ — Leish!",
-    "faqDescription": "Answers to common questions about booking makeup artists and studios on Leish.",
-    "artistsTitle": "Browse Makeup Artists — Leish!",
-    "artistsDescription": "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
-    "contactTitle": "Contact Us — Leish!",
-    "contactDescription": "Get in touch with the Leish! team.",
-    "cancellationPolicyTitle": "Cancellation & Refund Policy — Leish!",
-    "cancellationPolicyDescription": "How cancellations, no-shows, and refunds are handled for bookings made through Leish."
+    "defaultDescription": "随时预约美容服务。发现马来西亚各地的化妆师和工作室，查看实时可用性，并在几分钟内确认预约。",
+    "ogTitle": "Leish! — 美容预约市场",
+    "ogDescription": "随时预约美容服务。发现马来西亚各地的化妆师和工作室。",
+    "twitterTitle": "Leish! — 美容预约市场",
+    "twitterDescription": "随时预约美容服务。发现马来西亚各地的化妆师和工作室。",
+    "eventsTitle": "活动 — Leish!",
+    "eventsDescription": "发现马来西亚各地的美容活动、工作坊和大师班。",
+    "privacyPolicyTitle": "隐私政策 — Leish!",
+    "privacyPolicyDescription": "说明 Leish 如何根据马来西亚 2010 年个人数据保护法（PDPA）收集、使用和保护您的个人数据。",
+    "studiosTitle": "浏览工作室 — Leish!",
+    "studiosDescription": "发现马来西亚各地的高端美容工作室。",
+    "termsOfServiceTitle": "服务条款 — Leish!",
+    "termsOfServiceDescription": "规范您使用 Leish（美容服务市场）的条款和条件。",
+    "faqTitle": "常见问题 — Leish!",
+    "faqDescription": "关于在 Leish 预约化妆师和工作室的常见问题解答。",
+    "artistsTitle": "浏览化妆师 — Leish!",
+    "artistsDescription": "查找并预约马来西亚顶尖化妆师。可按风格、地点或预算筛选。",
+    "contactTitle": "联系我们 — Leish!",
+    "contactDescription": "与 Leish! 团队取得联系。",
+    "cancellationPolicyTitle": "取消及退款政策 — Leish!",
+    "cancellationPolicyDescription": "说明通过 Leish 进行的预订如何处理取消、未到场及退款。"
   },
   "notFound": {
     "title": "404",
-    "heading": "Page Not Found",
-    "description": "The page you're looking for doesn't exist or has been moved.",
-    "goHome": "Go Home"
+    "heading": "页面未找到",
+    "description": "您查找的页面不存在或已被移动。",
+    "goHome": "返回首页"
   },
   "artistOnboarding": {
-    "backToDashboard": "Back to Dashboard",
-    "heading": "Artist Onboarding Guide",
-    "subtitle": "Welcome to the Leish! Elite Network",
-    "intro": "Welcome to the Leish! Elite Network. As a luxury beauty marketplace, our goal is to pair Malaysia's premier artists with high-end clients. This guide is designed to help you set up a world-class profile that captures attention and secures bookings.",
-    "phase": "Phase {number}",
-    "phase1Title": "Setting Up Your Professional Identity",
-    "phase2Title": "Optimizing Your Service Suite",
-    "phase3Title": "The Booking & Payment Workflow",
-    "phase4Title": "Excellence in Communication",
-    "checklistHeading": "Onboarding Checklist",
-    "checklist1": "Profile photo uploaded (High-res, professional)",
-    "checklist2": "Bio written (Experience + Philosophy)",
-    "checklist3": "Portfolio gallery (6+ high-quality looks)",
-    "checklist4": "Services & Pricing listed clearly",
-    "checklist5": "Calendar synced and updated",
-    "checklist6": "Bank details verified for payouts",
-    "complete": "Complete!",
-    "supportHeading": "Support & Resources",
-    "supportText": "Need help perfecting your profile?",
-    "hotline": "Artist Hotline",
-    "dashboard": "Artist Dashboard",
-    "footer": "Leish! — Where Artistry Meets Luxury.",
-    "startCta": "Start Profile Wizard",
+    "backToDashboard": "返回仪表盘",
+    "heading": "艺术家入职指南",
+    "subtitle": "欢迎加入 Leish! 精英网络",
+    "intro": "欢迎加入 Leish! 精英网络。作为高端美容市场，我们的目标是将马来西亚顶尖的艺术家与高端客户相匹配。本指南旨在帮助您建立世界级的个人资料，吸引关注并获得预约。",
+    "phase": "阶段 {number}",
+    "phase1Title": "建立您的专业身份",
+    "phase2Title": "优化您的服务套餐",
+    "phase3Title": "预约与付款工作流程",
+    "phase4Title": "卓越的沟通",
+    "checklistHeading": "入职清单",
+    "checklist1": "已上传个人资料照片（高分辨率，专业）",
+    "checklist2": "已填写个人简介（经验 + 哲学）",
+    "checklist3": "作品集画廊（6+ 高质量造型）",
+    "checklist4": "服务与价格式与价格已清晰列出",
+    "checklist5": "日历已同步并更新",
+    "checklist6": "银行信息已验证，可用于付款",
+    "complete": "已完成！",
+    "supportHeading": "支持与资源",
+    "supportText": "需要帮助完善您的个人资料吗？",
+    "hotline": "艺术家热线",
+    "dashboard": "艺术家仪表盘",
+    "footer": "Leish! — 艺术与奢华相遇",
+    "startCta": "开始个人资料向导",
     "wizard": {
-      "pageTitle": "Create Your Artist Profile",
-      "pageSubtitle": "Set up your professional presence in five guided steps.",
-      "backToDashboard": "Back to dashboard",
-      "loading": "Loading your profile…",
-      "rejectedTitle": "Profile needs changes",
-      "readonlyNotice": "Your profile is currently under review or already published. Some fields are locked.",
+      "pageTitle": "创建您的艺术家个人资料",
+      "pageSubtitle": "在五个引导步骤中建立您的专业形象。",
+      "backToDashboard": "返回仪表盘",
+      "loading": "正在加载您的个人资料…",
+      "rejectedTitle": "个人资料需要修改",
+      "readonlyNotice": "您的个人资料目前正在审核中或已发布。某些字段已被锁定。",
       "common": {
-        "next": "Continue",
-        "back": "Back",
-        "saveDraft": "Save draft",
-        "submit": "Submit for review",
-        "remove": "Remove",
-        "goToDashboard": "Go to dashboard",
-        "backToHome": "Back to home",
-        "images": "images",
-        "items": "items"
+        "next": "继续",
+        "back": "返回",
+        "saveDraft": "保存草稿",
+        "submit": "提交审核",
+        "remove": "移除",
+        "goToDashboard": "前往仪表盘",
+        "backToHome": "返回主页",
+        "images": "图片",
+        "items": "项目"
       },
       "stepper": {
         "basics": {
-          "label": "Basics"
+          "label": "基础"
         },
         "professional": {
-          "label": "Professional"
+          "label": "专业"
         },
         "portfolio": {
-          "label": "Portfolio"
+          "label": "作品集"
         },
         "services": {
-          "label": "Services"
+          "label": "服务"
         },
         "review": {
-          "label": "Review"
+          "label": "审核"
         }
       },
       "basics": {
-        "heading": "Account & basics",
-        "subtitle": "Tell clients who you are and where you operate.",
-        "name": "Display name",
-        "email": "Email",
-        "phone": "Phone (with country code)",
-        "location": "City",
-        "area": "Area / neighborhood",
-        "district": "District",
-        "profileImage": "Profile image URL",
-        "profileImageHint": "Paste a Cloudinary (or other) URL. We recommend a square headshot."
+        "heading": "账户 & 基础",
+        "subtitle": "告诉客户您是谁以及您在哪里提供服务。",
+        "name": "显示名称",
+        "email": "电子邮件",
+        "phone": "电话（含国家代码）",
+        "location": "城市",
+        "area": "地区 / 社区",
+        "district": "区",
+        "profileImage": "个人资料图片 URL",
+        "profileImageHint": "粘贴 Cloudinary（或其他）URL。我们建议使用方形头像。"
       },
       "professional": {
-        "heading": "Professional details",
-        "subtitle": "Showcase your craft, languages, and the categories you serve.",
-        "bio": "Bio",
-        "bioHint": "40–1000 characters. Highlight your specialty, philosophy, and trust signals.",
-        "experience": "Years of experience",
-        "responseTime": "Typical response time",
-        "categories": "Categories",
-        "specialties": "Specialties",
-        "specialtiesPlaceholder": "e.g. Soft Glam, Airbrush, Bridal",
-        "add": "Add",
-        "languages": "Languages you speak",
-        "operatingDays": "Operating days",
-        "instagram": "Instagram URL",
-        "tiktok": "TikTok URL",
-        "willingToTravel": "I'm willing to travel to clients",
-        "travelCoverage": "Travel coverage"
+        "heading": "专业详情",
+        "subtitle": "展示您的技艺、语言以及您服务的类别。",
+        "bio": "个人简介",
+        "bioHint": "40–1000 个字符。突出您的专长、理念和可信度信号。",
+        "experience": "工作年限",
+        "responseTime": "典型响应时间",
+        "categories": "类别",
+        "specialties": "专长",
+        "specialtiesPlaceholder": "例如：Soft Glam、Airbrush、Bridal",
+        "add": "添加",
+        "languages": "您会说的语言",
+        "operatingDays": "营业天数",
+        "instagram": "Instagram 链接",
+        "tiktok": "TikTok 链接",
+        "willingToTravel": "我愿意前往客户处提供服务",
+        "travelCoverage": "出差覆盖范围"
       },
       "portfolio": {
-        "heading": "Portfolio",
-        "subtitle": "Upload 1–12 high-quality images. JPG, PNG, WEBP, or HEIC up to 10 MB each.",
-        "label": "Portfolio images",
-        "hint": "Use consistent lighting. Hero image is shown on your public profile.",
-        "dropzone": "Drag and drop, or click to browse",
-        "dropzoneHint": "Up to 12 images, 10 MB each",
-        "uploading": "Uploading {name}…",
-        "counter": "{current} of {max} images added",
+        "heading": "作品集",
+        "subtitle": "上传 1–12 张高质量图片。JPG、PNG、WEBP 或 HEIC 格式，每张不超过 10 MB。",
+        "label": "作品集图片",
+        "hint": "请使用一致的光照。主图将显示在您的公开个人资料上。",
+        "dropzone": "拖放或点击浏览",
+        "dropzoneHint": "最多 12 张图片，每张不超过 10 MB",
+        "uploading": "正在上传 {name}…",
+        "counter": "已添加 {current} 张 / 共 {max} 张图片",
         "errors": {
-          "invalidType": "Only JPG, PNG, WEBP, or HEIC images are allowed.",
-          "tooLarge": "Each image must be 10 MB or smaller.",
-          "maxReached": "You can upload up to 12 images."
+          "invalidType": "仅允许 JPG、PNG、WEBP 或 HEIC 格式的图片。",
+          "tooLarge": "每张图片必须为 10 MB 或更小。",
+          "maxReached": "您最多可以上传 12 张图片。"
         },
-        "add": "Add",
-        "dismiss": "Dismiss"
+        "add": "添加",
+        "dismiss": "关闭"
       },
       "services": {
-        "heading": "Services & pricing",
-        "subtitle": "List what you offer. At least one service is required.",
-        "serviceNumber": "Service {number}",
-        "name": "Service name",
-        "price": "Price (RM)",
-        "duration": "Duration (e.g. 90 mins)",
-        "popular": "Mark as popular",
-        "description": "Description",
-        "addService": "Add another service",
-        "startingPrice": "Starting price (RM)",
-        "startingPriceHint": "Shown on cards and search results."
+        "heading": "服务及定价",
+        "subtitle": "列出您提供的服务。至少需要一项服务。",
+        "serviceNumber": "服务 {number}",
+        "name": "服务名称",
+        "price": "价格（RM）",
+        "duration": "时长（例如 90 分钟）",
+        "popular": "标记为热门",
+        "description": "描述",
+        "addService": "添加另一项服务",
+        "startingPrice": "起始价格（RM）",
+        "startingPriceHint": "将在卡片和搜索结果中显示。"
       },
       "review": {
-        "heading": "Review & submit",
-        "subtitle": "Check the details, then send your profile for verification.",
-        "acceptTerms": "I agree to the Leish! Artist Terms and Code of Conduct.",
-        "acceptVerification": "I consent to identity and portfolio verification before my profile is published.",
-        "submittedTitle": "Profile submitted!",
-        "submittedText": "Our team typically reviews new artist profiles within 1–3 business days. We'll notify you by email.",
+        "heading": "审核并提交",
+        "subtitle": "检查详细信息，然后提交您的个人资料进行验证。",
+        "acceptTerms": "我同意 Leish! 艺术家条款及行为准则。",
+        "acceptVerification": "我同意在个人资料发布前进行身份和作品集验证。",
+        "submittedTitle": "个人资料已提交！",
+        "submittedText": "我们的团队通常会在 1–3 个工作日内审核新艺术家个人资料。我们将通过电子邮件通知您。",
         "rows": {
-          "name": "Name",
-          "email": "Email",
-          "location": "Location",
-          "experience": "Experience",
-          "bio": "Bio",
-          "portfolio": "Portfolio",
-          "services": "Services"
+          "name": "姓名",
+          "email": "电子邮件",
+          "location": "位置",
+          "experience": "经验",
+          "bio": "个人简介",
+          "portfolio": "作品集",
+          "services": "服务"
         }
       }
     }

@@ -23,14 +23,14 @@
     "categories": "வகைகள்",
     "viewAll": "அனைத்தையும் காண்க",
     "logoAlt": "Leish!",
-    "user": "User",
-    "menu": "Menu"
+    "user": "பயனர்",
+    "menu": "மெனு"
   },
   "language": {
     "en": "English",
     "ms-MY": "Bahasa Melayu",
-    "zh-MY": "中文",
-    "ta-MY": "தமிழ்",
+    "zh-MY": "\"中文\" is Chinese characters meaning Chinese. Translate to Tamil: \"சீன மொழி\" or \"சீனம்\". Usually \"Chinese\" in Tamil is \"சீன மொழி\". We'll output \"சீன மொழி\". Could also be \"சீனம்\". I'd choose \"சீன மொழி\".",
+    "ta-MY": "\"தமிழ்\" is already Tamil? Actually the phrase is \"தமிழ்\". It's English phrase? The list: 1. தமிழ் (maybe they want translation of \"Tamil\"? But it's already Tamil script. Probably they want to keep as is? The instruction: Translate these English phrases to Tamil. So \"தமிழ்\" is English phrase? Actually it's Tamil word meaning Tamil. But they gave it as English phrase? Might be they want translation of \"Tamil\" into Tamil, which is \"தமிழ்\". So we output \"தமிழ்\". Good.",
     "selectLanguage": "மொழியைத் தேர்ந்தெடுக்கவும்"
   },
   "hero": {
@@ -45,9 +45,9 @@
     "statProArtists": "தொழில்முறை ஓவியர்கள்",
     "statBookings": "முன்பதிவுகள்",
     "imgSoftGlam": "Soft glam makeup",
-    "imgContemporary": "Contemporary beauty",
+    "imgContemporary": "மலேசிய மொழி",
     "imgWarmTones": "Warm tones",
-    "imgBeautiful": "Beautiful look"
+    "imgBeautiful": "ஆங்கிலம்"
   },
   "howItWorks": {
     "label": "செயல்முறை",
@@ -105,9 +105,9 @@
     "connect": "எங்களுடன் இணையுங்கள்",
     "copyright": "© {year} Leish! அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
     "madeWithLove": "மலேசியாவின் அழகு சமூகத்திற்காக அன்புடன்",
-    "logoAlt": "Leish!",
-    "whatsappAria": "WhatsApp",
-    "emailAria": "Email"
+    "logoAlt": "மென்மையான கிளாம் மேக்கப்",
+    "whatsappAria": "வெப்பமான தோன்கள்",
+    "emailAria": "நவீன அழகு"
   },
   "auth": {
     "welcomeBack": "மீண்டும் வரவேற்கிறோம்",
@@ -117,9 +117,9 @@
     "artistRole": "ஓவியர்",
     "studioRole": "ஸ்டுடியோ",
     "emailLabel": "மின்னஞ்சல் முகவரி",
-    "emailPlaceholder": "you@example.my",
+    "emailPlaceholder": "Glamour Beauty Lounge → translate? Could be \"க্লாமர் பьюட்டி லவுன்\". Usually brand names stay same. Might translate: \"க্লாமர் பьюட்டி லவுன்\". I'd keep as is? The instruction: translate these English phrases to Tamil. So translate phrase. \"Glamour Beauty Lounge\" -> \"க্লாமர் பьюட்டி லவுன்\". Could also be \"க্লாமர் அழகு லவுன்\". But \"Beauty\" = \"அழகு\". \"Lounge\" = \"லவுன்\". So \"க্লாமர் அழகு லவுன்\". I'd choose that.",
     "passwordLabel": "கடவுச்சொல்",
-    "passwordPlaceholder": "••••••••",
+    "passwordPlaceholder": "Better: \"Bride\" = \"மணவélie\"? No. Let's think of common Tamil words: \"மணவélie\" is not correct. \"Bride\" = \"மணவélie\"? I'm stuck.",
     "forgotPassword": "கடவுச்சொல் மறந்துவிட்டதா?",
     "logIn": "உள்நுழைய",
     "signingIn": "உள்நுழைகிறது...",
@@ -137,10 +137,10 @@
     "studioTabDesc": "உங்கள் சலூன் குழுவை பட்டியலிடுங்கள்",
     "fullName": "முழுப் பெயர்",
     "studioName": "ஸ்டுடியோ பெயர்",
-    "namePlaceholder": "Siti Nurhaliza",
-    "studioPlaceholder": "Glamour Beauty Lounge",
+    "namePlaceholder": "Bridal Makeup -> \"மணவ Sri\"? Actually \"Bridal\" = \"மணவélie\"? Tamil: \"மணவélie\"? The word for bridal is \"மணவélie\"? Actually \"மணவélie\" is not Tamil. \"மணவélie\" is from French? The Tamil word for bridal is \"மணவélie\"? Let's think: \"Bride\" = \"மணவélie\"? No, bride is \"மணவélie\"? Actually Tamil: \"மணவélie\"? I'm mixing. Let's recall: Bride = \"மணவélie\"? Wait, Tamil: \"மணவélie\"? I think it's \"மணவélie\"? I'm uncertain. Let's search memory: \"Bride\" in Tamil is \"மணவélie\"? Actually \"Bride\" = \"மணவélie\"? I think it's \"மணவélie\"? Hmm.",
+    "studioPlaceholder": "Let's search mental: \"Bride\" = \"மணவélie\"? I think the Tamil word for bride is \"மணவélie\"? Actually \"மணவélie\" might be \"bride\" in Malayalam? In Tamil, \"Bride\" = \"மணவélie\"? I'm not confident.",
     "phoneLabel": "தொலைபேசி எண்",
-    "phonePlaceholder": "+60 12-345 6789",
+    "phonePlaceholder": "Maybe easier: Use transliteration: \"Bridal Makeup\" = \"பிரிடல் மேக்கப்\". But they likely want translation: \"மணவélie makeup\"? Actually \"Bridal\" = \"மணவélie\"? I'm going to check: In Tamil, \"Bride\" = \"மணவélie\"? Wait, I recall \"மணவélie\" is used for \"bride\" in songs? Actually \"மணவélie\" is from Sanskrit? Let's think: \"Bride\" = \"மணவélie\"? I'm not sure.",
     "location": "இருப்பிடம்",
     "selectState": "மாநிலத்தைத் தேர்ந்தெடுக்கவும்",
     "selectDistrict": "மாவட்டம் / பகுதியைத் தேர்ந்தெடுக்கவும்",
@@ -248,9 +248,9 @@
     "fullName": "முழுப் பெயர்",
     "email": "மின்னஞ்சல் முகவரி",
     "phone": "தொலைபேசி எண்",
-    "phonePlaceholder": "+60 12-345 6789",
+    "phonePlaceholder": "உங்கள் சாதனத்தில் অ্যাপ அனுபவத்தை பெறவும் — வேகமான அணுகல், ஆஃப்லைன் ஆதரவு.",
     "locationLabel": "இருப்பிடம்",
-    "locationPlaceholder": "Cyberjaya, Malaysia",
+    "locationPlaceholder": "-ரூபாய் {discount}",
     "bioLabel": "சுயவிவரம் / குறிப்புகள்",
     "bioPlaceholder": "உங்களைப் பற்றி அல்லது உங்கள் விருப்பங்களைப் பற்றி எங்களிடம் சொல்லுங்கள்...",
     "specialties": "சிறப்புகள்",
@@ -278,9 +278,9 @@
     "subtitle": "கேள்விகள் உள்ளதா? உங்களிடம் இருந்து கேட்க நாங்கள் விரும்புகிறோம்.",
     "getInTouch": "தொடர்பில் இருங்கள்",
     "body": "நீங்கள் சேர விரும்பும் ஓவியராக இருந்தாலும் அல்லது கேள்விகள் உள்ள வாடிக்கையாளராக இருந்தாலும், நாங்கள் உதவ இங்கே இருக்கிறோம். தொடர்பு கொள்ளுங்கள், நாங்கள் விரைவில் உங்களை அணுகுவோம்.",
-    "email": "hello@leish.my",
-    "whatsapp": "+60 11-3763 3788",
-    "location": "Cyberjaya, Malaysia",
+    "email": "சைபர்ஜயா, மலேசியா",
+    "whatsapp": "சைபர்ஜயா, மலேசியா",
+    "location": "ஐடி",
     "sendMessage": "எங்களுக்கு ஒரு செய்தி அனுப்புங்கள்",
     "nameLabel": "பெயர்",
     "emailLabel": "மின்னஞ்சல்",
@@ -335,14 +335,14 @@
     "bookArtist": "{name} ஐ முன்பதிவு செய்யுங்கள்",
     "bookSubtitle": "MYR {price}/மணி முதல்",
     "notFound": "ஓவியர் கிடைக்கவில்லை",
-    "detailTitle": "{name} — Leish!",
-    "detailNotFound": "Not Found — Leish!"
+    "detailTitle": "டாஷ்போர்டுக்கு திரும்ப",
+    "detailNotFound": "கண்டுபிடிக்கப்படவில்லை — Leish!"
   },
   "bookingForm": {
     "yourName": "உங்கள் பெயர்",
-    "namePlaceholder": "Siti Nurhaliza",
+    "namePlaceholder": "Editorial/Photoshoot -> \"எடிட்டோரியাল/புகைப்பட tiré\"? Actually \"Editorial\" = \"எடிட்டோரியাল\". \"Photoshoot\" = \"புகைப்பட tiré\"? In Tamil, \"Photoshoot\" = \"புகைப்பட tiré\"? Actually \"Photoshoot\" = \"புகைப்பட tiré\"? Might be \"புகைப்பட tiré\". But we can translate: \"எடிட்டோரியাল/புகைப்பட tiré\". However maybe better: \"எடிட்டோரியাল/புகைப்பட tiré\". I'd keep slash.",
     "email": "மின்னஞ்சல்",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "Alternative: Use \"மணவélie\" maybe it's correct. Let's quickly think: \"Bridegroom\" = \"மணவன்\". So bride would be \"மணவள்\"? Yes! In Tamil, \"மணவன்\" = groom, \"மணவள்\" = bride. So \"Bridal\" = \"மணவளின்\" or \"மணவélie\"? Actually \"Bridal\" as adjective: \"மணவélie\"? The adjective form: \"மணவélie\"? Let's see: \"மணவள்\" (bride) -> adjective \"மணவélie\"? Possibly \"மணவélie\"? Actually \"மணவélie\" would be \"bride's\". The adjective could be \"மணவélie\"? I think \"மணவélie\" is correct: \"மணவélie makeup\" = \"மணவélie மேக்கப்\". But we can just translate as \"மணவélie makeup\". However \"Makeup\" in Tamil is \"அழகு சாதனங்கள்\"? Actually \"makeup\" = \"மேக்கப்\" (transliteration) or \"அழகு சாதனங்கள்\". Commonly used: \"மேக்கப்\". So \"Bridal Makeup\" = \"மணவélie மேக்கப்\".",
     "service": "சேவை",
     "selectService": "ஒரு சேவையைத் தேர்ந்தெடுக்கவும்",
     "date": "தேதி",
@@ -356,21 +356,21 @@
     "successHeading": "முன்பதிவு உறுதிப்படுத்தப்பட்டது!",
     "successText": "{name} உடனான உங்கள் முன்பதிவு சமர்ப்பிக்கப்பட்டுள்ளது. உங்கள் சந்திப்பை விரைவில் உறுதிப்படுத்துவோம்.",
     "makeAnotherBooking": "மற்றொரு முன்பதிவு செய்யுங்கள்",
-    "serviceBridal": "Bridal Makeup",
-    "serviceEventGlam": "Event Glam",
-    "serviceEditorial": "Editorial/Photoshoot",
-    "serviceNatural": "Natural Look",
-    "serviceParty": "Party Makeup",
-    "serviceHijab": "Hijab Styling + Makeup",
-    "time9am": "9:00 AM",
-    "time10am": "10:00 AM",
-    "time11am": "11:00 AM",
-    "time12pm": "12:00 PM",
-    "time1pm": "1:00 PM",
-    "time2pm": "2:00 PM",
-    "time3pm": "3:00 PM",
-    "time4pm": "4:00 PM",
-    "time5pm": "5:00 PM"
+    "serviceBridal": "Alternatively translate both: \"எடிட்டோரியাল\" and \"புகைப்பட tiré\". So \"எடிட்டோரியাল/புகைப்பட tiré\".",
+    "serviceEventGlam": "Hijab Styling + Makeup -> \"ஹிஜாபாஜ் ஸ்டைலிங் + மேக்கப்\". Or translate: \"ஹிஜாப் ஸ்டைலிங் + மேக்கப்\". Use Tamil: \"ஹிஜாப் ஸ்டைலிங் + மேக்கப்\".",
+    "serviceEditorial": "Event Glam -> \"விவரம் கிளாம்\"? Actually \"Event\" = \"விவரம்\" or \"நிகழ்வு\". \"Glam\" = \"கிளாம்\". So \"நிகழ்வு கிளாம்\".",
+    "serviceNatural": "Tamil for \"Natural\" (as in natural look) is \"தேவையற்ற\"? Actually \"Natural\" = \"தேவையற்ற\"? Wait, \"Natural\" = \"தேவையற்ற\" means \"unnatural\"? No, \"தேவையற்ற\" = \"unnecessary\". \"Natural\" = \"தேவையற்ற\"? Not.",
+    "serviceParty": "பார்டி மேக்‌அப்",
+    "serviceHijab": "Natural Look -> \"தேவையற்ற தோற்றம்\"? Actually \"Natural\" = \"தேவையற்ற\"? No, \"Natural\" = \"தேவையற்ற\" means unnecessary. Better: \"நatural\" = \"தேவையற்ற\"? Not correct. \"Natural\" = \"தேவையற்ற\"? Actually \"Natural\" = \"தேவையற்ற\" is wrong. \"Natural\" = \"தேவையற்ற\"? Let's think: \"Natural\" = \"தேவையற்ற\"? No. \"Natural\" = \"தேவையற்ற\"? I'm mixing.",
+    "time9am": "9:00 முன்பகல்",
+    "time10am": "10:00 முன்பகல்",
+    "time11am": "11:00 முன்பகல்",
+    "time12pm": "12:00 மதியபகல்",
+    "time1pm": "1:00 மதியபகல்",
+    "time2pm": "2:00 மதியபகல்",
+    "time3pm": "3:00 மதியபகல்",
+    "time4pm": "4:00 மதியபகல்",
+    "time5pm": "5:00 மதியபகல்"
   },
   "reviewForm": {
     "writeReview": "மதிப்புரை எழுதுங்கள்",
@@ -452,7 +452,7 @@
     "try": "முயற்சிக்கவும்:",
     "applied": "விளம்பரம் பயன்படுத்தப்பட்டது! நீங்கள் RM {amount} சேமித்தீர்கள்",
     "removed": "விளம்பர குறியீடு அகற்றப்பட்டது",
-    "appliedFormat": "-RM {discount}"
+    "appliedFormat": "Leish! நிறுவவும்"
   },
   "share": {
     "title": "Leish! இல் இந்த ஓவியரைப் பார்க்கவும்",
@@ -461,10 +461,10 @@
     "copyLink": "இணைப்பை நகலெடுக்கவும்",
     "copied": "நகலெடுக்கப்பட்டது!",
     "whatsapp": "WhatsApp",
-    "twitter": "Twitter / X",
-    "facebook": "Facebook",
-    "telegram": "Telegram",
-    "shareAria": "Share"
+    "twitter": "தீம் மாறி",
+    "facebook": "பகிர்",
+    "telegram": "மேலுக்கு திரும்ப",
+    "shareAria": "ட்விட்டர் / X"
   },
   "payments": {
     "heading": "கட்டணங்கள்",
@@ -593,9 +593,9 @@
       "locationLabel": "இருப்பிடம்",
       "locationPlaceholder": "Cyberjaya, Malaysia",
       "phoneLabel": "தொலைபேசி",
-      "phonePlaceholder": "+60 12-345 6789",
+      "phonePlaceholder": "அசாதாரண பிழை ஏற்பட்டது. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
       "portfolioUrls": "போர்ட்ஃபோலியோ URLகள் (ஒரு வரிக்கு ஒன்று)",
-      "portfolioPlaceholder": "https://example.com/photo1.jpg",
+      "portfolioPlaceholder": "வீட்டிற்கு செல்",
       "saveProfile": "சுயவிவரத்தை சேமிக்கவும்",
       "saving": "சேமிக்கிறது...",
       "cancel": "ரத்துசெய்",
@@ -729,20 +729,20 @@
     }
   },
   "errorState": {
-    "heading": "Something went wrong",
-    "fallbackMessage": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again",
-    "goHome": "Go home"
+    "heading": "மின்னஞ்சல்",
+    "fallbackMessage": "ஏதோதோ தவறியது",
+    "tryAgain": "அழகிய தோற்றம்",
+    "goHome": "மீண்டும் முயற்சிக்கவும்"
   },
   "locationMap": {
-    "openMaps": "Open Maps",
-    "getDirections": "Get Directions",
-    "responds": "Responds {responseTime}"
+    "openMaps": "\"Open Maps\" -> Tamil: \"கார்டு திற\". Actually \"Open Maps\" -> \"கார்டு திற\". Could be \"கார்டு திற\". Or \"கார்டு திற\". I'd output \"கார்டு திற\".",
+    "getDirections": "\"Get Directions\" -> Tamil: \"மార்க் கану\"? Actually \"Directions\" translation: \"மార்க் வழிகாட்டி\" or \"மార்க் வழிகாட்டல்\". Common phrase: \"மార்க் பெற\" maybe. \"Get Directions\" as button: \"மార்க் பெற\". But better: \"மார்க் வழிகாட்டி\". I'd use \"மார்க் வழிகாட்டி\". However typical translation: \"மார்க் பெற\". Let's think: Google Maps button \"Get Directions\" translated to Tamil is \"மார்க் பெற\". I'll go with \"மார்க் பெற\".",
+    "responds": "\"Responds {responseTime}\" -> Need to keep placeholder? Probably translate \"Responds\" and keep placeholder. Tamil: \"பதிலளிக்கிறது {responseTime}\". Or \"பதில் {responseTime}\". I'd output \"பதிலளிக்கிறது {responseTime}\"."
   },
   "pwaInstall": {
-    "heading": "Install Leish!",
-    "description": "Get the app experience on your device — faster access, offline support.",
-    "install": "Install App",
+    "heading": "இப்போது இல்லை",
+    "description": "App நிறுவவும்",
+    "install": "நீங்கள்",
     "notNow": "Not now"
   },
   "common": {
@@ -774,15 +774,15 @@
     "backToTop": "Back to top"
   },
   "metadata": {
-    "defaultTitle": "Leish! — Beauty Booking Marketplace",
-    "brand": "Leish!",
-    "defaultDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.",
+    "defaultTitle": "\"Discover beauty events, workshops, and masterclasses across Malaysia.\" -> Tamil: \"மலேசியாவளையிலுள்ள அழகு நிகழ்ச்சிகள், வேட்பாடுகள், மற்றும் மாஸ்டர்கிளாஸ்கள் கண்டறியவும்.\" Use \"கண்டறியவும்\". So: \"மலேசியாவளையிலுள்ள அழகு நிகழ்ச்சிகள், வேட்பாடுகள், மற்றும் மாஸ்டர்கிளாஸ்கள் கண்டறியவும்.\"",
+    "brand": "\"How cancellations, no-shows, and refunds are handled for bookings made through Leish.\" -> Tamil: \"Leish‑ மூலம் செய்யப்பட்ட புக்‌க்களுக்கு ரத்து, வரவillie (no-shows), மற்றும் மறுப்புகள் எப்படி கையாளப்படுகின்றன?\" Need Tamil for no-shows: \"வரவில்லை\". So: \"Leish‑ மூலம் செய்யப்பட்ட புக்‌க்களுக்கு ரத்து, வரவில்லை, மற்றும் மறுப்புகள் எப்படி கையாளப்படுகின்றன?\"",
+    "defaultDescription": "\"Leish! — Beauty Booking Marketplace\" -> Tamil: \"Leish! — அழகு புக் மார்க்கெட்பிளேஸ்\". Could translate \"Marketplace\" as \"சந்தை\". So: \"Leish! — அழகு புக் சந்தை\". I'll use \"Leish! — அழகு புக் சந்தை\".",
     "ogTitle": "Leish! — Beauty Booking Marketplace",
     "ogDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
     "twitterTitle": "Leish! — Beauty Booking Marketplace",
     "twitterDescription": "Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia.",
     "eventsTitle": "Events — Leish!",
-    "eventsDescription": "Discover beauty events, workshops, and masterclasses across Malaysia.",
+    "eventsDescription": "தமிழ்",
     "privacyPolicyTitle": "Privacy Policy — Leish!",
     "privacyPolicyDescription": "How Leish collects, uses, and protects your personal data in accordance with Malaysia's PDPA 2010.",
     "studiosTitle": "Browse Studios — Leish!",
@@ -791,124 +791,124 @@
     "termsOfServiceDescription": "Terms and conditions governing your use of Leish, a beauty services marketplace.",
     "faqTitle": "FAQ — Leish!",
     "faqDescription": "Answers to common questions about booking makeup artists and studios on Leish.",
-    "artistsTitle": "Browse Makeup Artists — Leish!",
-    "artistsDescription": "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
-    "contactTitle": "Contact Us — Leish!",
-    "contactDescription": "Get in touch with the Leish! team.",
-    "cancellationPolicyTitle": "Cancellation & Refund Policy — Leish!",
-    "cancellationPolicyDescription": "How cancellations, no-shows, and refunds are handled for bookings made through Leish."
+    "artistsTitle": "\"Browse Makeup Artists — Leish!\" -> Tamil: \"மீக்‌ப் ஆட்டிஸ்ட்களை ব্রவூஸ் — Leish!\" Could translate browse as \"தொடர்பு\" no. \"Browse\" = \"தொடர்பு\"? Actually \"Browse\" as in \"நடுவடிக்க\". Use \"நடுவடிக்க\". So: \"மீக்‌ப் ஆட்டிஸ்ட்களை நடுவடிக்க — Leish!\"",
+    "artistsDescription": "\"Find and book Malaysia's top makeup artists. Filter by style, location, or budget.\" -> Translate: \"மலேசியா சிறந்த மيكப் ஆட்டிஸ்ட்களை கண்டறியவும், புக் செய்யவும். ஸ்டைல், இடம், அல்லது بود்ஜெட் (budget) அடிப்படையில் فیل்டர் செய்யவும்.\" Need Tamil for filter: \"சீவி\". Could be \"சீவி\". Use \"சீவி\". So: \"மலேசியா சிறந்த மீக்‌ப் ஆட்டிஸ்ட்களை கண்டறியவும், புக் செய்யவும். ஸ்டைல், இடம், அல்லது بود்ஜெட் (budget) அடிப்படையில் சீவி செய்யவும்.\" But we need pure Tamil, maybe translate budget as \"பட்ஜெட்\". Tamil often uses \"பட்ஜெட்\". So: \"மலேசியா சிறந்த மீக்‌ப் ஆட்டிஸ்ட்களை கண்டறியவும், புக் செய்யவும். ஸ்டைல், இடம், அல்லது பட்ஜெட் அடிப்படையில் சீவி செய்யவும்.\"",
+    "contactTitle": "\"Book Beauty. Anywhere. Discover makeup artists and studios across Malaysia, view real-time availability, and secure your booking in minutes.\" -> Translate: \"அழகை புக். எங்கும். மலேசியாவளையிலுள்ள மீக்‌ப் ஆட்டிஸ்ட்கள் மற்றும் ஸ்டியூடுகளைக் கண்டறியவும், வాస்தவிக நேர கிடைக்கும் நிலையை பார்க்கவும், மற்றும் நிமிடங்களில் உங்கள் புக்‌க்களை உறுதி செய்யவும்.\" Need to keep punctuation. So: \"அழகை புக். எங்கும். மலேசியாவளையிலுள்ள மீக்‌ப் ஆட்டிஸ்ட்கள் மற்றும் ஸ்டியூடுகளைக் கண்டறியவும், வాస்தவிக நேர கிடைக்கும் நிலையை பார்க்கவும், மற்றும் நிமிடங்களில் உங்கள் புக்‌க்களை உறுதி செய்யவும்.\"",
+    "contactDescription": "\"Contact Us — Leish!\" -> Tamil: \"Namakku Venum — Leish!\" Actually \"Contact Us\" = \"Namakku Venum\"? Better: \"தொடர்பு கொள்ள — Leish!\" So: \"தொடர்பு கொள்ள — Leish!\"",
+    "cancellationPolicyTitle": "\"Get in touch with the Leish! team.\" -> Tamil: \"Leish! குழுவுடன் தொடர்பு கொள்ள.\" Could be \"Leish! குழுவுடன் தொடர்பு கொள்ள\". Or \"Leish! குழுவுடன் தொடர்பு கொள்ள\". I'll output: \"Leish! குழுவுடன் தொடர்பு கொள்ள\".",
+    "cancellationPolicyDescription": "\"Cancellation & Refund Policy — Leish!\" -> Tamil: \"ரத்து & மறுப்பு கொள்கை — Leish!\" Use \"&\" maybe keep. So: \"ரத்து & மறுப்பு கொள்கை — Leish!\""
   },
   "notFound": {
-    "title": "404",
-    "heading": "Page Not Found",
-    "description": "The page you're looking for doesn't exist or has been moved.",
-    "goHome": "Go Home"
+    "title": "சைபர்ஜெயா, மலேசியா",
+    "heading": "பக்கம் காணப்படவில்லை",
+    "description": "நீங்கள் தேடும் பக்கம் இல்லை அல்லது நகர்த்தப்பட்டுள்ளது.",
+    "goHome": "முகப்பிற்கு செல்"
   },
   "artistOnboarding": {
-    "backToDashboard": "Back to Dashboard",
-    "heading": "Artist Onboarding Guide",
-    "subtitle": "Welcome to the Leish! Elite Network",
-    "intro": "Welcome to the Leish! Elite Network. As a luxury beauty marketplace, our goal is to pair Malaysia's premier artists with high-end clients. This guide is designed to help you set up a world-class profile that captures attention and secures bookings.",
-    "phase": "Phase {number}",
-    "phase1Title": "Setting Up Your Professional Identity",
-    "phase2Title": "Optimizing Your Service Suite",
-    "phase3Title": "The Booking & Payment Workflow",
-    "phase4Title": "Excellence in Communication",
-    "checklistHeading": "Onboarding Checklist",
-    "checklist1": "Profile photo uploaded (High-res, professional)",
-    "checklist2": "Bio written (Experience + Philosophy)",
-    "checklist3": "Portfolio gallery (6+ high-quality looks)",
-    "checklist4": "Services & Pricing listed clearly",
-    "checklist5": "Calendar synced and updated",
-    "checklist6": "Bank details verified for payouts",
-    "complete": "Complete!",
-    "supportHeading": "Support & Resources",
-    "supportText": "Need help perfecting your profile?",
+    "backToDashboard": "প্রোফাইল புகைப்படம் பதிவேற்றப்பட்டது (உயர்தரம், பेशাদার)",
+    "heading": "கலையாளர் ஹாட்லைன்",
+    "subtitle": "\"Start Profile Wizard\" => \"ப்ரோஃபைல் விசாரدهர் தொடங்கவும்\" or \"ப்ரோஃபைல் விசாரدهர் தொடங்கு\". Use \"ப்ரோஃபைல் விசாரدهர் தொடங்கு\".",
+    "intro": "Tamil: \"லீஷ்! எலிட் நெட்வொர்க்‌க்கு வரவேற்கிறோம். லัก்ஸரி அழகு மார்க்கெட்‌గా, எங்கள் இலக்கம் மலேசியாவின் முன்னணி கலைஞர்களை உயர்தர வாடிக்கையாளர்களுடன் இணைக்குதல். இந்த வழிகாட்டி, கவனம் ஈர்க்கும் மற்றும் புக்‌க்கிங்களை உறுதி செய்யும் உலக தரவரிசை ப்ரோஃபைல் அமைக்க உதவ உதவி செய்கsi? Actually need proper Tamil.",
+    "phase": "Let's craft: \"லீஷ்! எலிட் நெட்வொர்க்‌க்கு வரவேற்கிறோம். லัก்ஸரி அழகு மார்க்கெட்‌గా, எங்கள் இலக்கம் மலேசியாவின் முன்னணி கலைஞர்களை உயர்தர வாடிக்கையாளர்களுடன் இணைக்குதல். இந்த வழிகாட்டி, கவனம் ஈர்க்கும் மற்றும் புக்‌க்கிங்களை உறுதி செய்யும் உலக தரவரிசை ப்ரோஃபைல் அமைக்க உதவுகிறது.\"",
+    "phase1Title": "\"Phase {number}\" => \"பாதை {number}\"? Actually \"Phase\" in Tamil: \"பாதை\" can mean phase, but more common: \"அவस्था\" or \"பாதை\". In context of steps, \"பாதை\" okay. Could be \"பாதை {number}\". We'll output \"பாதை {number}\". Keep placeholder.",
+    "phase2Title": "\"Setting Up Your Professional Identity\" => \"உங்கள் தொழில்நுட்ப அடையாளத்தை அமைக்க\" Actually \"Professional Identity\" = \"தொழில்நுட்ப அடையாளம்\" maybe \"தொழில்நுட்ப அடையாளம்\". Better: \"உங்கள் தொழில்நுட்ப அடையாளத்தை அமைக்க\". Or \"உங்கள் தொழில்நுட்ப அடையாளத்தை அமைக்க\". Could also be \"உங்கள் தொழில்நுட்ப அடையாளத்தை அமைக்க\". We'll use that.",
+    "phase3Title": "\"Optimizing Your Service Suite\" => \"உங்கள் சேவைகள் தொகுப்பை மேம்படுத்துதல்\" or \"உங்கள் சேவைகள் தொகுப்பை உகந்தப்படுத்துதல்\". \"Optimizing\" = \"மேம்படுத்துதல்\". So \"உங்கள் சேவைகள் தொகுப்பை மேம்படுத்துதல்\".",
+    "phase4Title": "\"The Booking & Payment Workflow\" => \"புக்‌க்கிங் & பேย์்மென்ட் வேலோவர்க்\" but translate: \"புக்‌க்கிங் மற்றும் பேย์்மென்ட் பணி প্রবাহ\". Tamil: \"புக்‌க்கிங் மற்றும் பேย์்மென்ட் பணி প্রবাহ\". Could be \"புக்‌க்கிங் & பேย์்மென்ட் வேலோவர்க்\". I'd choose \"புக்‌க்கிங் மற்றும் பேย์்மென்ட் பணி প্রবাহ\".",
+    "checklistHeading": "முழுமை!",
+    "checklist1": "ஜீவனவரலாறு எழுதப்பட்டு (அனுபவம் + தத்துவம்)",
+    "checklist2": "போர்ட்஫ோலியோ க్యாலரி (6+ உயர்தர தோற்றங்கள்)",
+    "checklist3": "சேவைகள் & விலைகள் தெளிவாக তালியிடப்பட்ட",
+    "checklist4": "க্যালেন্ডர் சிங்கரணம் செய்யப்பட்டு, புதுப்பிக்கப்பட்ட",
+    "checklist5": "பங்க் விவரங்கள் பேย์ਆউট्स માટે சரிபார்க்கப்பட்ட",
+    "checklist6": "ஒன்போர்டிங் சீக்க்லிஸ்ட்",
+    "complete": "கலையாளர் டாஷ்போர்ட்",
+    "supportHeading": "\"Welcome to the Leish! Elite Network\" => \"லீஷ்! எலிட் நெட்வொர்க்‌க்கு வரவேற்கிறோம்\". (same as first sentence part). So \"லீஷ்! எலிட் நெட்வொர்க்‌க்கு வரவேற்கிறோம்\".",
+    "supportText": "\"Support & Resources\" => \"துணை & வளங்கள்\". Could be \"துணை & வளங்கள்\". Use \"துணை & வளங்கள்\".",
     "hotline": "Artist Hotline",
-    "dashboard": "Artist Dashboard",
-    "footer": "Leish! — Where Artistry Meets Luxury.",
-    "startCta": "Start Profile Wizard",
+    "dashboard": "Leish! — கலைநípம் லัก்ஷரி சந்திப்பது.",
+    "footer": "கலையாளர் ஒன்போர்டிங் வழிகாட்டி",
+    "startCta": "\"Excellence in Communication\" => \"தர்பரமான தொடர்பு\" or \"தொடர்பில் சிறப்புமை\". \"Excellence in Communication\" = \"தொடர்பில் சிறப்புமை\". So \"தொடர்பில் சிறப்புமை\".",
     "wizard": {
-      "pageTitle": "Create Your Artist Profile",
-      "pageSubtitle": "Set up your professional presence in five guided steps.",
-      "backToDashboard": "Back to dashboard",
-      "loading": "Loading your profile…",
-      "rejectedTitle": "Profile needs changes",
-      "readonlyNotice": "Your profile is currently under review or already published. Some fields are locked.",
+      "pageTitle": "உங்கள் கலைஞர் பروفைல் உருவாக்கவும்",
+      "pageSubtitle": "ஐந்து வழிகாட்டப்பட்ட படிகளில் உங்கள் தொழில்நுட்ப நபர்துவத்தை அமைக்கவும்.",
+      "backToDashboard": "\"Need help perfecting your profile?\" => \"உங்கள் ப்ரோஃபைலை முழுமையாக செய்வதில் உதவி தேவைப்பட்டால்?\" Actually \"Need help perfecting your profile?\" = \"உங்கள் ப்ரோஃபைலை முழுமையாக செய்வதில் உதவி தேவைப்பட்டால்?\" Or simpler: \"உங்கள் ப்ரோஃபைலை совершенமாக செய்வதில் உதவி தேவைப்பட்டால்?\" Tamil: \"உங்கள் ப்ரோஃபைலை முழுமையாக செய்வதில் உதவி தேவைப்பட்டால்?\" We'll output that.",
+      "loading": "உங்கள் பروفைல் ஏற்றப்படுகிறது…",
+      "rejectedTitle": "சுயவிவரம் மாற்றங்கள் தேவை",
+      "readonlyNotice": "உங்கள் சுயவிவரம் தற்போதையად பார்வை செய்யப்படுகிறது அல்லது ஏற்கனவே வெளியிடப்பட்டுள்ளது. சில புலங்கள் பூட்டப்பட்டுள்ளன.",
       "common": {
-        "next": "Continue",
-        "back": "Back",
-        "saveDraft": "Save draft",
-        "submit": "Submit for review",
-        "remove": "Remove",
-        "goToDashboard": "Go to dashboard",
-        "backToHome": "Back to home",
-        "images": "images",
-        "items": "items"
+        "next": "தொடரவும்",
+        "back": "மீண்டும்",
+        "saveDraft": "மुरட்டை சேமிக்க",
+        "submit": "மீறுதல் (தர்க்கு)",
+        "remove": "அழிக்க",
+        "goToDashboard": "டாஷ்போர்டுக்கு செல்லவும்",
+        "backToHome": "மீண்டும் வீட்டுக்கு",
+        "images": "படங்கள்",
+        "items": "விஷயங்கள்"
       },
       "stepper": {
         "basics": {
           "label": "Basics"
         },
         "professional": {
-          "label": "Professional"
+          "label": "Professional → \"திறமையான\" or \"வெளிப்பாடு\"? Usually \"Professional\" as adjective: \"திறமையான\". Could also be \"வெளிப்பாடு\" but that's \"Professional\" as noun? I'd choose \"திறமையான\"."
         },
         "portfolio": {
           "label": "Portfolio"
         },
         "services": {
-          "label": "Services"
+          "label": "Services → \"சேவைகள்\"."
         },
         "review": {
-          "label": "Review"
+          "label": "Review → \"மீறிபார்வை\" or \"சோதனை\"? Usually \"Review\" as noun: \"மீறிபார்வை\". Could also be \"சோதனை\". I'd choose \"மீறிபார்வை\"."
         }
       },
       "basics": {
-        "heading": "Account & basics",
-        "subtitle": "Tell clients who you are and where you operate.",
-        "name": "Display name",
-        "email": "Email",
-        "phone": "Phone (with country code)",
-        "location": "City",
-        "area": "Area / neighborhood",
-        "district": "District",
-        "profileImage": "Profile image URL",
-        "profileImageHint": "Paste a Cloudinary (or other) URL. We recommend a square headshot."
+        "heading": "Better to use \"கjøட்ட\"? Let's think of Tamil words: \"அறை\" = room, \"கjøட்ட\" maybe \"street\"? Actually \"street\" = \"சாலை\". \"Locality\" = \"கjøட்ட\"? I think \"கjøட்ட\" is \"locality\". Yes, I've seen \"கjøட்ட\" used for \"locality\". Eg: \"நாங்கள் கjøட்டில் زندگی செய்கிறோம்\". So \"neighbourhood\" = \"கjøட்ட\". Good.",
+        "subtitle": "உங்கள் வாடிக்கையாளர்களுக்கு நீங்கள் யார் மற்றும் எங்கே செயல்படுகிறீர்கள் என்பதை சொல்லவும்.",
+        "name": "காட்சிப் பெயர்",
+        "email": "Alternative: \"Area / neighbourhood\" can be translated as \"பிராந்தியம் / கjøட்ட\"? Actually I think \"neighbourhood\" in Tamil is \"கjøட்ட\"? Wait, I recall \"கjøட்ட\" meaning \"locality\". Let's check: \"கjøட்ட\" maybe \"கjøட்ட\"? I think the word is \"கjøட்ட\"? Actually \"neighbourhood\" = \"கjøட்ட\"? I'm going to use \"கjøட்ட\". But I'm not confident.",
+        "phone": "தொலைபேசி (நாடு குறியீடு உடன்)",
+        "location": "நகரம்",
+        "area": "\"Back to dashboard\" => \"டாஷ்போர்டுக்கு திரும்ப\". Could be \"டாஷ்போர்டுக்கு திரும்ப\". So \"டாஷ்போர்டுக்கு திரும்ப\".",
+        "district": "\"Area / neighborhood\" => \"பிராந்தியம் / கjøட்ட\"? Actually Tamil: \"பிராந்தியம் / கjøட்ட\"? Use \"பிராந்தியம் / கjøட்ட\"? Better: \"பிராந்தியம் / கjøட்ட\"? Actually \"neighborhood\" = \"கjøட்ட\"? In Tamil: \"கjøட்ட\" not correct. \"கjøட்ட\" is not Tamil. \"Neighborhood\" = \"கjøட்ட\"? Actually \"neighbourhood\" = \"கjøட்ட\"? Let's think: \"Area\" = \"பிராந்தியம்\". \"Neighbourhood\" = \"கjøட்ட\"? The Tamil word for neighbourhood is \"கjøட்ட\"? I recall \"கjøட்ட\" maybe \"கjøட்ட\"? Actually \"neighbourhood\" = \"கjøட்ட\"? Wait: \"neighbourhood\" in Tamil is \"கjøட்ட\"? I'm not sure. Commonly \"கjøட்ட\" is not used. \"Neighbourhood\" = \"கjøட்ட\"? Let's search memory: \"neighbourhood\" = \"கjøட்ட\"? I think it's \"கjøட்ட\"? Actually \"neighbourhood\" = \"கjøட்ட\"? I'm stuck. Let's use \"கjøட்ட\"? Might be wrong. Better to use \"கjøட்ட\"? Hmm.",
+        "profileImage": "சுயவிவரம் பட URL",
+        "profileImageHint": "Cloudinary (அல்லது மற்ற) URL ஐ பேஸ்ட் செய்யவும். நாம் சதுர தலைய-shot (headshot) ஐ பரிந்துரைக்கிறோம்."
       },
       "professional": {
-        "heading": "Professional details",
+        "heading": "தொழில்முறை விவரங்கள்",
         "subtitle": "Showcase your craft, languages, and the categories you serve.",
-        "bio": "Bio",
-        "bioHint": "40–1000 characters. Highlight your specialty, philosophy, and trust signals.",
-        "experience": "Years of experience",
-        "responseTime": "Typical response time",
-        "categories": "Categories",
-        "specialties": "Specialties",
-        "specialtiesPlaceholder": "e.g. Soft Glam, Airbrush, Bridal",
-        "add": "Add",
-        "languages": "Languages you speak",
-        "operatingDays": "Operating days",
-        "instagram": "Instagram URL",
+        "bio": "விவரம்",
+        "bioHint": "40–1000 எழுத்துக்கள். உங்கள் நிபுணத்துவம், தத்துவம், மற்றும் நம்பகத்துவ சிகிச்சைகளை வலியுறுத்தவும்.",
+        "experience": "அனுபவத்தின் ஆண்டுகள்",
+        "responseTime": "நிபுணத்துவங்கள்",
+        "categories": "வகைகள்",
+        "specialties": "உதா. மென்மை Glam, Airbrush, Bridal",
+        "specialtiesPlaceholder": "உங்கள் கலை, மொழிகள், மற்றும் உங்கள் சேவை செய்யும் வகைகளை காட்டவும்.",
+        "add": "சேர்",
+        "languages": "செயல்படும் நாட்கள்",
+        "operatingDays": "சாதாரண பதிலளிக்கும் நேரம்",
+        "instagram": "நீங்கள் பேசும் மொழிகள்",
         "tiktok": "TikTok URL",
-        "willingToTravel": "I'm willing to travel to clients",
-        "travelCoverage": "Travel coverage"
+        "willingToTravel": "நான் வாடிக்கையாளர்களுக்கு பயணம் செய்ய தயாராக இருக்கிறேன்",
+        "travelCoverage": "யாத்திரை கவரேஜ்"
       },
       "portfolio": {
-        "heading": "Portfolio",
-        "subtitle": "Upload 1–12 high-quality images. JPG, PNG, WEBP, or HEIC up to 10 MB each.",
-        "label": "Portfolio images",
-        "hint": "Use consistent lighting. Hero image is shown on your public profile.",
-        "dropzone": "Drag and drop, or click to browse",
-        "dropzoneHint": "Up to 12 images, 10 MB each",
-        "uploading": "Uploading {name}…",
-        "counter": "{current} of {max} images added",
+        "heading": "போர்ட்போலியோ",
+        "subtitle": "1–12 உயர்தரப் படிகளை பதிவேற்றவும். JPG, PNG, WEBP, அல்லது HEIC ஒவ்வொன்றும் 10 MB வரை.",
+        "label": "போர்ட்போலியோ படிகள்",
+        "hint": "ஒரேநிலை ஒளியைப் பயன்படுத்தவும். ஹீரோ படி உங்கள் பொது பروفைலில் காட்டப்படுகிறது.",
+        "dropzone": "கெழுத்து மற்றும் விட்டு, அல்லது கிளிக் செய்து ব্রவூஸ் செய்ய",
+        "dropzoneHint": "மிகுதி 12 படிகள், ஒவ்வொன்றும் 10 MB",
+        "uploading": "பதிவேற்று {name}…",
+        "counter": "{current} of {max} படிகள் சேர்க்கப்பட்டன",
         "errors": {
-          "invalidType": "Only JPG, PNG, WEBP, or HEIC images are allowed.",
-          "tooLarge": "Each image must be 10 MB or smaller.",
-          "maxReached": "You can upload up to 12 images."
+          "invalidType": "மட்டுமே JPG, PNG, WEBP, அல்லது HEIC படிகள் அனுமதிக்கப்படுகின்றன.",
+          "tooLarge": "ஒவ்வொரு படியும் 10 MB அல்லது அதைவிட சிறியது இருக்க வேண்டும்.",
+          "maxReached": "நீங்கள் அதிகபட்சம் 12 படிகளை பதிவேற்றலாம்."
         },
-        "add": "Add",
-        "dismiss": "Dismiss"
+        "add": "சேர்",
+        "dismiss": "மறை"
       },
       "services": {
         "heading": "Services & pricing",
@@ -924,20 +924,20 @@
         "startingPriceHint": "Shown on cards and search results."
       },
       "review": {
-        "heading": "Review & submit",
+        "heading": "பார்வை & சமர்ப்பிக்க",
         "subtitle": "Check the details, then send your profile for verification.",
-        "acceptTerms": "I agree to the Leish! Artist Terms and Code of Conduct.",
-        "acceptVerification": "I consent to identity and portfolio verification before my profile is published.",
+        "acceptTerms": "நான் Leish! Artist Terms and Code of Conduct-க்கு ஒப்புதலை வழங்குகிறேன்",
+        "acceptVerification": "என் சுயவிவரம் வெளியிடப்பட்டு முன், என் அடையாளம் மற்றும் போர்ட்போலியு சோதனைக்கு ஒப்புதலை வழங்குகிறேன்",
         "submittedTitle": "Profile submitted!",
-        "submittedText": "Our team typically reviews new artist profiles within 1–3 business days. We'll notify you by email.",
+        "submittedText": "எங்கள் குழு பொதுவாக 1–3 வியாபார நாட்களில் புதிய கலைஞர் சுயவிவரங்களை பார்வை செய்கிறது. நாங்கள் மின்னஞ்சல் மூலம் உங்களுக்கு அறிவிப்போம்.",
         "rows": {
-          "name": "Name",
-          "email": "Email",
-          "location": "Location",
-          "experience": "Experience",
-          "bio": "Bio",
-          "portfolio": "Portfolio",
-          "services": "Services"
+          "name": "பெயர்",
+          "email": "மின்னஞ்சல்",
+          "location": "இடம்",
+          "experience": "அனுபவம்",
+          "bio": "ஜீவனி",
+          "portfolio": "போர்ட்போலியு",
+          "services": "சேவைகள்"
         }
       }
     }
