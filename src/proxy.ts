@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
-import createMiddleware from "next-intl/middleware";
+import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
-
-const intlMiddleware = createMiddleware(routing);
 
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -35,7 +33,18 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/images");
 
   if (!isApiOrStatic) {
-    return withSecurityHeaders(await intlMiddleware(request));
+    const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+    const headerLocale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0];
+    const locale = hasLocale(routing.locales, cookieLocale)
+      ? cookieLocale
+      : hasLocale(routing.locales, headerLocale)
+        ? headerLocale
+        : routing.defaultLocale;
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("X-NEXT-INTL-LOCALE", locale);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    return withSecurityHeaders(response);
   }
 
   if (
