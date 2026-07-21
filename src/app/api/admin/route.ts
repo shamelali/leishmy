@@ -1,3 +1,4 @@
+import { hasAdminAccess } from "@/lib/auth/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, profiles, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
@@ -9,7 +10,7 @@ import { reconcilePayment } from "@/lib/payment-reconcile";
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== "admin") {
+    if (!session || !hasAdminAccess(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -515,7 +516,7 @@ function parseTimeAgo(time: string): number {
 export async function POST(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== "admin") {
+    if (!session || !hasAdminAccess(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

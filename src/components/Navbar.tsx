@@ -161,7 +161,7 @@ export function Navbar() {
                     <Award className="w-3.5 h-3.5 text-rose-500" /> {t("rewards")}
                   </Link>
 
-                  {user.role === "admin" && (
+                  {(user.isAdmin || user.role === "admin") && (
                     <Link
                       href="/dashboard/admin"
                       onClick={() => setUserMenuOpen(false)}
@@ -171,7 +171,7 @@ export function Navbar() {
                     </Link>
                   )}
 
-                {user.role === "admin" && (
+                {(user.isAdmin || user.role === "admin") && (
                   <Link
                     href="/dashboard/admin"
                     onClick={() => setMenuOpen(false)}

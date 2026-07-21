@@ -13,14 +13,20 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const hasAccess = user && (
+    !allowedRoles ||
+    allowedRoles.includes(user.role || "") ||
+    (allowedRoles.includes("admin") && user.isAdmin)
+  );
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
       router.replace("/login");
-    } else if (allowedRoles && !allowedRoles.includes(user.role || "")) {
+    } else if (allowedRoles && !hasAccess) {
       router.replace("/");
     }
-  }, [user, loading, allowedRoles, router]);
+  }, [user, loading, allowedRoles, router, hasAccess]);
 
   if (loading) {
     return (
@@ -32,7 +38,7 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
 
   if (!user) return null;
 
-  if (allowedRoles && !allowedRoles.includes(user.role || "")) return null;
+  if (allowedRoles && !hasAccess) return null;
 
   return <>{children}</>;
 }

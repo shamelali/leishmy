@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { bookings, users, profiles } from "@/db/schema";
 import { eq, and, gte, lt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { hasAdminAccess } from "@/lib/auth/admin";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "month and studioId or artistId required" }, { status: 400 });
     }
 
-    if (session.role !== "admin") {
+    if (!hasAdminAccess(session)) {
       if (artistId) {
         const [artist] = await db
           .select({ userId: profiles.userId })

@@ -8,6 +8,7 @@ export interface UserProfile {
   name: string | null;
   email: string;
   role: string | null;
+  isAdmin: boolean;
   phone?: string | null;
   location?: string | null;
   avatar?: string | null;
@@ -31,12 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [profile, setProfile] = useState<{
     role: string | null;
+    isAdmin: boolean;
     phone: string | null;
     location: string | null;
     avatar: string | null;
     bio: string | null;
     specialties?: string[];
-  }>({ role: null, phone: null, location: null, avatar: null, bio: null, specialties: [] });
+  }>({ role: null, isAdmin: false, phone: null, location: null, avatar: null, bio: null, specialties: [] });
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data?.user) {
           setProfile({
             role: data.user.role || null,
+            isAdmin: data.user.isAdmin ?? false,
             phone: data.user.phone || null,
             location: data.user.location || null,
             avatar: data.user.avatar || null,
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: session.user.name ?? null,
         email: session.user.email,
         role: profile.role,
+        isAdmin: profile.isAdmin,
         phone: profile.phone,
         location: profile.location,
         avatar: profile.avatar,
@@ -133,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.user) {
         setProfile({
           role: data.user.role || null,
+          isAdmin: data.user.isAdmin ?? false,
           phone: data.user.phone || null,
           location: data.user.location || null,
           avatar: data.user.avatar || null,

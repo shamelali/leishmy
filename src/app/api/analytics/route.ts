@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { profiles, bookings, payments, reviews } from "@/db/schema";
 import { eq, and, count, sum, avg, gte, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const id = artistId;
 
-    if (session.role !== "admin") {
+    if (!hasAdminAccess(session)) {
       const [artist] = await db
         .select({ userId: profiles.userId })
         .from(profiles)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { referrals, profiles } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
         .where(and(eq(profiles.slug, String(referrerId)), eq(profiles.role, referrerType)))
         .limit(1);
       if (!profile) return NextResponse.json({ error: `${referrerType} not found` }, { status: 404 });
-      if (session.role !== "admin" && profile.userId !== session.id) {
+      if (!hasAdminAccess(session) && profile.userId !== session.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       resolvedReferrerUserId = profile.userId;

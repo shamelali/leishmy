@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { desc, asc, eq, and, gte, lte, ilike, or } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (admin) {
       const session = await getAuthSession();
-      if (!session || session.role !== "admin") {
+      if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     } else {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSession();
-  if (!session || session.role !== "admin") {
+  if (!session || !hasAdminAccess(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getAuthSession();
-  if (!session || session.role !== "admin") {
+  if (!session || !hasAdminAccess(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -146,7 +147,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getAuthSession();
-  if (!session || session.role !== "admin") {
+  if (!session || !hasAdminAccess(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

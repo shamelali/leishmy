@@ -5,6 +5,7 @@ import { eq, and, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
 import crypto from "crypto";
 
@@ -271,7 +272,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
       }
 
-      if (session && session.role !== "admin" && booking.userId !== session.id) {
+      if (session && !hasAdminAccess(session) && booking.userId !== session.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -308,7 +309,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
-      if (session.role !== "admin" && session.id !== userId) {
+      if (!hasAdminAccess(session) && session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       const [totalResult] = await db
@@ -353,7 +354,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (session.role !== "admin") {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

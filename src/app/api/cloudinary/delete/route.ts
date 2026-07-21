@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 import { limit } from "@/lib/rate-limit";
 import { deleteAssetsSchema } from "@/lib/validations/cloudinary";
 import {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { publicIds } = parsed.data;
-  const isAdmin = session.role === "admin";
+  const isAdmin = hasAdminAccess(session);
 
   const failedChecks: string[] = [];
   for (const publicId of publicIds) {

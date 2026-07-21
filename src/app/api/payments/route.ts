@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
       }
 
-      if (session.role !== "admin" && booking.userId !== session.id) {
+      if (!hasAdminAccess(session) && booking.userId !== session.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
