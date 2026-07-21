@@ -171,16 +171,7 @@ export function Navbar() {
                     </Link>
                   )}
 
-                {(user.isAdmin || user.role === "admin") && (
-                  <Link
-                    href="/dashboard/admin"
-                    onClick={() => setMenuOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
-                  >
-                    <Shield className="w-4 h-4 text-rose-500" /> {t("adminDashboard")}
-                  </Link>
-                )}
-                {(user.role === "artist" || user.role === "studio") && (
+                  {(user.role === "artist" || user.role === "studio") && (
                     <Link
                       href={user.role === "artist" ? "/dashboard/artist" : "/dashboard/studio"}
                       onClick={() => setUserMenuOpen(false)}
@@ -314,6 +305,15 @@ export function Navbar() {
                 >
                   <Award className="w-4 h-4 text-rose-500" /> {t("rewards")}
                 </Link>
+                {(user.isAdmin || user.role === "admin") && (
+                  <Link
+                    href="/dashboard/admin"
+                    onClick={() => setMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                  >
+                    <Shield className="w-4 h-4 text-rose-500" /> {t("adminDashboard")}
+                  </Link>
+                )}
                 {(user.role === "artist" || user.role === "studio") && (
                   <Link
                     href={user.role === "artist" ? "/dashboard/artist" : "/dashboard/studio"}
