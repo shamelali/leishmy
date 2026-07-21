@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "@/i18n/routing";
+
+const intlMiddleware = createMiddleware(routing);
 
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -24,6 +28,19 @@ const authMiddleware = auth.middleware({
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // Skip i18n for API routes, static files, and auth callbacks
+  const isApiOrStatic = pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/images");
+
+  if (!isApiOrStatic) {
+    // If URL has a locale prefix (e.g. /ms-MY/artists), redirect to non-prefixed
+    const localeSegment = pathname.split("/")[1];
+    if (localeSegment && routing.locales.includes(localeSegment as any)) {
+      return withSecurityHeaders(await intlMiddleware(request));
+    }
+  }
 
   if (
     pathname.startsWith("/dashboard/") &&
