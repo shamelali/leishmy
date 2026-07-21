@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets } from "lucide-react";
+import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets, Shield } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -161,7 +161,26 @@ export function Navbar() {
                     <Award className="w-3.5 h-3.5 text-rose-500" /> {t("rewards")}
                   </Link>
 
-                  {(user.role === "artist" || user.role === "studio") && (
+                  {user.role === "admin" && (
+                    <Link
+                      href="/dashboard/admin"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                    >
+                      <Shield className="w-3.5 h-3.5 text-rose-500" /> {t("adminDashboard")}
+                    </Link>
+                  )}
+
+                {user.role === "admin" && (
+                  <Link
+                    href="/dashboard/admin"
+                    onClick={() => setMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                  >
+                    <Shield className="w-4 h-4 text-rose-500" /> {t("adminDashboard")}
+                  </Link>
+                )}
+                {(user.role === "artist" || user.role === "studio") && (
                     <Link
                       href={user.role === "artist" ? "/dashboard/artist" : "/dashboard/studio"}
                       onClick={() => setUserMenuOpen(false)}
