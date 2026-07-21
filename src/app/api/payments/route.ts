@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { payments, payouts, bookings, profiles, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
+import { rateLimitApi } from "@/lib/rate-limit-api";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -159,6 +160,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit all payment mutations
+  const rateLimit = await rateLimitApi(request, { max: 30, window: 60 });
+  if (rateLimit) return rateLimit;
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
@@ -170,13 +175,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { bookingId, description, name, email, phone } = body;
+      const { bookingId, description, name, email, phone, idempotencyKey } = body;
 
       if (!bookingId) {
         return NextResponse.json(
           { error: "bookingId is required" },
           { status: 400 },
         );
+      }
+
+      // Idempotency: prevent duplicate bill creation on retry
+      if (idempotencyKey) {
+        const [existing] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.idempotencyKey, idempotencyKey))
+          .limit(1);
+
+        if (existing) {
+          return NextResponse.json(
+            { bill: { id: existing.billplzId }, payment: existing, cached: true },
+            { status: 200 }
+          );
+        }
       }
 
       const [booking] = await db
@@ -193,8 +214,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
+      // Prevent duplicate pending payments for same booking
+      const [existingPending] = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.bookingId, Number(bookingId)),
+            eq(payments.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (existingPending) {
+        return NextResponse.json(
+          { 
+            error: "A pending payment already exists for this booking",
+            payment: existingPending 
+          },
+          { status: 409 }
+        );
+      }
+
       const realAmount = Number(booking.amount);
-      if (realAmount < 1) {
+      if (!realAmount || realAmount < 1 || isNaN(realAmount)) {
         return NextResponse.json(
           { error: "Booking amount is invalid" },
           { status: 400 },
@@ -235,6 +278,7 @@ export async function POST(request: NextRequest) {
           status: "pending",
           billplzId: billplzData.id,
           method: "billplz",
+          idempotencyKey: idempotencyKey || null,
         })
         .returning();
 

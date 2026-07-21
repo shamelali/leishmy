@@ -1,7 +1,7 @@
 {
   "name": "leishmy",
   "private": true,
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "pnpm@11.15.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,7 +19,9 @@
     "dev:fresh": "pnpm db:push && pnpm db:seed && pnpm dev",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "preview": "pnpm build && pnpm start"
+    "preview": "pnpm build && pnpm start",
+    "cloudinary:auto-upload": "tsx scripts/configure-auto-upload.ts",
+    "cloudinary:verify": "tsx scripts/verify-sign.ts"
   },
   "dependencies": {
     "@cloudinary/url-gen": "^1.22.0",

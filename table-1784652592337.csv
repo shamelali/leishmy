@@ -1,0 +1,15 @@
+﻿File,Download,Destination in Your Project
+**middleware.ts**,[middleware.ts](sandbox:///mnt/agents/output/middleware.ts),`~/Project/migrate-leishmy-to-nextjs/middleware.ts`
+**rate-limit-api.ts**,[rate-limit-api.ts](sandbox:///mnt/agents/output/rate-limit-api.ts),`~/Project/migrate-leishmy-to-nextjs/src/lib/rate-limit-api.ts`
+**profile-loading.tsx**,[profile-loading.tsx](sandbox:///mnt/agents/output/profile-loading.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/profile/loading.tsx`
+**bookings-loading.tsx**,[bookings-loading.tsx](sandbox:///mnt/agents/output/bookings-loading.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/bookings/loading.tsx`
+**payments-loading.tsx**,[payments-loading.tsx](sandbox:///mnt/agents/output/payments-loading.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/payments/loading.tsx`
+**favorites-loading.tsx**,[favorites-loading.tsx](sandbox:///mnt/agents/output/favorites-loading.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/favorites/loading.tsx`
+**error-boundary.tsx**,[error-boundary.tsx](sandbox:///mnt/agents/output/error-boundary.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/payments/error.tsx` (copy to `/subscription/error.tsx` too)
+**seo-meta.ts**,[seo-meta.ts](sandbox:///mnt/agents/output/seo-meta.ts),`~/Project/migrate-leishmy-to-nextjs/src/lib/seo-meta.ts`
+**not-found.tsx**,[not-found.tsx](sandbox:///mnt/agents/output/not-found.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/not-found.tsx` (replace existing)
+**global-error.tsx**,[global-error.tsx](sandbox:///mnt/agents/output/global-error.tsx),`~/Project/migrate-leishmy-to-nextjs/src/app/global-error.tsx` (replace existing)
+**empty-state.tsx**,[empty-state.tsx](sandbox:///mnt/agents/output/empty-state.tsx),`~/Project/migrate-leishmy-to-nextjs/src/components/empty-state.tsx`
+**use-toast.ts**,[use-toast.ts](sandbox:///mnt/agents/output/use-toast.ts),`~/Project/migrate-leishmy-to-nextjs/src/hooks/use-toast.ts`
+**toast-container.tsx**,[toast-container.tsx](sandbox:///mnt/agents/output/toast-container.tsx),`~/Project/migrate-leishmy-to-nextjs/src/components/toast-container.tsx`
+**vercel-deployment-checklist.md**,[vercel-deployment-checklist.md](sandbox:///mnt/agents/output/vercel-deployment-checklist.md),Reference only — keep handy during deploy

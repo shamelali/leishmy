@@ -39,3 +39,9 @@ playwright-report/
 .env*
 opencode.json
 .opencode/
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

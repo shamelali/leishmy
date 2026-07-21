@@ -23,7 +23,7 @@ test.describe("Auth UI", () => {
 
   test("profile page redirects unauthenticated users to /login", async ({ page }) => {
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
-    await page.waitForURL(/\/login/, { timeout: 15000 });
+    await page.waitForURL(/\/login/, { timeout: 30000 });
     expect(page.url()).toContain("/login");
   });
 

@@ -249,6 +249,7 @@ export const payments = pgTable("payments", {
   status: varchar("status", { length: 50 }).default("pending"),
   billplzId: varchar("billplz_id", { length: 255 }),
   method: varchar("method", { length: 50 }),
+  idempotencyKey: varchar("idempotency_key", { length: 255 }).unique(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });
