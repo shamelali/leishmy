@@ -144,7 +144,7 @@ export default function RewardsPage() {
                         {isCurrent && <span className="ml-2 text-[10px] font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">Current</span>}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t.min_points.toLocaleString()} pts &middot; {Number(t.multiplier).toFixed(2)}x multiplier
+                        {t.minPoints.toLocaleString()} pts &middot; {Number(t.multiplier).toFixed(2)}x multiplier
                       </p>
                     </div>
                   </div>

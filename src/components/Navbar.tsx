@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
 import NotificationsDropdown from "./NotificationsDropdown";
@@ -68,6 +69,7 @@ export function Navbar() {
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
             <SearchModal />
+            <LanguageSwitcher />
             <ThemeToggle />
             {user && <NotificationsDropdown />}
 
@@ -330,6 +332,9 @@ export function Navbar() {
                 </Link>
               </div>
             )}
+            <div className="flex justify-center pt-2">
+              <LanguageSwitcher />
+            </div>
           </nav>
         </div>
       )}
