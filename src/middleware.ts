@@ -4,6 +4,54 @@ import { limit } from "@/lib/rate-limit";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 
+// --- Auth route protection constants ---
+
+const SESSION_COOKIE_NAMES = [
+  "__Secure-neon-auth.session_token",
+  "neon-auth.session_token",
+];
+
+const PROTECTED_ROUTES = [
+  "/profile",
+  "/bookings",
+  "/favorites",
+  "/rewards",
+  "/subscription",
+  "/payments",
+  "/beauty-profile",
+  "/onboarding",
+];
+
+const PROTECTED_API_PREFIXES = [
+  "/api/payments",
+  "/api/user",
+  "/api/bookings",
+];
+
+const PUBLIC_API_PATHS = [
+  "/api/auth",
+  "/api/health",
+  "/api/webhook",
+];
+
+function hasSessionCookie(request: NextRequest): boolean {
+  return SESSION_COOKIE_NAMES.some((name) => !!request.cookies.get(name)?.value);
+}
+
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+function isProtectedApi(pathname: string): boolean {
+  return PROTECTED_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isPublicApiPath(pathname: string): boolean {
+  return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
+}
+
+// --- Middleware ---
+
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
@@ -44,6 +92,13 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("X-NEXT-INTL-LOCALE", locale);
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+
+    if (isProtectedRoute(pathname) && !hasSessionCookie(request)) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
     return withSecurityHeaders(response);
   }
 
@@ -57,7 +112,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth/") && pathname !== "/api/health") {
+  if (pathname.startsWith("/api")) {
+    if (isPublicApiPath(pathname)) {
+      return withSecurityHeaders(NextResponse.next());
+    }
+
+    if (isProtectedApi(pathname) && !hasSessionCookie(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
