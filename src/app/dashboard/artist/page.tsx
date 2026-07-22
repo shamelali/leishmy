@@ -69,7 +69,9 @@ interface Booking {
   time?: string;
   price?: number;
   amount?: number;
+  location?: string;
   status: string;
+  createdAt?: string;
 }
 
 export default function DashboardArtist() {
@@ -594,12 +596,12 @@ export default function DashboardArtist() {
             <p className="text-sm text-gray-400 py-4 text-center">No inquiries yet</p>
           ) : (
             <div className="space-y-3">
-               {inquiries.filter((i) => i.status === "pending").map((inq) => (
-                 <div
-                   key={inq.id}
-                   onClick={() => setDetailsModal({ isOpen: true, type: "inquiry", data: inq })}
-                   className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-                 >
+              {inquiries.filter((i) => i.status === "pending").map((inq) => (
+                <div
+                  key={inq.id}
+                  onClick={() => setDetailsModal({ isOpen: true, type: "inquiry", data: { id: inq.id, clientName: inq.name, clientEmail: inq.email, clientPhone: inq.phone || "", location: inq.location || "", message: inq.message, status: inq.status, createdAt: inq.createdAt } })}
+                  className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                >
                    <div className="flex items-start justify-between gap-3 mb-2">
                      <div>
                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{inq.name}</p>
@@ -668,7 +670,7 @@ export default function DashboardArtist() {
                     {paged.map((b: Booking) => (
                       <tr
                         key={b.id}
-                        onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: b })}
+                        onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: { id: b.id, clientName: b.client || b.userName || "Anonymous", clientEmail: b.clientEmail || "", clientPhone: b.clientPhone || "", location: b.location || "", service: b.service || "", date: b.date ? new Date(b.date).toISOString() : "", time: b.time || "", amount: String(b.amount || b.price || 0), status: b.status, createdAt: b.createdAt || "" } })}
                         className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
                       >
                         <td className="px-5 py-3 font-medium text-gray-900 dark:text-white">{b.client || b.userName || "—"}</td>
@@ -704,7 +706,7 @@ export default function DashboardArtist() {
                 {paged.map((b: Booking) => (
                   <div
                     key={b.id}
-                    onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: b })}
+                    onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: { id: b.id, clientName: b.client || b.userName || "Anonymous", clientEmail: b.clientEmail || "", clientPhone: b.clientPhone || "", location: b.location || "", service: b.service || "", date: b.date ? new Date(b.date).toISOString() : "", time: b.time || "", amount: String(b.amount || b.price || 0), status: b.status, createdAt: b.createdAt || "" } })}
                     className="p-4 space-y-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800/50 rounded-xl transition-colors"
                   >
                     <div className="flex items-center justify-between">
