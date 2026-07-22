@@ -24,6 +24,7 @@ import {
 import { eq, desc, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { BookingForm } from "@/components/BookingForm";
+import { BookingInquiryTabs } from "@/components/BookingInquiryTabs";
 import ArtistReviews from "@/components/ArtistReviews";
 import ShareButtons from "@/components/ShareButtons";
 import { getTranslations } from "next-intl/server";
@@ -399,19 +400,10 @@ export default async function ArtistDetailPage({ params }: Props) {
             />
           </div>
 
-          {/* Right Column - Booking */}
+{/* Right Column - Booking & Inquiry */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-gray-200 dark:border-neutral-700 shadow-xl p-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                  Book {artist.name}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                  Starting from MYR {artist.price}/hr
-                </p>
-                <BookingForm artistId={artist.id} artistName={artist.name} />
-              </div>
-
+              <BookingInquiryTabs artistId={artist.id} artistName={artist.name} price={artist.price} />
             </div>
           </div>
         </div>
