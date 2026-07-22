@@ -762,6 +762,13 @@ export default function DashboardArtist() {
             </div>
           )}
         </div>
-    </div>
-  );
-}
+
+        <ClientDetailsModal
+          isOpen={detailsModal.isOpen}
+          onClose={() => setDetailsModal({ isOpen: false, type: "booking", data: null })}
+          type={detailsModal.type}
+          data={detailsModal.data || {}}
+        />
+      </div>
+    );
+  }
