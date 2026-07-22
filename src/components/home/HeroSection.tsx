@@ -1,11 +1,35 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Users, Clock } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { db } from "@/db";
+import { adminSettings } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const statIcons = [Sparkles, undefined, Users, Clock];
 
+const DEFAULT_HERO_IMAGES = [
+  "/images/artfulcolorworks-ai-generated-9159114.jpg",
+  "/images/gromovataya-woman-3096664.jpg",
+  "/images/omarmedinafilms-wedding-1183271_1920.jpg",
+  "/images/u_p081rxaf-wedding-9473397.jpg",
+];
+
+async function getHeroImages(): Promise<string[]> {
+  try {
+    const rows = await db.select().from(adminSettings).where(eq(adminSettings.key, "hero_images")).limit(1);
+    if (rows[0]?.value) {
+      const parsed = JSON.parse(rows[0].value);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_HERO_IMAGES;
+}
+
 export async function HeroSection({ stats }: { stats?: { value: string; label: string }[] }) {
   const t = await getTranslations("hero");
+  const heroImages = await getHeroImages();
+  const imgAlts = [t("imgSoftGlam"), t("imgContemporary"), t("imgWarmTones"), t("imgBeautiful")];
+
   return (
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
       {/* Decorative blobs */}
@@ -68,8 +92,8 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-[3/4] relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/artfulcolorworks-ai-generated-9159114.jpg"
-                    alt={t("imgSoftGlam")}
+                    src={heroImages[0] || DEFAULT_HERO_IMAGES[0]}
+                    alt={imgAlts[0]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
@@ -79,8 +103,8 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/gromovataya-woman-3096664.jpg"
-                    alt={t("imgContemporary")}
+                    src={heroImages[1] || DEFAULT_HERO_IMAGES[1]}
+                    alt={imgAlts[1]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
@@ -92,8 +116,8 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/omarmedinafilms-wedding-1183271_1920.jpg"
-                    alt={t("imgWarmTones")}
+                    src={heroImages[2] || DEFAULT_HERO_IMAGES[2]}
+                    alt={imgAlts[2]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
@@ -103,8 +127,8 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-[3/4] group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/u_p081rxaf-wedding-9473397.jpg"
-                    alt={t("imgBeautiful")}
+                    src={heroImages[3] || DEFAULT_HERO_IMAGES[3]}
+                    alt={imgAlts[3]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />

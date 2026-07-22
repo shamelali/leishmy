@@ -287,8 +287,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "payments") {
+      const paymentUsers = alias(users, "payment_users");
       const [rows, [{ count: total }]] = await Promise.all([
-        db.select().from(payments).limit(pageSize).offset(offset),
+        db.select({
+          id: payments.id,
+          amount: payments.amount,
+          status: payments.status,
+          method: payments.method,
+          createdAt: payments.createdAt,
+          updatedAt: payments.updatedAt,
+          bookingId: payments.bookingId,
+          userName: paymentUsers.name,
+          userEmail: paymentUsers.email,
+        })
+        .from(payments)
+        .leftJoin(bookings, eq(payments.bookingId, bookings.id))
+        .leftJoin(paymentUsers, eq(bookings.userId, paymentUsers.id))
+        .orderBy(desc(payments.createdAt))
+        .limit(pageSize).offset(offset),
         db.select({ count: count() }).from(payments),
       ]);
       return NextResponse.json({
@@ -300,6 +316,8 @@ export async function GET(request: NextRequest) {
           createdAt: p.createdAt?.toISOString() || "",
           releasedAt: p.updatedAt?.toISOString() || "",
           bookingId: String(p.bookingId || ""),
+          userName: p.userName || "—",
+          userEmail: p.userEmail || "",
         })),
         total, page, pageSize,
       });

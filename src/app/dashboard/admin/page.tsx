@@ -53,7 +53,7 @@ interface Artist { id: string; name: string; email: string; phone: string; locat
 interface Studio { id: string; name: string; email: string; phone: string; location: string; rating: string; createdAt: string; }
 interface User { id: string; name: string; email: string; role: string; image: string; createdAt: string; }
 interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; notes: string; location: string; }
-interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; }
+interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; userName: string; userEmail: string; }
 interface AdminEvent { id: number; title: string; slug: string; date: string; time: string | null; location: string | null; category: string; published: boolean; featured: boolean; }
 
 const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
@@ -107,12 +107,18 @@ export default function DashboardAdmin() {
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
+  const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
+  const [editEventForm, setEditEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
   const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<ReceivedEmail | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([]);
   const [webhookReconcile, setWebhookReconcile] = useState<WebhookReconcile[]>([]);
   const [webhookSummary, setWebhookSummary] = useState<{ total: number; received: number; rejected: number }>({ total: 0, received: 0, rejected: 0 });
   const [webhookSyncing, setWebhookSyncing] = useState<number | null>(null);
+  const [expandedEmailGroup, setExpandedEmailGroup] = useState<string | null>(null);
+  const [overviewDetail, setOverviewDetail] = useState<string | null>(null);
+  const [overviewDetailData, setOverviewDetailData] = useState<any>(null);
+  const [overviewDetailLoading, setOverviewDetailLoading] = useState(false);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, webhooks: 1, overview: 1,
@@ -204,6 +210,26 @@ export default function DashboardAdmin() {
     setSearch("");
     setPage((prev) => ({ ...prev, [t]: 1 }));
     fetchData(t, 1);
+  };
+
+  const fetchOverviewDetail = async (type: string) => {
+    setOverviewDetail(type);
+    setOverviewDetailLoading(true);
+    setOverviewDetailData(null);
+    try {
+      let url = "";
+      if (type === "users") url = "/api/admin?action=users&page=1&pageSize=50";
+      else if (type === "artists") url = "/api/admin?action=artists&page=1&pageSize=50";
+      else if (type === "bookings") url = "/api/admin?action=bookings&page=1&pageSize=50";
+      else if (type === "payments") url = "/api/admin?action=payments&page=1&pageSize=50";
+      else if (type === "revenue") url = "/api/admin?action=payments&page=1&pageSize=100";
+      else if (type === "pending") url = "/api/admin?action=payments&page=1&pageSize=100";
+      if (url) {
+        const res = await fetch(url);
+        if (res.ok) setOverviewDetailData(await res.json());
+      }
+    } catch (e) { console.error(e); }
+    setOverviewDetailLoading(false);
   };
 
   const reconcilePayment = async (paymentId: number) => {
@@ -302,16 +328,22 @@ export default function DashboardAdmin() {
                 [1, 2, 3, 4, 5, 6, 7, 8].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
               ) : (
                 [
-                  { icon: Users, label: "Total Users", value: stats ? stats.totalUsers.toLocaleString() : "—", sub: stats ? `+${stats.newUsersThisMonth} this month` : "", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-                  { icon: Building2, label: "Artists / Studios", value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: `${stats ? stats.totalArtists + stats.totalStudios : 0} total vendors`, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30" },
-                  { icon: Calendar, label: "Total Bookings", value: stats ? stats.totalBookings.toLocaleString() : "—", sub: "Across all services", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-                  { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-                  { icon: Star, label: "Average Rating", value: stats ? String(stats.avgRating) : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30" },
-                  { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                  { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
-                  { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+                  { icon: Users, label: "Total Users", value: stats ? stats.totalUsers.toLocaleString() : "—", sub: stats ? `+${stats.newUsersThisMonth} this month` : "", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30", clickType: "users" },
+                  { icon: Building2, label: "Artists / Studios", value: stats ? `${stats.totalArtists} / ${stats.totalStudios}` : "—", sub: `${stats ? stats.totalArtists + stats.totalStudios : 0} total vendors`, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950/30", clickType: "artists" },
+                  { icon: Calendar, label: "Total Bookings", value: stats ? stats.totalBookings.toLocaleString() : "—", sub: "Across all services", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30", clickType: "bookings" },
+                  { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30", clickType: "revenue" },
+                  { icon: Star, label: "Average Rating", value: stats ? String(stats.avgRating) : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30", clickType: null },
+                  { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30", clickType: null },
+                  { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30", clickType: "pending" },
+                  { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30", clickType: null },
                 ].map((props) => (
-                  <StatCard key={props.label} {...props} size="lg" />
+                  <button
+                    key={props.label}
+                    onClick={() => props.clickType && fetchOverviewDetail(props.clickType)}
+                    className={`text-left ${props.clickType ? "cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" : "cursor-default"}`}
+                  >
+                    <StatCard {...props} size="lg" />
+                  </button>
                 ))
               )}
             </div>
@@ -494,55 +526,83 @@ export default function DashboardAdmin() {
         )}
 
           {tab === "users" && (
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Role</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
-                  <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? (
-                  <tr><td colSpan={5} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                ) : filterBySearch(users).length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No users found</td></tr>
-                ) : filterBySearch(users).map((user) => {
-                    const promoting = actionLoading === `promote-${user.id}`;
-                    return (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
-                      <td className="p-3 font-medium text-gray-900 dark:text-white">{user.name || "—"}</td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300">{user.email}</td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.role === "admin" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400" : user.role === "artist" ? "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400" : user.role === "studio" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400" : "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-400"}`}>{user.role}</span>
-                      </td>
-                      <td className="p-3 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="p-3 text-right">
-                        {user.role !== "admin" && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm("Make this user an admin? This action is irreversible.")) return;
-                              setActionLoading(`promote-${user.id}`);
-                              await fetch("/api/admin?action=set-role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
-                              setActionLoading("");
-                              fetchData("users");
-                            }}
-                            disabled={promoting}
-                            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40 touch-target"
-                          >
-                            {promoting ? "..." : "Make Admin"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );})}
-              </tbody>
-            </table>
-            </div>
+          <div className="space-y-6">
+            {loading ? (
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 p-8"><Skeleton className="h-8 w-full" /></div>
+            ) : filterBySearch(users).length === 0 ? (
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 p-8 text-center text-gray-400">No users found</div>
+            ) : (() => {
+                const filtered = filterBySearch(users);
+                const grouped = {
+                  admin: filtered.filter((u) => u.role === "admin"),
+                  artist: filtered.filter((u) => u.role === "artist"),
+                  studio: filtered.filter((u) => u.role === "studio"),
+                  customer: filtered.filter((u) => u.role === "customer" || u.role === "client"),
+                };
+                const roleConfig: Record<string, { label: string; color: string; bg: string; icon: typeof Users }> = {
+                  admin: { label: "Admins", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30", icon: Shield },
+                  artist: { label: "Artists", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30", icon: Palette },
+                  studio: { label: "Studios", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", icon: Building2 },
+                  customer: { label: "Customers", color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-100 dark:bg-neutral-800", icon: Users },
+                };
+                return Object.entries(grouped).filter(([, items]) => items.length > 0).map(([role, items]) => {
+                  const cfg = roleConfig[role];
+                  const RoleIcon = cfg.icon;
+                  return (
+                    <div key={role} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                      <div className="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-neutral-800 flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${cfg.bg}`}>
+                          <RoleIcon className={`w-4 h-4 ${cfg.color}`} />
+                        </div>
+                        <h3 className={`text-sm font-bold ${cfg.color}`}>{cfg.label}</h3>
+                        <span className="text-xs text-gray-400 ml-auto">{items.length} user{items.length !== 1 ? "s" : ""}</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[600px]">
+                          <thead className="bg-gray-50 dark:bg-neutral-800">
+                            <tr>
+                              <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                              <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                              <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Joined</th>
+                              <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                            {items.map((user) => {
+                              const promoting = actionLoading === `promote-${user.id}`;
+                              return (
+                                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                                  <td className="p-3 font-medium text-gray-900 dark:text-white">{user.name || "—"}</td>
+                                  <td className="p-3 text-gray-600 dark:text-gray-300">{user.email}</td>
+                                  <td className="p-3 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
+                                  <td className="p-3 text-right">
+                                    {user.role !== "admin" && (
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm("Make this user an admin? This action is irreversible.")) return;
+                                          setActionLoading(`promote-${user.id}`);
+                                          await fetch("/api/admin?action=set-role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
+                                          setActionLoading("");
+                                          fetchData("users");
+                                        }}
+                                        disabled={promoting}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-40 touch-target"
+                                      >
+                                        {promoting ? "..." : "Make Admin"}
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            }
             {total.users > pageSize && (
               <Pagination page={page.users} total={total.users} pageSize={pageSize} onPage={(p) => goToPage("users", p)} />
             )}
@@ -654,7 +714,19 @@ export default function DashboardAdmin() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Image URL</label>
-                      <input type="text" value={addEventForm.image} onChange={(e) => setAddEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      <input type="text" value={addEventForm.image} onChange={(e) => setAddEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="https://..." />
+                      {addEventForm.image && (
+                        <div className="mt-2 relative group">
+                          <img src={addEventForm.image} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <button
+                            type="button"
+                            onClick={() => setAddEventForm((f) => ({ ...f, image: "" }))}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Ticket URL</label>
@@ -692,10 +764,101 @@ export default function DashboardAdmin() {
               </div>
             )}
 
+            {editingEvent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setEditingEvent(null)}>
+                <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-lg ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''} overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit Event</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Title *</label>
+                      <input type="text" value={editEventForm.title} onChange={(e) => setEditEventForm((f) => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Description</label>
+                      <textarea rows={3} value={editEventForm.description} onChange={(e) => setEditEventForm((f) => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Date *</label>
+                        <input type="date" value={editEventForm.date} onChange={(e) => setEditEventForm((f) => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Time</label>
+                        <input type="time" value={editEventForm.time} onChange={(e) => setEditEventForm((f) => ({ ...f, time: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Location</label>
+                        <input type="text" value={editEventForm.location} onChange={(e) => setEditEventForm((f) => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Category</label>
+                        <select value={editEventForm.category} onChange={(e) => setEditEventForm((f) => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400">
+                          <option value="Workshop">Workshop</option>
+                          <option value="Expo">Expo</option>
+                          <option value="Masterclass">Masterclass</option>
+                          <option value="Competition">Competition</option>
+                          <option value="Networking">Networking</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Image URL</label>
+                      <input type="text" value={editEventForm.image} onChange={(e) => setEditEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="https://..." />
+                      {editEventForm.image && (
+                        <div className="mt-2 relative group">
+                          <img src={editEventForm.image} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <button
+                            type="button"
+                            onClick={() => setEditEventForm((f) => ({ ...f, image: "" }))}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Ticket URL</label>
+                      <input type="url" value={editEventForm.ticketUrl} onChange={(e) => setEditEventForm((f) => ({ ...f, ticketUrl: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Organizer Name</label>
+                      <input type="text" value={editEventForm.organizerName} onChange={(e) => setEditEventForm((f) => ({ ...f, organizerName: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={editEventForm.published} onChange={(e) => setEditEventForm((f) => ({ ...f, published: e.target.checked }))} className="rounded border-gray-300 text-rose-500 focus:ring-rose-400" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Published</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 mt-6">
+                    <button onClick={() => setEditingEvent(null)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all">Cancel</button>
+                    <button
+                      onClick={async () => {
+                        if (!editEventForm.title.trim() || !editEventForm.date) return;
+                        setActionLoading("edit-event");
+                        try {
+                          await fetch("/api/events", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editingEvent.id, ...editEventForm }) });
+                          setEditingEvent(null);
+                          fetchData("events");
+                        } finally { setActionLoading(""); }
+                      }}
+                      disabled={actionLoading === "edit-event" || !editEventForm.title.trim() || !editEventForm.date}
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 transition-all"
+                    >
+                      {actionLoading === "edit-event" ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Image</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Title</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Location</th>
@@ -706,11 +869,20 @@ export default function DashboardAdmin() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
-                  <tr><td colSpan={6} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                  <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : adminEvents.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-gray-400">No events found</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-gray-400">No events found</td></tr>
                 ) : adminEvents.map((ev) => (
                   <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                    <td className="p-3">
+                      {(ev as any).image && (ev as any).image !== "/placeholder.svg" ? (
+                        <img src={(ev as any).image} alt={ev.title} className="w-12 h-12 object-cover rounded-lg" />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-gray-300" />
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-medium text-gray-900 dark:text-white">{ev.title}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-300">{new Date(ev.date).toLocaleDateString()}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-300">{ev.location || "—"}</td>
@@ -725,6 +897,26 @@ export default function DashboardAdmin() {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingEvent(ev);
+                            setEditEventForm({
+                              title: ev.title,
+                              description: (ev as any).description || "",
+                              date: ev.date?.split("T")[0] || "",
+                              time: ev.time || "",
+                              location: ev.location || "",
+                              category: ev.category,
+                              image: (ev as any).image || "",
+                              ticketUrl: (ev as any).ticketUrl || "",
+                              organizerName: (ev as any).organizerName || "",
+                              published: ev.published,
+                            });
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-600 dark:bg-neutral-800 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 touch-target"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={async () => {
                             setActionLoading(`pub-${ev.id}`);
@@ -759,35 +951,60 @@ export default function DashboardAdmin() {
         )}
 
         {tab === "inbox" && (
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">From</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">To</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Subject</th>
-                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Received</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
-                {loading ? (
-                  <tr><td colSpan={4} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                ) : receivedEmails.length === 0 ? (
-                  <tr><td colSpan={4} className="p-8 text-center text-gray-400">No emails received yet. Set up forwarding in Cloudflare Email Routing.</td></tr>
-                ) : receivedEmails.map((email) => (
-                  <tr key={email.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer" onClick={() => setSelectedEmail(email)}>
-                    <td className="p-3">
-                      <p className="font-medium text-gray-900 dark:text-white">{email.sender}</p>
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-gray-300 text-xs">{email.recipient}</td>
-                    <td className="p-3 text-gray-600 dark:text-gray-300">{email.subject || "(no subject)"}</td>
-                    <td className="p-3 text-gray-400 text-xs">{new Date(email.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
+          <div className="space-y-4">
+            {loading ? (
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 p-8"><Skeleton className="h-8 w-full" /></div>
+            ) : receivedEmails.length === 0 ? (
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 p-8 text-center text-gray-400">No emails received yet. Set up forwarding in Cloudflare Email Routing.</div>
+            ) : (() => {
+                const grouped: Record<string, ReceivedEmail[]> = {};
+                receivedEmails.forEach((email) => {
+                  const senderName = email.sender.split("@")[0].replace(/[._-]/g, " ").trim();
+                  if (!grouped[senderName]) grouped[senderName] = [];
+                  grouped[senderName].push(email);
+                });
+                const sortedGroups = Object.entries(grouped).sort((a, b) => {
+                  const latestA = Math.max(...a[1].map((e) => new Date(e.createdAt).getTime()));
+                  const latestB = Math.max(...b[1].map((e) => new Date(e.createdAt).getTime()));
+                  return latestB - latestA;
+                });
+                return sortedGroups.map(([senderName, emails]) => (
+                  <div key={senderName} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                    <button
+                      onClick={() => setExpandedEmailGroup(expandedEmailGroup === senderName ? null : senderName)}
+                      className="w-full px-4 sm:px-5 py-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30">
+                        <Mail className="w-4 h-4 text-rose-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">{senderName}</p>
+                        <p className="text-xs text-gray-400">{emails.length} email{emails.length !== 1 ? "s" : ""}</p>
+                      </div>
+                      <span className="text-xs text-gray-400">{new Date(emails[0].createdAt).toLocaleDateString()}</span>
+                      <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedEmailGroup === senderName ? "rotate-90" : ""}`} />
+                    </button>
+                    {expandedEmailGroup === senderName && (
+                      <div className="border-t border-gray-100 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800">
+                        {emails.map((email) => (
+                          <button
+                            key={email.id}
+                            onClick={() => setSelectedEmail(email)}
+                            className="w-full px-4 sm:px-5 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-left"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{email.subject || "(no subject)"}</p>
+                              <p className="text-xs text-gray-400 truncate">{email.bodyText?.slice(0, 80) || email.bodyHtml?.replace(/<[^>]+>/g, "").slice(0, 80) || "No content"}</p>
+                            </div>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">{new Date(email.createdAt).toLocaleString()}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ));
+              })()
+            }
             {total.inbox > pageSize && (
               <Pagination page={page.inbox} total={total.inbox} pageSize={pageSize} onPage={(p) => goToPage("inbox", p)} />
             )}
@@ -892,6 +1109,7 @@ export default function DashboardAdmin() {
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                  <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Booking</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
                   <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
@@ -902,12 +1120,16 @@ export default function DashboardAdmin() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
-                  <tr><td colSpan={7} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                  <tr><td colSpan={8} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
                 ) : filterBySearch(payments).length === 0 ? (
-                  <tr><td colSpan={7} className="p-8 text-center text-gray-400">No payments found</td></tr>
+                  <tr><td colSpan={8} className="p-8 text-center text-gray-400">No payments found</td></tr>
                 ) : filterBySearch(payments).map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                       <td className="p-3 font-mono text-xs text-gray-500">{(p.id || "").slice(0, 8)}</td>
+                      <td className="p-3">
+                        <p className="font-medium text-gray-900 dark:text-white">{p.userName || "—"}</p>
+                        {p.userEmail && <p className="text-xs text-gray-400">{p.userEmail}</p>}
+                      </td>
                       <td className="p-3 font-mono text-xs text-gray-500">{(p.bookingId || "").toString().slice(0, 8) || "—"}</td>
                       <td className="p-3 font-medium text-gray-900 dark:text-white">MYR {p.amount}</td>
                       <td className="p-3"><PaymentBadge status={p.status} /></td>
@@ -967,6 +1189,103 @@ export default function DashboardAdmin() {
               ) : (
                 <p className="text-gray-400 dark:text-gray-500">No message content available</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {overviewDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setOverviewDetail(null)}>
+          <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-neutral-800">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white capitalize">
+                {overviewDetail === "revenue" ? "Revenue Details" : overviewDetail === "pending" ? "Pending Payouts" : `All ${overviewDetail}`}
+              </h2>
+              <button onClick={() => setOverviewDetail(null)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {overviewDetailLoading ? (
+                <div className="p-8"><Skeleton className="h-8 w-full" /></div>
+              ) : !overviewDetailData ? (
+                <p className="text-center text-gray-400 p-8">No data available</p>
+              ) : overviewDetail === "users" || overviewDetail === "artists" ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-neutral-800">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                        {overviewDetail === "artists" && <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Rating</th>}
+                        {overviewDetail === "artists" && <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Verified</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {(overviewDetail === "users" ? overviewDetailData.users : overviewDetailData.artists)?.map((item: any) => (
+                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                          <td className="p-3 font-medium text-gray-900 dark:text-white">{item.name || "—"}</td>
+                          <td className="p-3 text-gray-600 dark:text-gray-300">{item.email}</td>
+                          {overviewDetail === "artists" && <td className="p-3 text-amber-500">{item.rating || "0"}</td>}
+                          {overviewDetail === "artists" && <td className="p-3">{item.verified ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-gray-300" />}</td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : overviewDetail === "bookings" ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-neutral-800">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Customer</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Artist</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                        <th className="text-right p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {overviewDetailData.bookings?.map((b: any) => (
+                        <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                          <td className="p-3 font-medium text-gray-900 dark:text-white">{b.userName || "—"}</td>
+                          <td className="p-3 text-gray-600 dark:text-gray-300">{b.artistName || "—"}</td>
+                          <td className="p-3 text-gray-600 dark:text-gray-300">{b.date}</td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${b.status === "confirmed" ? "bg-green-50 text-green-600" : b.status === "pending" ? "bg-amber-50 text-amber-600" : b.status === "completed" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"}`}>{b.status}</span>
+                          </td>
+                          <td className="p-3 text-right font-medium text-gray-900 dark:text-white">MYR {b.totalAmount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (overviewDetail === "payments" || overviewDetail === "revenue" || overviewDetail === "pending") ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-neutral-800">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">ID</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {(overviewDetailData.payments || [])
+                        .filter((p: any) => overviewDetail === "pending" ? p.status === "held" : overviewDetail === "revenue" ? (p.status === "paid" || p.status === "released") : true)
+                        .map((p: any) => (
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                            <td className="p-3 font-mono text-xs text-gray-500">{(p.id || "").slice(0, 8)}</td>
+                            <td className="p-3 font-medium text-gray-900 dark:text-white">{p.userName || "—"}</td>
+                            <td className="p-3 font-medium text-gray-900 dark:text-white">MYR {p.amount}</td>
+                            <td className="p-3"><PaymentBadge status={p.status} /></td>
+                            <td className="p-3 text-xs text-gray-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
