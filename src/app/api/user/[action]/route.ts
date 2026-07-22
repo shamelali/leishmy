@@ -98,11 +98,20 @@ export async function GET(
         clientRows.map((u) => [u.id, u.name || "Anonymous"]),
       );
 
+      const clientEmailMap = new Map(
+        clientRows.map((u) => [u.id, u.email || ""]),
+      );
+      const clientPhoneMap = new Map(
+        clientRows.map((u) => [u.id, u.phone || ""]),
+      );
+
       const enrichedBookings = (rows || []).map((b) => ({
         ...b,
         id: String(b.id),
         client: clientNameMap.get(b.userId) || "Anonymous",
         userName: clientNameMap.get(b.userId) || "Anonymous",
+        clientEmail: clientEmailMap.get(b.userId) || "",
+        clientPhone: clientPhoneMap.get(b.userId) || "",
         price: Number(b.amount) || 0,
       }));
 

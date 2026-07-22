@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
+import ClientDetailsModal from "@/components/ClientDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import { ArtistProfileEditForm, type ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 
@@ -61,6 +62,8 @@ interface Booking {
   artistName?: string;
   client?: string;
   userName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   service?: string;
   date?: string;
   time?: string;
@@ -99,6 +102,11 @@ export default function DashboardArtist() {
   const [fetchError, setFetchError] = useState("");
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+    type: "booking" | "inquiry";
+    data: any;
+  }>({ isOpen: false, type: "booking", data: null });
   const [profile, setProfile] = useState<ArtistProfileEditValues>({
     name: "",
     email: "",
@@ -274,6 +282,13 @@ export default function DashboardArtist() {
             <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
+
+        <ClientDetailsModal
+          isOpen={detailsModal.isOpen}
+          onClose={() => setDetailsModal({ isOpen: false, type: "booking", data: null })}
+          type={detailsModal.type}
+          data={detailsModal.data || {}}
+        />
       </div>
     );
   }
@@ -579,24 +594,28 @@ export default function DashboardArtist() {
             <p className="text-sm text-gray-400 py-4 text-center">No inquiries yet</p>
           ) : (
             <div className="space-y-3">
-              {inquiries.filter((i) => i.status === "pending").map((inq) => (
-                <div key={inq.id} className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{inq.name}</p>
-                      <p className="text-xs text-gray-500">{inq.email}</p>
-                    </div>
-                    <span className="shrink-0 px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">New</span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{inq.message}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                    {inq.phone && <span>{inq.phone}</span>}
-                    {inq.location && <span>{inq.location}</span>}
-                    <span>{new Date(inq.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+               {inquiries.filter((i) => i.status === "pending").map((inq) => (
+                 <div
+                   key={inq.id}
+                   onClick={() => setDetailsModal({ isOpen: true, type: "inquiry", data: inq })}
+                   className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/50 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                 >
+                   <div className="flex items-start justify-between gap-3 mb-2">
+                     <div>
+                       <p className="font-semibold text-gray-900 dark:text-white text-sm">{inq.name}</p>
+                       <p className="text-xs text-gray-500">{inq.email}</p>
+                     </div>
+                     <span className="shrink-0 px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">New</span>
+                   </div>
+                   <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{inq.message}</p>
+                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                     {inq.phone && <span>{inq.phone}</span>}
+                     {inq.location && <span>{inq.location}</span>}
+                     <span>{new Date(inq.createdAt).toLocaleDateString()}</span>
+                   </div>
+                 </div>
+               ))}
+             </div>
           )}
         </div>
 
@@ -647,7 +666,11 @@ export default function DashboardArtist() {
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
                     {paged.map((b: Booking) => (
-                      <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
+                      <tr
+                        key={b.id}
+                        onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: b })}
+                        className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+                      >
                         <td className="px-5 py-3 font-medium text-gray-900 dark:text-white">{b.client || b.userName || "—"}</td>
                         <td className="px-5 py-3 text-gray-600 dark:text-gray-300">{b.service || "—"}</td>
                         <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{b.date} {b.time || ""}</td>
@@ -666,8 +689,8 @@ export default function DashboardArtist() {
                         <td className="px-5 py-3">
                           {b.status === "pending" && (
                             <>
-                              <button onClick={() => handleConfirm(b.id)} className="text-xs font-medium text-green-600 dark:text-green-400 hover:text-green-700 mr-2"><Check className="w-4 h-4" /></button>
-                              <button onClick={() => handleReject(b.id)} className="text-xs font-medium text-red-500 hover:text-red-600"><X className="w-4 h-4" /></button>
+                              <button onClick={(e) => { e.stopPropagation(); handleConfirm(b.id); }} className="text-xs font-medium text-green-600 dark:text-green-400 hover:text-green-700 mr-2"><Check className="w-4 h-4" /></button>
+                              <button onClick={(e) => { e.stopPropagation(); handleReject(b.id); }} className="text-xs font-medium text-red-500 hover:text-red-600"><X className="w-4 h-4" /></button>
                             </>
                           )}
                         </td>
@@ -679,7 +702,11 @@ export default function DashboardArtist() {
 
               <div className="md:hidden divide-y divide-gray-100 dark:divide-neutral-800">
                 {paged.map((b: Booking) => (
-                  <div key={b.id} className="p-4 space-y-2">
+                  <div
+                    key={b.id}
+                    onClick={() => setDetailsModal({ isOpen: true, type: "booking", data: b })}
+                    className="p-4 space-y-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800/50 rounded-xl transition-colors"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-gray-900 dark:text-white text-sm">{b.client || b.userName || "—"}</span>
                       {(() => {
@@ -708,8 +735,8 @@ export default function DashboardArtist() {
                       <div className="flex items-end">
                         {b.status === "pending" && (
                           <div className="flex gap-2 mt-1">
-                            <button onClick={() => handleConfirm(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> Confirm</button>
-                            <button onClick={() => handleReject(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> Reject</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleConfirm(b.id); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> Confirm</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleReject(b.id); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> Reject</button>
                           </div>
                         )}
                       </div>
