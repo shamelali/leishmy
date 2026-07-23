@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
 import { saveStepProfessional, type ActionResult } from "../actions";
 import type { StepProfessionalInput } from "@/lib/validations/artist";
 import { Field, FormError, NavButtons } from "./FormBits";
@@ -61,8 +60,6 @@ export function StepProfessional({
   categories,
   selectedCategoryIds,
 }: StepProfessionalProps) {
-  const t = useTranslations("artistOnboarding.wizard.professional");
-  const tCommon = useTranslations("artistOnboarding.wizard.common");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -162,13 +159,13 @@ export function StepProfessional({
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("heading")}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("subtitle")}</p>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Professional details</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Showcase your craft, languages, and the categories you serve.</p>
       </div>
 
       <FormError message={error} />
 
-      <Field id="bio" label={t("bio")} required error={fieldErrors.bio?.[0]} hint={t("bioHint")}>
+      <Field id="bio" label="Bio" required error={fieldErrors.bio?.[0]} hint="40–1000 characters. Highlight your specialty, philosophy, and trust signals.">
         <textarea
           id="bio"
           maxLength={1000}
@@ -181,7 +178,7 @@ export function StepProfessional({
       </Field>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="experience" label={t("experience")} required error={fieldErrors.experience?.[0]}>
+        <Field id="experience" label="Years of experience" required error={fieldErrors.experience?.[0]}>
           <input
             id="experience"
             type="number"
@@ -192,7 +189,7 @@ export function StepProfessional({
             className="form-input"
           />
         </Field>
-        <Field id="responseTime" label={t("responseTime")} error={fieldErrors.responseTime?.[0]}>
+        <Field id="responseTime" label="Typical response time" error={fieldErrors.responseTime?.[0]}>
           <select
             id="responseTime"
             value={form.responseTime ?? ""}
@@ -210,7 +207,7 @@ export function StepProfessional({
 
       <fieldset>
         <legend className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          {t("categories")} <span className="text-rose-500">*</span>
+          Categories <span className="text-rose-500">*</span>
         </legend>
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => {
@@ -239,7 +236,7 @@ export function StepProfessional({
 
       <fieldset>
         <legend className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          {t("specialties")}
+          Specialties
         </legend>
         <div className="flex gap-2">
           <input
@@ -254,14 +251,14 @@ export function StepProfessional({
               }
             }}
             className="form-input flex-1"
-            placeholder={t("specialtiesPlaceholder")}
+            placeholder="e.g. Soft Glam, Airbrush, Bridal"
           />
           <button
             type="button"
             onClick={addSpecialty}
             className="px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-neutral-700"
           >
-            {t("add")}
+            Add
           </button>
         </div>
         {(form.specialties ?? []).length > 0 && (
@@ -288,7 +285,7 @@ export function StepProfessional({
 
       <fieldset>
         <legend className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          {t("languages")}
+          Languages you speak
         </legend>
         <div className="flex flex-wrap gap-2">
           {LANGUAGES.map((l) => {
@@ -313,7 +310,7 @@ export function StepProfessional({
 
       <fieldset>
         <legend className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          {t("operatingDays")}
+          Operating days
         </legend>
         <div className="flex flex-wrap gap-2">
           {OPERATING_DAYS.map((d) => {
@@ -337,7 +334,7 @@ export function StepProfessional({
       </fieldset>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="instagramUrl" label={t("instagram")} error={fieldErrors.instagramUrl?.[0]}>
+        <Field id="instagramUrl" label="Instagram URL" error={fieldErrors.instagramUrl?.[0]}>
           <input
             id="instagramUrl"
             type="url"
@@ -348,7 +345,7 @@ export function StepProfessional({
             placeholder="https://instagram.com/yourname"
           />
         </Field>
-        <Field id="tiktokUrl" label={t("tiktok")} error={fieldErrors.tiktokUrl?.[0]}>
+        <Field id="tiktokUrl" label="TikTok URL" error={fieldErrors.tiktokUrl?.[0]}>
           <input
             id="tiktokUrl"
             type="url"
@@ -370,11 +367,11 @@ export function StepProfessional({
             className="form-checkbox"
           />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            {t("willingToTravel")}
+            I&apos;m willing to travel to clients
           </span>
         </label>
         {form.willingToTravel && (
-          <Field id="travelCoverage" label={t("travelCoverage")} error={fieldErrors.travelCoverage?.[0]}>
+          <Field id="travelCoverage" label="Travel coverage" error={fieldErrors.travelCoverage?.[0]}>
             <select
               id="travelCoverage"
               value={form.travelCoverage ?? ""}
@@ -396,7 +393,7 @@ export function StepProfessional({
         savingDraft={savingDraft}
         onSaveDraft={onSaveDraft}
         prevHref={prevHref}
-        nextLabel={tCommon("next")}
+        nextLabel="Continue"
       />
     </form>
   );

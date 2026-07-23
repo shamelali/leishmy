@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import {
   Check,
   ChevronDown,
@@ -110,8 +109,14 @@ const checklist = [
   { key: "checklist6", done: false },
 ];
 
+const PHASE_TITLES: Record<string, string> = {
+  phase1Title: "Setting Up Your Professional Identity",
+  phase2Title: "Optimizing Your Service Suite",
+  phase3Title: "The Booking & Payment Workflow",
+  phase4Title: "Excellence in Communication",
+};
+
 export default function ArtistOnboarding() {
-  const t = useTranslations("artistOnboarding");
   const [openPhase, setOpenPhase] = useState<number | null>(0);
   const [checked, setChecked] = useState<boolean[]>(
     new Array(checklist.length).fill(false),
@@ -136,7 +141,7 @@ export default function ArtistOnboarding() {
             href="/dashboard/artist"
             className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors mb-4"
           >
-            <ArrowLeft className="w-4 h-4" /> {t("backToDashboard")}
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </Link>
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30">
@@ -144,10 +149,10 @@ export default function ArtistOnboarding() {
             </div>
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
-                {t("heading")}
+                Artist Onboarding Guide
               </h1>
               <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {t("subtitle")}
+                Welcome to the Leish! Elite Network
               </p>
             </div>
           </div>
@@ -155,7 +160,7 @@ export default function ArtistOnboarding() {
 
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6 sm:p-8 mb-8 shadow-sm">
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-            {t("intro")}
+            Welcome to the Leish! Elite Network. As a luxury beauty marketplace, our goal is to pair Malaysia&apos;s premier artists with high-end clients. This guide is designed to help you set up a world-class profile that captures attention and secures bookings.
           </p>
         </div>
 
@@ -178,10 +183,10 @@ export default function ArtistOnboarding() {
                     </div>
                     <div>
                       <span className="text-xs font-semibold text-rose-500 dark:text-rose-400 uppercase tracking-wider">
-                        {t("phase", { number: i + 1 })}
+                        Phase {i + 1}
                       </span>
                       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {t(phase.titleKey)}
+                        {PHASE_TITLES[phase.titleKey]}
                       </h2>
                     </div>
                   </div>
@@ -227,11 +232,11 @@ export default function ArtistOnboarding() {
               <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t("checklistHeading")}
+              Onboarding Checklist
             </h2>
             {allDone && (
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full ml-auto">
-                {t("complete")}
+                Complete!
               </span>
             )}
           </div>
@@ -258,7 +263,12 @@ export default function ArtistOnboarding() {
                 <span
                   className={`text-sm font-medium ${checked[i] ? "text-emerald-700 dark:text-emerald-300 line-through" : "text-gray-700 dark:text-gray-200"}`}
                 >
-                  {t(item.key)}
+                  {item.key === "checklist1" && "Profile photo uploaded (High-res, professional)"}
+                  {item.key === "checklist2" && "Bio written (Experience + Philosophy)"}
+                  {item.key === "checklist3" && "Portfolio gallery (6+ high-quality looks)"}
+                  {item.key === "checklist4" && "Services & Pricing listed clearly"}
+                  {item.key === "checklist5" && "Calendar synced and updated"}
+                  {item.key === "checklist6" && "Bank details verified for payouts"}
                 </span>
               </label>
             ))}
@@ -270,17 +280,17 @@ export default function ArtistOnboarding() {
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
               <LifeBuoy className="w-5 h-5" />
             </div>
-            <h2 className="text-xl font-semibold">{t("supportHeading")}</h2>
+            <h2 className="text-xl font-semibold">Support &amp; Resources</h2>
           </div>
           <p className="text-white/80 text-sm mb-4">
-            {t("supportText")}
+            Need help perfecting your profile?
           </p>
           <div className="flex flex-wrap gap-3 mb-4">
             <Link
               href="/artist-onboarding/create"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-rose-600 rounded-xl text-sm font-semibold hover:bg-rose-50 transition-colors"
             >
-              <ClipboardList className="w-4 h-4" /> {t("startCta")}
+              <ClipboardList className="w-4 h-4" /> Start Profile Wizard
             </Link>
           </div>
           <div className="flex flex-wrap gap-4">
@@ -290,7 +300,7 @@ export default function ArtistOnboarding() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/25 transition-colors"
             >
-              <span className="text-lg">📞</span> {t("hotline")}
+              <span className="text-lg">📞</span> Artist Hotline
             </a>
             <a
               href="mailto:support@leish.my"
@@ -302,13 +312,13 @@ export default function ArtistOnboarding() {
               href="/dashboard/artist"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/25 transition-colors"
             >
-              <LayoutDashboard className="w-4 h-4" /> {t("dashboard")}
+              <LayoutDashboard className="w-4 h-4" /> Artist Dashboard
             </Link>
           </div>
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-8">
-          {t("footer")}
+          Leish! &mdash; Where Artistry Meets Luxury.
         </p>
       </div>
     </div>

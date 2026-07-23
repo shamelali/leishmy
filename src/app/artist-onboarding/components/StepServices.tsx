@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Plus, Trash2, Star } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Trash2, Star, Plus } from "lucide-react";
 import { saveStepServices, type ActionResult } from "../actions";
 import type { StepServicesInput } from "@/lib/validations/artist";
 import { Field, FormError, NavButtons } from "./FormBits";
@@ -29,8 +28,6 @@ export function StepServices({
   nextHref,
   prevHref,
 }: StepServicesProps) {
-  const t = useTranslations("artistOnboarding.wizard.services");
-  const tCommon = useTranslations("artistOnboarding.wizard.common");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +93,8 @@ export function StepServices({
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("heading")}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("subtitle")}</p>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Services &amp; pricing</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">List the services you offer. You can add pricing for each.</p>
       </div>
 
       <FormError message={error} />
@@ -112,14 +109,14 @@ export function StepServices({
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {t("serviceNumber", { number: idx + 1 })}
+                  Service #{idx + 1}
                 </h3>
                 {services.length > 1 && (
                   <button
                     type="button"
                     onClick={() => remove(idx)}
                     className="text-rose-500 hover:text-rose-700"
-                    aria-label={tCommon("remove")}
+                    aria-label="Remove service"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -128,7 +125,7 @@ export function StepServices({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field
                   id={`name-${idx}`}
-                  label={t("name")}
+                  label="Service name"
                   required
                   error={fieldErrors[`${basePath}.name`]?.[0]}
                 >
@@ -143,7 +140,7 @@ export function StepServices({
                 </Field>
                 <Field
                   id={`price-${idx}`}
-                  label={t("price")}
+                  label="Price (MYR)"
                   required
                   error={fieldErrors[`${basePath}.price`]?.[0]}
                 >
@@ -159,7 +156,7 @@ export function StepServices({
                 </Field>
                 <Field
                   id={`duration-${idx}`}
-                  label={t("duration")}
+                  label="Duration"
                   error={fieldErrors[`${basePath}.duration`]?.[0]}
                 >
                   <input
@@ -180,12 +177,12 @@ export function StepServices({
                     className="form-checkbox"
                   />
                   <Star className="w-4 h-4 text-amber-400" />
-                  {t("popular")}
+                  Popular
                 </label>
               </div>
               <Field
                 id={`desc-${idx}`}
-                label={t("description")}
+                label="Description (optional)"
                 error={fieldErrors[`${basePath}.description`]?.[0]}
               >
                 <textarea
@@ -207,7 +204,7 @@ export function StepServices({
             onClick={add}
             className="w-full rounded-2xl border-2 border-dashed border-gray-200 dark:border-neutral-700 py-3 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-rose-300 hover:text-rose-600 transition-colors inline-flex items-center justify-center gap-2"
           >
-            <Plus className="w-4 h-4" /> {t("addService")}
+            <Plus className="w-4 h-4" /> Add another service
           </button>
         )}
 
@@ -218,10 +215,10 @@ export function StepServices({
 
       <Field
         id="startingPrice"
-        label={t("startingPrice")}
+        label="Starting price (MYR)"
         required
         error={fieldErrors.price?.[0]}
-        hint={t("startingPriceHint")}
+        hint="The lowest price a client can expect to pay for any of your services."
       >
         <input
           id="startingPrice"
@@ -239,7 +236,7 @@ export function StepServices({
         savingDraft={savingDraft}
         onSaveDraft={onSaveDraft}
         prevHref={prevHref}
-        nextLabel={tCommon("next")}
+        nextLabel="Continue"
       />
     </form>
   );

@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import { getAuthSession } from "@/lib/auth/server";
 import { getArtistProfileForEdit } from "../actions";
 import {
@@ -49,7 +48,6 @@ export default async function WizardCreatePage({
     redirect("/login?next=/artist-onboarding/create");
   }
 
-  const t = await getTranslations("artistOnboarding.wizard");
   const params = await searchParams;
   const requested = safeStep(params.step);
   const profile = await getArtistProfileForEdit();
@@ -58,7 +56,7 @@ export default async function WizardCreatePage({
     return (
       <main className="min-h-screen bg-gradient-to-b from-rose-50/50 to-white dark:from-neutral-950 dark:to-neutral-900 px-4 py-10">
         <div className="max-w-2xl mx-auto text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("loading")}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading your profile&hellip;</p>
         </div>
       </main>
     );
@@ -111,12 +109,12 @@ export default async function WizardCreatePage({
             href="/dashboard/artist"
             className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors mb-4"
           >
-            ← {t("backToDashboard")}
+            ← Back to dashboard
           </a>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
-            {t("pageTitle")}
+            Create Your Artist Profile
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">{t("pageSubtitle")}</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Set up your professional presence in five guided steps.</p>
         </div>
 
         {status === "rejected" && profile.rejectionReason && (
@@ -124,14 +122,14 @@ export default async function WizardCreatePage({
             role="alert"
             className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
           >
-            <strong className="font-semibold">{t("rejectedTitle")}</strong>
+            <strong className="font-semibold">Profile needs changes</strong>
             <p className="mt-1">{profile.rejectionReason}</p>
           </div>
         )}
 
         {isReadOnly && (
           <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-            {t("readonlyNotice")}
+            Your profile is currently under review or already published. Some fields are locked.
           </div>
         )}
 

@@ -4,20 +4,16 @@ import { db } from "@/db";
 import { profiles, users, categories as categoriesTable } from "@/db/schema";
 import { eq, and, notLike, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
 type Props = {
   searchParams: Promise<{ category?: string }>;
 };
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("artistsTitle"),
-    description: t("artistsDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "Browse Makeup Artists — Leish!",
+  description: "Find and book Malaysia's top makeup artists. Filter by style, location, or budget.",
+};
 
 export default async function ArtistsPage({ searchParams }: Props) {
   const { category } = await searchParams;

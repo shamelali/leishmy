@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
 import { saveStepBasics, type ActionResult } from "../actions";
 import type { StepBasicsInput } from "@/lib/validations/artist";
 import { Field, FormError, NavButtons } from "./FormBits";
@@ -17,8 +16,6 @@ interface StepBasicsProps {
 }
 
 export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
-  const t = useTranslations("artistOnboarding.wizard.basics");
-  const tCommon = useTranslations("artistOnboarding.wizard.common");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -69,14 +66,14 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("heading")}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("subtitle")}</p>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Account &amp; basics</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Tell clients who you are and where you operate.</p>
       </div>
 
       <FormError message={error} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="name" label={t("name")} required error={fieldErrors.name?.[0]}>
+        <Field id="name" label="Display name" required error={fieldErrors.name?.[0]}>
           <input
             id="name"
             type="text"
@@ -88,7 +85,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             className="form-input"
           />
         </Field>
-        <Field id="email" label={t("email")} required error={fieldErrors.email?.[0]}>
+        <Field id="email" label="Email" required error={fieldErrors.email?.[0]}>
           <input
             id="email"
             type="email"
@@ -100,7 +97,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             className="form-input"
           />
         </Field>
-        <Field id="phone" label={t("phone")} error={fieldErrors.phone?.[0]}>
+        <Field id="phone" label="Phone (with country code)" error={fieldErrors.phone?.[0]}>
           <input
             id="phone"
             type="tel"
@@ -112,7 +109,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             placeholder="+60123456789"
           />
         </Field>
-        <Field id="location" label={t("location")} required error={fieldErrors.location?.[0]}>
+        <Field id="location" label="City" required error={fieldErrors.location?.[0]}>
           <input
             id="location"
             type="text"
@@ -124,7 +121,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             placeholder="Cyberjaya"
           />
         </Field>
-        <Field id="area" label={t("area")} error={fieldErrors.area?.[0]}>
+        <Field id="area" label="Area / neighborhood" error={fieldErrors.area?.[0]}>
           <input
             id="area"
             type="text"
@@ -135,7 +132,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
             placeholder="Bangsar"
           />
         </Field>
-        <Field id="district" label={t("district")} error={fieldErrors.district?.[0]}>
+        <Field id="district" label="District" error={fieldErrors.district?.[0]}>
           <input
             id="district"
             type="text"
@@ -149,7 +146,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
 
       <div>
         <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
-          {t("profileImage")}
+          Profile image URL
         </span>
         <ProfilePictureUploader
           value={form.image ?? ""}
@@ -164,7 +161,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
           </p>
         )}
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-          {t("profileImageHint")}
+          Paste a Cloudinary (or other) URL. We recommend a square headshot.
         </p>
       </div>
 
@@ -173,7 +170,7 @@ export function StepBasics({ initial, nextHref, prevHref }: StepBasicsProps) {
         savingDraft={savingDraft}
         onSaveDraft={onSaveDraft}
         prevHref={prevHref}
-        nextLabel={tCommon("next")}
+        nextLabel="Continue"
       />
     </form>
   );

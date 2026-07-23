@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Loader2, Save } from "lucide-react";
-import { useTranslations } from "next-intl";
 
 export function Field({
   id,
@@ -62,7 +61,6 @@ export function NavButtons({
   nextLabel: string;
   isLast?: boolean;
 }) {
-  const tCommon = useTranslations("artistOnboarding.wizard.common");
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-neutral-800">
       {prevHref ? (
@@ -70,7 +68,7 @@ export function NavButtons({
           href={prevHref}
           className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <ArrowLeft className="w-4 h-4" /> {tCommon("back")}
+          <ArrowLeft className="w-4 h-4" /> Back
         </a>
       ) : (
         <span />
@@ -83,7 +81,7 @@ export function NavButtons({
           className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50"
         >
           {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {tCommon("saveDraft")}
+          Save draft
         </button>
         <button
           type="submit"
@@ -91,7 +89,7 @@ export function NavButtons({
           className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-200/50 hover:opacity-95 disabled:opacity-60"
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-          {isLast ? tCommon("submit") : nextLabel}
+          {isLast ? "Submit" : nextLabel}
         </button>
       </div>
     </div>

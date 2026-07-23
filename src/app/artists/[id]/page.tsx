@@ -27,7 +27,6 @@ import { BookingForm } from "@/components/BookingForm";
 import { BookingInquiryTabs } from "@/components/BookingInquiryTabs";
 import ArtistReviews from "@/components/ArtistReviews";
 import ShareButtons from "@/components/ShareButtons";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
 type Props = {
@@ -136,13 +135,11 @@ async function findArtist(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const artist = await findArtist(id);
-  const t = await getTranslations("artistDetail");
-  const m = await getTranslations("metadata");
   if (!artist)
-    return { title: t("detailNotFound") };
+    return { title: "Not Found — Leish!" };
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
   return {
-    title: `${artist.name} — ${m("brand")}`,
+    title: `${artist.name} — Leish!`,
     description: artist.bio || `Makeup artist in ${[artist.district, artist.area, artist.location].filter(Boolean).join(", ") || "Malaysia"}`,
     openGraph: {
       title: `${artist.name} — Leish.my`,

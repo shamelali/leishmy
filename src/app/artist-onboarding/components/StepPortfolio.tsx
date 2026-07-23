@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
 import { saveStepPortfolio, type ActionResult } from "../actions";
 import { Field, FormError, NavButtons } from "./FormBits";
 import { PortfolioUploader, type PortfolioItem } from "@/components/upload";
@@ -14,8 +13,6 @@ interface StepPortfolioProps {
 }
 
 export function StepPortfolio({ initial, nextHref, prevHref }: StepPortfolioProps) {
-  const t = useTranslations("artistOnboarding.wizard.portfolio");
-  const tCommon = useTranslations("artistOnboarding.wizard.common");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -66,18 +63,18 @@ export function StepPortfolio({ initial, nextHref, prevHref }: StepPortfolioProp
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("heading")}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("subtitle")}</p>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Portfolio</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Show off your best work.</p>
       </div>
 
       <FormError message={error} />
 
       <Field
         id="portfolio"
-        label={t("label")}
+        label="Upload portfolio images"
         required
         error={fieldErrors.portfolio?.[0]}
-        hint={t("hint")}
+        hint="Add at least one image to get started. You can add more later."
       >
         <PortfolioUploader
           value={items}
@@ -92,7 +89,7 @@ export function StepPortfolio({ initial, nextHref, prevHref }: StepPortfolioProp
         savingDraft={savingDraft}
         onSaveDraft={onSaveDraft}
         prevHref={prevHref}
-        nextLabel={tCommon("next")}
+        nextLabel="Continue"
       />
     </form>
   );

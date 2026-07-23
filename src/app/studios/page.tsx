@@ -4,16 +4,12 @@ import { db } from "@/db";
 import { profiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("studiosTitle"),
-    description: t("studiosDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "Browse Studios — Leish!",
+  description: "Discover premium beauty studios across Malaysia.",
+};
 
 async function getStudios() {
   try {

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { limit } from "@/lib/rate-limit";
-import { hasLocale } from "next-intl";
-import { routing } from "@/i18n/routing";
 
 // --- Auth route protection constants ---
 
@@ -75,33 +73,6 @@ const authMiddleware = auth.middleware({
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Skip i18n for API routes, static files, and auth callbacks
-  const isApiOrStatic = pathname.startsWith("/api") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/images");
-
-  if (!isApiOrStatic) {
-    const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
-    const headerLocale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0];
-    const locale = hasLocale(routing.locales, cookieLocale)
-      ? cookieLocale
-      : hasLocale(routing.locales, headerLocale)
-        ? headerLocale
-        : routing.defaultLocale;
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("X-NEXT-INTL-LOCALE", locale);
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
-    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
-
-    if (isProtectedRoute(pathname) && !hasSessionCookie(request)) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    return withSecurityHeaders(response);
-  }
-
   if (
     pathname.startsWith("/dashboard/") &&
     !pathname.startsWith("/api/auth/")
@@ -138,6 +109,12 @@ export async function middleware(request: NextRequest) {
       res.headers.set("X-RateLimit-Reset", String(reset));
       return withSecurityHeaders(res);
     }
+  }
+
+  if (isProtectedRoute(pathname) && !hasSessionCookie(request)) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return withSecurityHeaders(NextResponse.next());

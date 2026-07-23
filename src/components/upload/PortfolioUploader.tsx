@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CloudUpload, Loader2, X, Image as ImageIcon, AlertCircle, Plus, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { validateImageFile } from "@/lib/utils/magic-bytes";
 import { isAllowedImageUrl, sanitizeImageUrl } from "@/lib/utils/upload-url";
@@ -107,7 +106,6 @@ export function PortfolioUploader({
   aspectRatio = "1:1",
   sizes = "(max-width: 640px) 50vw, 25vw",
 }: PortfolioUploaderProps) {
-  const t = useTranslations("artistOnboarding.wizard.portfolio");
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const [pending, setPending] = useState<PendingUpload[]>([]);
@@ -116,14 +114,14 @@ export function PortfolioUploader({
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
 
-  const dropzone = labels?.dropzone ?? t("dropzone");
-  const dropzoneHint = (labels?.dropzoneHint ?? t("dropzoneHint")).replace(
+  const dropzone = labels?.dropzone ?? "Drag and drop, or click to browse";
+  const dropzoneHint = (labels?.dropzoneHint ?? "Up to {max} images, 10 MB each").replace(
     "{max}",
     String(maxItems),
   );
   const counter = labels?.counter
     ? labels.counter(value.length, maxItems)
-    : t("counter", { current: value.length, max: maxItems });
+    : `${value.length} of ${maxItems} images`;
   const addUrlLabel = labels?.addUrl ?? DEFAULT_LABELS.addUrl;
   const addUrlPlaceholder = labels?.addUrlPlaceholder ?? DEFAULT_LABELS.addUrlPlaceholder;
   const addUrlInvalid = labels?.addUrlInvalid ?? DEFAULT_LABELS.addUrlInvalid;
@@ -356,7 +354,7 @@ export function PortfolioUploader({
               onClick={handleAddUrl}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600"
             >
-              <Plus className="w-4 h-4" /> {t("add")}
+              <Plus className="w-4 h-4" /> Add
             </button>
           </div>
           {urlError && (
@@ -396,7 +394,7 @@ export function PortfolioUploader({
                         onClick={() => dismissPending(p.id)}
                         className="mt-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30"
                       >
-                        {t("dismiss")}
+                        Dismiss
                       </button>
                     </>
                   )}

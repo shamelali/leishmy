@@ -5,9 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets, Shield } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { ThemeToggle } from "./ThemeToggle";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
 import NotificationsDropdown from "./NotificationsDropdown";
@@ -18,13 +16,12 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const t = useTranslations("nav");
 
   const navLinks = [
-    { href: "/", label: t("home") },
-    { href: "/artists", label: t("artists") },
-    { href: "/studios", label: t("studios") },
-    { href: "/events", label: t("events") },
+    { href: "/", label: "Home" },
+    { href: "/artists", label: "Artists" },
+    { href: "/studios", label: "Studios" },
+    { href: "/events", label: "Events" },
   ];
 
   useEffect(() => {
@@ -69,7 +66,6 @@ export function Navbar() {
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
             <SearchModal />
-            <LanguageSwitcher />
             <ThemeToggle />
             {user && <NotificationsDropdown />}
 
@@ -118,7 +114,7 @@ export function Navbar() {
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                     >
-                    <User className="w-3.5 h-3.5 text-rose-500" /> {t("myProfile")}
+                    <User className="w-3.5 h-3.5 text-rose-500" /> My Profile
                   </Link>
 
                   <Link
@@ -126,7 +122,7 @@ export function Navbar() {
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <Calendar className="w-3.5 h-3.5 text-rose-500" /> {t("myBookings")}
+                    <Calendar className="w-3.5 h-3.5 text-rose-500" /> My Bookings
                   </Link>
 
                   <Link
@@ -134,7 +130,7 @@ export function Navbar() {
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <Heart className="w-3.5 h-3.5 text-rose-500" /> {t("favorites")}
+                    <Heart className="w-3.5 h-3.5 text-rose-500" /> Favorites
                   </Link>
 
                   <Link
@@ -142,7 +138,7 @@ export function Navbar() {
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <Droplets className="w-3.5 h-3.5 text-rose-500" /> {t("beautyProfile")}
+                    <Droplets className="w-3.5 h-3.5 text-rose-500" /> Beauty Profile
                   </Link>
 
                   <Link
@@ -150,7 +146,7 @@ export function Navbar() {
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> {t("inspiration")}
+                    <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Inspiration
                   </Link>
 
                   <Link
@@ -158,7 +154,7 @@ export function Navbar() {
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
-                    <Award className="w-3.5 h-3.5 text-rose-500" /> {t("rewards")}
+                    <Award className="w-3.5 h-3.5 text-rose-500" /> Rewards
                   </Link>
 
                   {(user.isAdmin || user.role === "admin") && (
@@ -167,7 +163,7 @@ export function Navbar() {
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                     >
-                      <Shield className="w-3.5 h-3.5 text-rose-500" /> {t("adminDashboard")}
+                      <Shield className="w-3.5 h-3.5 text-rose-500" /> Admin Dashboard
                     </Link>
                   )}
 
@@ -177,7 +173,7 @@ export function Navbar() {
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                     >
-                      <LayoutDashboard className="w-3.5 h-3.5 text-rose-500" /> {t("dashboard")}
+                      <LayoutDashboard className="w-3.5 h-3.5 text-rose-500" /> Dashboard
                     </Link>
                   )}
 
@@ -189,7 +185,7 @@ export function Navbar() {
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors text-left"
                     >
-                      <LogOut className="w-3.5 h-3.5" /> {t("signOut")}
+                      <LogOut className="w-3.5 h-3.5" /> Sign Out
                     </button>
                     </div>
                   </div>
@@ -202,13 +198,13 @@ export function Navbar() {
                   href="/login"
                   className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-colors rounded-xl hover:bg-gray-100/60 dark:hover:bg-neutral-800/60"
                 >
-                  {t("logIn")}
+                  Log In
                 </Link>
                 <Link
                   href="/register"
                   className="inline-flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 hover:scale-105 active:scale-100 text-sm"
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> {t("signUpFree")}
+                  <Sparkles className="w-3.5 h-3.5" /> Sign Up Free
                 </Link>
               </div>
             )}
@@ -217,7 +213,7 @@ export function Navbar() {
             <button
               className="md:hidden w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-neutral-800"
               onClick={() => setMenuOpen(!menuOpen)}
-               aria-label={t("menu")}
+               aria-label="Menu"
             >
               {menuOpen ? (
                 <X className="w-5 h-5 text-gray-700 dark:text-gray-200" />
@@ -268,42 +264,42 @@ export function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <User className="w-4 h-4 text-rose-500" /> {t("myProfile")}
+                  <User className="w-4 h-4 text-rose-500" /> My Profile
                 </Link>
                 <Link
                   href="/bookings"
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <Calendar className="w-4 h-4 text-rose-500" /> {t("myBookings")}
+                  <Calendar className="w-4 h-4 text-rose-500" /> My Bookings
                 </Link>
                 <Link
                   href="/favorites"
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <Heart className="w-4 h-4 text-rose-500" /> {t("favorites")}
+                  <Heart className="w-4 h-4 text-rose-500" /> Favorites
                 </Link>
                 <Link
                   href="/beauty-profile"
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <Droplets className="w-4 h-4 text-rose-500" /> {t("beautyProfile")}
+                  <Droplets className="w-4 h-4 text-rose-500" /> Beauty Profile
                 </Link>
                 <Link
                   href="/inspiration"
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <ImageIcon className="w-4 h-4 text-rose-500" /> {t("inspiration")}
+                  <ImageIcon className="w-4 h-4 text-rose-500" /> Inspiration
                 </Link>
                 <Link
                   href="/rewards"
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                 >
-                  <Award className="w-4 h-4 text-rose-500" /> {t("rewards")}
+                  <Award className="w-4 h-4 text-rose-500" /> Rewards
                 </Link>
                 {(user.isAdmin || user.role === "admin") && (
                   <Link
@@ -311,7 +307,7 @@ export function Navbar() {
                     onClick={() => setMenuOpen(false)}
                     className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                   >
-                    <Shield className="w-4 h-4 text-rose-500" /> {t("adminDashboard")}
+                    <Shield className="w-4 h-4 text-rose-500" /> Admin Dashboard
                   </Link>
                 )}
                 {(user.role === "artist" || user.role === "studio") && (
@@ -320,7 +316,7 @@ export function Navbar() {
                     onClick={() => setMenuOpen(false)}
                     className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2"
                   >
-                    <LayoutDashboard className="w-4 h-4 text-rose-500" /> {t("dashboard")}
+                    <LayoutDashboard className="w-4 h-4 text-rose-500" /> Dashboard
                   </Link>
                 )}
                 <button
@@ -330,7 +326,7 @@ export function Navbar() {
                   }}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 text-left"
                 >
-                  <LogOut className="w-4 h-4" /> {t("signOut")}
+                  <LogOut className="w-4 h-4" /> Sign Out
                 </button>
               </div>
             ) : (
@@ -340,20 +336,17 @@ export function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center justify-center py-3 bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-white font-semibold rounded-xl text-sm"
                 >
-                  {t("logIn")}
+                  Log In
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center justify-center gap-1.5 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-xl text-sm"
                 >
-                  <Sparkles className="w-4 h-4" /> {t("signUpFree")}
+                  <Sparkles className="w-4 h-4" /> Sign Up Free
                 </Link>
               </div>
             )}
-            <div className="flex justify-center pt-2">
-              <LanguageSwitcher />
-            </div>
           </nav>
         </div>
       )}

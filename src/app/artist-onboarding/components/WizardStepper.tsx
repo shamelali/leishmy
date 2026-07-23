@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { useTranslations } from "next-intl";
 
 export type StepKey = "basics" | "professional" | "portfolio" | "services" | "review";
 
@@ -25,8 +24,15 @@ interface WizardStepperProps {
 }
 
 export function WizardStepper({ current, furthestReached, status }: WizardStepperProps) {
-  const t = useTranslations("artistOnboarding.wizard.stepper");
   const currentIdx = stepIndex(current);
+
+  const labels: Record<StepKey, string> = {
+    basics: "Account",
+    professional: "Professional",
+    portfolio: "Portfolio",
+    services: "Services",
+    review: "Review",
+  };
 
   return (
     <ol className="flex w-full items-center gap-2 sm:gap-3" aria-label="Onboarding progress">
@@ -35,7 +41,7 @@ export function WizardStepper({ current, furthestReached, status }: WizardSteppe
         const isDone = idx < furthestReached || status === "verified" || status === "pending_verification";
         const isReachable = idx <= furthestReached;
         const Icon = isDone ? Check : () => <span>{idx + 1}</span>;
-        const label = t(`${key}.label`);
+        const label = labels[key];
 
         const inner = (
           <span className="flex flex-col items-center text-center min-w-0">

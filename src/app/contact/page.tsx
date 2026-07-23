@@ -1,15 +1,11 @@
 import { ContactForm } from "@/components/ContactForm";
 import { MapPin, Mail, Phone } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("contactTitle"),
-    description: t("contactDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "Contact Us — Leish!",
+  description: "Get in touch with the Leish! team.",
+};
 
 export default function ContactPage() {
   return (

@@ -1,15 +1,11 @@
 import { HelpCircle, ChevronDown } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("faqTitle"),
-    description: t("faqDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "FAQ — Leish!",
+  description: "Answers to common questions about booking makeup artists and studios on Leish.",
+};
 
 type FaqItem = { q: string; a: string };
 type FaqGroup = { title: string; items: FaqItem[] };

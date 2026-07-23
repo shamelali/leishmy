@@ -7,7 +7,6 @@ import { eq, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import ShareButtons from "@/components/ShareButtons";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
 type Props = {
@@ -68,12 +67,10 @@ async function findStudio(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const studio = await findStudio(id);
-  const t = await getTranslations("studioDetail");
-  const m = await getTranslations("metadata");
-  if (!studio) return { title: t("detailNotFound") };
+  if (!studio) return { title: "Not Found — Leish!" };
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
   return {
-    title: `${studio.name} — ${m("brand")}`,
+    title: `${studio.name} — Leish!`,
     description: studio.description || `Beauty studio in ${studio.location || "Malaysia"}`,
     openGraph: {
       title: `${studio.name} — Leish.my`,

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Users, Clock } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { adminSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -26,9 +25,8 @@ async function getHeroImages(): Promise<string[]> {
 }
 
 export async function HeroSection({ stats }: { stats?: { value: string; label: string }[] }) {
-  const t = await getTranslations("hero");
   const heroImages = await getHeroImages();
-  const imgAlts = [t("imgSoftGlam"), t("imgContemporary"), t("imgWarmTones"), t("imgBeautiful")];
+  const imgAlts = ["Soft glam makeup", "Contemporary beauty", "Warm tones", "Beautiful look"];
 
   return (
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
@@ -41,15 +39,15 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100/80 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-full mb-6 border border-rose-200/50 dark:border-rose-800/50 animate-slide-in-left">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{t("tagline")}</span>
+            <span>Book Beauty. Anywhere.</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-gray-900 dark:text-white leading-tight animate-slide-in-left delay-200">
-            <span className="gradient-text animate-shimmer-text">{t("heading")}</span>
+            <span className="gradient-text animate-shimmer-text">Your Beauty, Perfected.</span>
           </h1>
 
           <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl animate-slide-in-left delay-300">
-            {t("subheading")}
+            Discover makeup artists and studios, view real-time availability, and secure your booking in minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-8 animate-slide-in-left delay-400">
@@ -57,13 +55,13 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
               href="/artists"
               className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-2xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-xl shadow-rose-200/50 dark:shadow-rose-900/30 hover:scale-105 active:scale-100 text-base"
             >
-              {t("findBookArtists")} <ArrowRight className="w-4 h-4" />
+              Find &amp; Book Artists <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/studios"
               className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white font-bold rounded-2xl border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 transition-all shadow-lg text-base"
             >
-              {t("exploreStudios")}
+              Explore Studios
             </Link>
           </div>
 

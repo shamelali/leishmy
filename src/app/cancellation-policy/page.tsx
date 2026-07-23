@@ -1,14 +1,10 @@
 import { RotateCcw } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("metadata");
-  return {
-    title: t("cancellationPolicyTitle"),
-    description: t("cancellationPolicyDescription"),
-  };
-}
+export const metadata: Metadata = {
+  title: "Cancellation & Refund Policy — Leish!",
+  description: "How cancellations, no-shows, and refunds are handled for bookings made through Leish.",
+};
 
 const sections = [
   {
