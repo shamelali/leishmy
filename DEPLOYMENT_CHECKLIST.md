@@ -41,6 +41,7 @@ Set all from `.env.example` in Vercel Project Settings → Environment Variables
 - [ ] `SENTRY_ORG` - Sentry org slug
 - [ ] `SENTRY_PROJECT` - Sentry project slug
 - [ ] `NEXT_PUBLIC_GA_ID` - GA4 Measurement ID
+- [ ] `NEXT_PUBLIC_FB_PIXEL_ID` - Meta Pixel ID
 
 **Email Aliases (for Brevo inbound):**
 - [ ] `SUPPORT_EMAIL`

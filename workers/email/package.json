@@ -1,0 +1,17 @@
+{
+  "name": "email-worker",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "npx wrangler deploy",
+    "dev": "npx wrangler dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "postal-mime": "^2.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250301.0"
+  }
+}

@@ -15,6 +15,7 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
+  NEXT_PUBLIC_FB_PIXEL_ID: z.string().optional(),
   CRON_SECRET: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
