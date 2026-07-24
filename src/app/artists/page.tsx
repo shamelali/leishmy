@@ -38,10 +38,6 @@ export default async function ArtistsPage({ searchParams }: Props) {
     date,
   } = await searchParams;
 
-  const dbCategories = await db
-    .select({ slug: categoriesTable.slug, name: categoriesTable.name, icon: categoriesTable.icon })
-    .from(categoriesTable)
-    .orderBy(categoriesTable.name);
   type DisplayArtist = {
     id: string;
     name: string;
@@ -228,32 +224,6 @@ export default async function ArtistsPage({ searchParams }: Props) {
               initialDate={date || ""}
               currentCategory={category || ""}
             />
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-6">
-            <Link
-              href={buildHref({ category: undefined })}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                !category
-                  ? "bg-rose-500 text-white"
-                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
-              }`}
-            >
-              All
-            </Link>
-            {dbCategories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={buildHref({ category: cat.slug })}
-                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                  category === cat.slug
-                    ? "bg-rose-500 text-white"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
-                }`}
-              >
-                {cat.icon} {cat.name}
-              </Link>
-            ))}
           </div>
         </div>
       </section>
