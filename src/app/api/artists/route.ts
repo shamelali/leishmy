@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { profiles, users, categories as categoriesTable } from "@/db/schema";
-import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count, notLike } from "drizzle-orm";
+import { profiles, users, bookings, categories as categoriesTable } from "@/db/schema";
+import { ilike, or, eq, inArray, and, gte, lte, desc, asc, sql, count, notLike, ne, notInArray } from "drizzle-orm";
 import { categories } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const category = searchParams.get("category");
     const location = searchParams.get("location");
+    const state = searchParams.get("state");
+    const district = searchParams.get("district");
+    const eventCategory = searchParams.get("eventCategory");
+    const eventType = searchParams.get("eventType");
+    const date = searchParams.get("date");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const sort = searchParams.get("sort") || "rating";
@@ -67,6 +72,52 @@ export async function GET(request: NextRequest) {
           ilike(profiles.district, `%${location}%`),
         ),
       );
+    }
+
+    if (state) {
+      baseFilters.push(
+        or(
+          ilike(profiles.area, `%${state}%`),
+          ilike(users.location, `%${state}%`),
+        ),
+      );
+    }
+
+    if (district) {
+      baseFilters.push(
+        or(
+          ilike(profiles.district, `%${district}%`),
+          ilike(users.location, `%${district}%`),
+        ),
+      );
+    }
+
+    if (eventCategory === "bridal") {
+      baseFilters.push(sql`${profiles.categories} @> ARRAY['bridal']::text[]`);
+    } else if (eventCategory === "non-bridal") {
+      baseFilters.push(
+        or(
+          sql`${profiles.categories} @> ARRAY['event']::text[]`,
+          sql`${profiles.categories} @> ARRAY['editorial']::text[]`,
+        ),
+      );
+    }
+
+    if (date) {
+      const bookedRows = await db
+        .select({ artistId: bookings.artistId })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.date, new Date(date)),
+            ne(bookings.status, "cancelled"),
+            ne(bookings.status, "rejected"),
+          ),
+        );
+      const bookedIds = bookedRows.map((r) => r.artistId).filter(Boolean) as string[];
+      if (bookedIds.length > 0) {
+        baseFilters.push(notInArray(profiles.userId, bookedIds));
+      }
     }
 
     if (minPrice) {

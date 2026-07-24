@@ -1,14 +1,24 @@
 import Link from "next/link";
-import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
+import { Star, MapPin, Clock, BadgeCheck, ArrowRight } from "lucide-react";
 import { db } from "@/db";
-import { profiles, users, categories as categoriesTable } from "@/db/schema";
-import { eq, and, or, ilike, notLike, sql } from "drizzle-orm";
+import { profiles, users, bookings, categories as categoriesTable } from "@/db/schema";
+import { eq, and, or, ilike, notLike, notInArray, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { malaysiaStates } from "@/data/malaysia-locations";
 import type { Metadata } from "next";
+import ArtistSearchForm from "@/components/ArtistSearchForm";
 
 type Props = {
-  searchParams: Promise<{ category?: string; search?: string; location?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    search?: string;
+    location?: string;
+    state?: string;
+    district?: string;
+    eventCategory?: string;
+    eventType?: string;
+    eventTypeCustom?: string;
+    date?: string;
+  }>;
 };
 
 export const metadata: Metadata = {
@@ -17,7 +27,16 @@ export const metadata: Metadata = {
 };
 
 export default async function ArtistsPage({ searchParams }: Props) {
-  const { category, search, location } = await searchParams;
+  const {
+    category,
+    search,
+    location,
+    state: stateParam,
+    district: districtParam,
+    eventCategory,
+    eventType,
+    date,
+  } = await searchParams;
 
   const dbCategories = await db
     .select({ slug: categoriesTable.slug, name: categoriesTable.name, icon: categoriesTable.icon })
@@ -61,25 +80,63 @@ export default async function ArtistsPage({ searchParams }: Props) {
       }
     }
 
-    if (search) {
+    if (search || location) {
+      const term = search || location || "";
       where.push(
         or(
-          ilike(artistUsers.name, `%${search}%`),
-          ilike(artistUsers.location, `%${search}%`),
-          ilike(profiles.bio, `%${search}%`),
-          ilike(profiles.area, `%${search}%`),
+          ilike(artistUsers.name, `%${term}%`),
+          ilike(artistUsers.location, `%${term}%`),
+          ilike(profiles.bio, `%${term}%`),
+          ilike(profiles.area, `%${term}%`),
+          ilike(profiles.district, `%${term}%`),
         ),
       );
     }
 
-    if (location) {
+    if (stateParam) {
       where.push(
         or(
-          ilike(artistUsers.location, `%${location}%`),
-          ilike(profiles.area, `%${location}%`),
-          ilike(profiles.district, `%${location}%`),
+          ilike(profiles.area, `%${stateParam}%`),
+          ilike(artistUsers.location, `%${stateParam}%`),
         ),
       );
+    }
+
+    if (districtParam) {
+      where.push(
+        or(
+          ilike(profiles.district, `%${districtParam}%`),
+          ilike(artistUsers.location, `%${districtParam}%`),
+        ),
+      );
+    }
+
+    if (eventCategory === "bridal") {
+      where.push(sql`${profiles.categories} @> ARRAY['bridal']::text[]`);
+    } else if (eventCategory === "non-bridal") {
+      where.push(
+        or(
+          sql`${profiles.categories} @> ARRAY['event']::text[]`,
+          sql`${profiles.categories} @> ARRAY['editorial']::text[]`,
+        ),
+      );
+    }
+
+    if (date) {
+      const bookedRows = await db
+        .select({ artistId: bookings.artistId })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.date, new Date(date)),
+            ne(bookings.status, "cancelled"),
+            ne(bookings.status, "rejected"),
+          ),
+        );
+      const bookedIds = bookedRows.map((r) => r.artistId).filter(Boolean) as string[];
+      if (bookedIds.length > 0) {
+        where.push(notInArray(profiles.userId, bookedIds));
+      }
     }
 
     if (!displayArtists) {
@@ -129,6 +186,23 @@ export default async function ArtistsPage({ searchParams }: Props) {
   }
   if (!displayArtists) displayArtists = [];
 
+  const buildHref = (overrides: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    if (category && !("category" in overrides)) params.set("category", category);
+    if (search) params.set("search", search);
+    if (stateParam) params.set("state", stateParam);
+    if (districtParam) params.set("district", districtParam);
+    if (eventCategory) params.set("eventCategory", eventCategory);
+    if (eventType) params.set("eventType", eventType);
+    if (date) params.set("date", date);
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v) params.set(k, v);
+      else params.delete(k);
+    }
+    const qs = params.toString();
+    return qs ? `/artists?${qs}` : "/artists";
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <section className="bg-gradient-to-br from-rose-50 via-pink-50 to-white dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 py-16">
@@ -143,49 +217,22 @@ export default async function ArtistsPage({ searchParams }: Props) {
             Find and book Malaysia&apos;s top makeup artists for any occasion.
           </p>
 
-          <form method="GET" action="/artists" className="mt-6 flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[240px]">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Search</label>
-              <div className="flex items-center gap-3 px-5 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 shadow-sm">
-                <Search className="w-5 h-5 text-gray-400 shrink-0" />
-                <input
-                  type="text"
-                  name="search"
-                  defaultValue={search || ""}
-                  placeholder="Name, style, location..."
-                  className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
-                />
-                {search && (
-                  <Link href={category ? `/artists?category=${category}` : "/artists"} className="text-gray-400 hover:text-gray-600">
-                    ✕
-                  </Link>
-                )}
-              </div>
-            </div>
-            <div className="min-w-[160px]">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Location</label>
-              <select
-                name="location"
-                defaultValue={location || ""}
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-              >
-                <option value="">All Locations</option>
-                {malaysiaStates.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-2xl transition-colors"
-            >
-              Filter
-            </button>
-          </form>
+          <div className="mt-6">
+            <ArtistSearchForm
+              initialSearch={search || ""}
+              initialState={stateParam || ""}
+              initialDistrict={districtParam || ""}
+              initialEventCategory={eventCategory || ""}
+              initialEventType={eventType || ""}
+              initialEventTypeCustom=""
+              initialDate={date || ""}
+              currentCategory={category || ""}
+            />
+          </div>
 
           <div className="flex flex-wrap gap-2 mt-6">
             <Link
-              href={`/artists${search || location ? `?${search ? `search=${search}` : ""}${search && location ? "&" : ""}${location ? `location=${location}` : ""}` : ""}`}
+              href={buildHref({ category: undefined })}
               className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
                 !category
                   ? "bg-rose-500 text-white"
@@ -194,22 +241,19 @@ export default async function ArtistsPage({ searchParams }: Props) {
             >
               All
             </Link>
-            {dbCategories.map((cat) => {
-              const catHref = `/artists?category=${cat.slug}${search ? `&search=${search}` : ""}${location ? `&location=${location}` : ""}`;
-              return (
-                <Link
-                  key={cat.slug}
-                  href={catHref}
-                  className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                    category === cat.slug
-                      ? "bg-rose-500 text-white"
-                      : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
-                  }`}
-                >
-                  {cat.icon} {cat.name}
-                </Link>
-              );
-            })}
+            {dbCategories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={buildHref({ category: cat.slug })}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  category === cat.slug
+                    ? "bg-rose-500 text-white"
+                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
+                }`}
+              >
+                {cat.icon} {cat.name}
+              </Link>
+            ))}
           </div>
         </div>
       </section>
