@@ -34,8 +34,16 @@ export default function ArtistSearchForm({
   const [state, setState] = useState(initialState);
   const [district, setDistrict] = useState(initialDistrict);
   const [eventCategory, setEventCategory] = useState(initialEventCategory);
-  const [eventType, setEventType] = useState(initialEventType);
-  const [eventTypeCustom, setEventTypeCustom] = useState(initialEventTypeCustom);
+  const isCustomType =
+    initialEventType &&
+    !bridalTypes.includes(initialEventType) &&
+    !nonBridalTypes.includes(initialEventType);
+  const [eventType, setEventType] = useState(
+    isCustomType ? "other" : initialEventType,
+  );
+  const [eventTypeCustom, setEventTypeCustom] = useState(
+    isCustomType ? initialEventType : initialEventTypeCustom,
+  );
   const [date, setDate] = useState(initialDate);
 
   const districts = state ? malaysiaDistricts[state] || [] : [];

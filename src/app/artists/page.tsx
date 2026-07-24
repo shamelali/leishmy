@@ -35,6 +35,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
     district: districtParam,
     eventCategory,
     eventType,
+    eventTypeCustom,
     date,
   } = await searchParams;
 
@@ -220,7 +221,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
               initialDistrict={districtParam || ""}
               initialEventCategory={eventCategory || ""}
               initialEventType={eventType || ""}
-              initialEventTypeCustom=""
+              initialEventTypeCustom={eventTypeCustom || ""}
               initialDate={date || ""}
               currentCategory={category || ""}
             />
