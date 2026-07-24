@@ -153,76 +153,38 @@ export default function ArtistSearchForm({
         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Event Type</label>
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
-            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 mb-1.5">Bridal</p>
-            <div className="flex flex-wrap gap-1.5">
+            <label className="block text-xs font-medium text-rose-600 dark:text-rose-400 mb-1.5">Bridal</label>
+            <select
+              value={eventCategory === "bridal" ? eventType : ""}
+              onChange={(e) => {
+                setEventCategory("bridal");
+                setEventType(e.target.value);
+              }}
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <option value="">Select Bridal Event</option>
               {bridalTypes.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setEventCategory("bridal");
-                    setEventType(eventCategory === "bridal" && eventType === t ? "" : t);
-                  }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                    eventCategory === "bridal" && eventType === t
-                      ? "bg-rose-500 text-white border-rose-500"
-                      : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-neutral-700 hover:border-rose-300"
-                  }`}
-                >
-                  {t}
-                </button>
+                <option key={t} value={t}>{t}</option>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setEventCategory("bridal");
-                  setEventType(eventCategory === "bridal" && eventType === "other" ? "" : "other");
-                }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                  eventCategory === "bridal" && eventType === "other"
-                    ? "bg-rose-500 text-white border-rose-500"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-neutral-700 hover:border-rose-300"
-                }`}
-              >
-                Other
-              </button>
-            </div>
+              <option value="other">Other</option>
+            </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 mb-1.5">Non-Bridal</p>
-            <div className="flex flex-wrap gap-1.5">
+            <label className="block text-xs font-medium text-rose-600 dark:text-rose-400 mb-1.5">Non-Bridal</label>
+            <select
+              value={eventCategory === "non-bridal" ? eventType : ""}
+              onChange={(e) => {
+                setEventCategory("non-bridal");
+                setEventType(e.target.value);
+              }}
+              className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <option value="">Select Non-Bridal Event</option>
               {nonBridalTypes.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setEventCategory("non-bridal");
-                    setEventType(eventCategory === "non-bridal" && eventType === t ? "" : t);
-                  }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                    eventCategory === "non-bridal" && eventType === t
-                      ? "bg-rose-500 text-white border-rose-500"
-                      : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-neutral-700 hover:border-rose-300"
-                  }`}
-                >
-                  {t}
-                </button>
+                <option key={t} value={t}>{t}</option>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setEventCategory("non-bridal");
-                  setEventType(eventCategory === "non-bridal" && eventType === "other" ? "" : "other");
-                }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                  eventCategory === "non-bridal" && eventType === "other"
-                    ? "bg-rose-500 text-white border-rose-500"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-neutral-700 hover:border-rose-300"
-                }`}
-              >
-                Other
-              </button>
-            </div>
+              <option value="other">Other</option>
+            </select>
           </div>
         </div>
         {showOtherInput && (
