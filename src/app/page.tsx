@@ -18,19 +18,16 @@ async function getCategoryCounts() {
         slug: categoriesTable.slug,
         icon: categoriesTable.icon,
         image: categoriesTable.image,
+        artistCount: sql<number>`(
+          SELECT COUNT(*)::int
+          FROM ${profiles}
+          WHERE ${profiles.role} = 'artist'
+            AND ${profiles.categories} @> ARRAY[${categoriesTable.slug}]::text[]
+        )`,
       })
       .from(categoriesTable)
       .orderBy(categoriesTable.name);
-    const counts = await Promise.all(
-      rows.map((c) =>
-        db
-          .select({ count: count() })
-          .from(profiles)
-          .where(and(eq(profiles.role, "artist"), sql`${profiles.categories} @> ARRAY[${c.slug}]::text[]`))
-          .then((r) => Number(r[0]?.count || 0)),
-      ),
-    );
-    return rows.map((r, i) => ({ ...r, artistCount: counts[i] }));
+    return rows.map((r) => ({ ...r, artistCount: Number(r.artistCount || 0) }));
   } catch {
     console.error("Failed to load category counts");
     return [];
