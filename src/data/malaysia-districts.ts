@@ -183,7 +183,7 @@ export const malaysiaDistricts: Record<string, string[]> = {
     "Tatau",
     "Tebedu",
   ],
-  "WP Kuala Lumpur": ["Kuala Lumpur"],
+  "WP Kuala Lumpur": ["Bukit Bintang", "Cheras", "Kepong", "Lembah Pantai", "Segambut", "Setiawangsa", "Titiwangsa", "Wangsa Maju"],
   "WP Labuan": ["Labuan"],
   "WP Putrajaya": ["Putrajaya"],
 };

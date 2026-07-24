@@ -69,11 +69,11 @@ export const malaysiaDistricts: Record<string, string[]> = {
     "Serian", "Sibu", "Simunjan", "Sri Aman", "Tatau",
   ],
   "Selangor": [
-    "Ampang", "Bangi", "Banting", "Cheras", "Cyberjaya", "Gombak",
+    "Ampang", "Bangi", "Banting", "Cyberjaya", "Gombak",
     "Hulu Langat", "Hulu Selangor", "Kajang", "Klang", "Kuala Langat",
     "Kuala Selangor", "Petaling", "Petaling Jaya", "Puchong", "Rawang",
     "Sabak Bernam", "Semenyih", "Sepang", "Shah Alam", "Subang Jaya",
-    "Sungai Buloh", "Wangsa Maju",
+    "Sungai Buloh",
   ],
   "Terengganu": [
     "Besut", "Dungun", "Hulu Terengganu", "Kemaman", "Kuala Nerus",
