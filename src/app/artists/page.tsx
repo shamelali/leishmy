@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Star, MapPin, Clock, BadgeCheck, ArrowRight, Search } from "lucide-react";
 import { db } from "@/db";
 import { profiles, users, categories as categoriesTable } from "@/db/schema";
-import { eq, and, notLike, sql } from "drizzle-orm";
+import { eq, and, or, ilike, notLike, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { malaysiaStates } from "@/data/malaysia-locations";
 import type { Metadata } from "next";
 
 type Props = {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; search?: string; location?: string }>;
 };
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ArtistsPage({ searchParams }: Props) {
-  const { category } = await searchParams;
+  const { category, search, location } = await searchParams;
 
   const dbCategories = await db
     .select({ slug: categoriesTable.slug, name: categoriesTable.name, icon: categoriesTable.icon })
@@ -58,6 +59,27 @@ export default async function ArtistsPage({ searchParams }: Props) {
       } else {
         displayArtists = [];
       }
+    }
+
+    if (search) {
+      where.push(
+        or(
+          ilike(artistUsers.name, `%${search}%`),
+          ilike(artistUsers.location, `%${search}%`),
+          ilike(profiles.bio, `%${search}%`),
+          ilike(profiles.area, `%${search}%`),
+        ),
+      );
+    }
+
+    if (location) {
+      where.push(
+        or(
+          ilike(artistUsers.location, `%${location}%`),
+          ilike(profiles.area, `%${location}%`),
+          ilike(profiles.district, `%${location}%`),
+        ),
+      );
     }
 
     if (!displayArtists) {
@@ -121,16 +143,49 @@ export default async function ArtistsPage({ searchParams }: Props) {
             Find and book Malaysia&apos;s top makeup artists for any occasion.
           </p>
 
-          <div className="mt-6 max-w-xl">
-            <div className="flex items-center gap-3 px-5 py-3.5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 shadow-sm">
-              <Search className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-400 text-sm">Search artists, styles, locations...</span>
+          <form method="GET" action="/artists" className="mt-6 flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Search</label>
+              <div className="flex items-center gap-3 px-5 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 shadow-sm">
+                <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                <input
+                  type="text"
+                  name="search"
+                  defaultValue={search || ""}
+                  placeholder="Name, style, location..."
+                  className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
+                />
+                {search && (
+                  <Link href={category ? `/artists?category=${category}` : "/artists"} className="text-gray-400 hover:text-gray-600">
+                    ✕
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
+            <div className="min-w-[160px]">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Location</label>
+              <select
+                name="location"
+                defaultValue={location || ""}
+                className="w-full px-4 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+              >
+                <option value="">All Locations</option>
+                {malaysiaStates.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-2xl transition-colors"
+            >
+              Filter
+            </button>
+          </form>
 
           <div className="flex flex-wrap gap-2 mt-6">
             <Link
-              href="/artists"
+              href={`/artists${search || location ? `?${search ? `search=${search}` : ""}${search && location ? "&" : ""}${location ? `location=${location}` : ""}` : ""}`}
               className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
                 !category
                   ? "bg-rose-500 text-white"
@@ -139,19 +194,22 @@ export default async function ArtistsPage({ searchParams }: Props) {
             >
               All
             </Link>
-            {dbCategories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/artists?category=${cat.slug}`}
-                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                  category === cat.slug
-                    ? "bg-rose-500 text-white"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
-                }`}
-              >
-                {cat.icon} {cat.name}
-              </Link>
-            ))}
+            {dbCategories.map((cat) => {
+              const catHref = `/artists?category=${cat.slug}${search ? `&search=${search}` : ""}${location ? `&location=${location}` : ""}`;
+              return (
+                <Link
+                  key={cat.slug}
+                  href={catHref}
+                  className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                    category === cat.slug
+                      ? "bg-rose-500 text-white"
+                      : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:border-rose-300 dark:hover:border-rose-700"
+                  }`}
+                >
+                  {cat.icon} {cat.name}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
