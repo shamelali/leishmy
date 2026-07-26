@@ -8,6 +8,38 @@ import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
 const bridalTypes = ["Engagement", "Solemnization", "Reception"];
 const nonBridalTypes = ["Dinner", "Graduation", "Ceremony", "Corporate"];
 
+function toISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function buildRelativeDates() {
+  const now = new Date();
+  const today = new Date(now);
+  const tomorrow = new Date(now);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const daysUntilSaturday = (6 - today.getDay() + 7) % 7;
+  const thisSaturday = new Date(now);
+  thisSaturday.setDate(today.getDate() + daysUntilSaturday);
+
+  const daysUntilMonday = (1 - today.getDay() + 7) % 7 || 7;
+  const nextMonday = new Date(now);
+  nextMonday.setDate(today.getDate() + daysUntilMonday);
+
+  const nextMonthFirst = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  return [
+    { label: "Today", value: toISO(today) },
+    { label: "Tomorrow", value: toISO(tomorrow) },
+    { label: "This Weekend", value: toISO(thisSaturday) },
+    { label: "Next Week", value: toISO(nextMonday) },
+    { label: "Next Month", value: toISO(nextMonthFirst) },
+  ];
+}
+
 type Props = {
   initialSearch: string;
   initialState: string;
@@ -43,6 +75,14 @@ export default function ArtistSearchForm({
   );
   const [eventTypeCustom, setEventTypeCustom] = useState(
     isCustomType ? initialEventType : initialEventTypeCustom,
+  );
+
+  const relativeDates = buildRelativeDates();
+  const matchedRelative = initialDate
+    ? relativeDates.find((r) => r.value === initialDate)
+    : null;
+  const [dateSelect, setDateSelect] = useState(
+    matchedRelative ? matchedRelative.value : initialDate ? "custom" : "",
   );
   const [date, setDate] = useState(initialDate);
 
@@ -129,14 +169,37 @@ export default function ArtistSearchForm({
           </select>
         </div>
 
-        <div className="min-w-[140px]">
+        <div className="min-w-[160px]">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+          <select
+            value={dateSelect}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDateSelect(val);
+              if (val === "custom") {
+                setDate("");
+              } else if (val) {
+                setDate(val);
+              } else {
+                setDate("");
+              }
+            }}
             className="w-full px-4 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-          />
+          >
+            <option value="">Any Date</option>
+            {relativeDates.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+            <option value="custom">Choose Date...</option>
+          </select>
+          {dateSelect === "custom" && (
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="mt-2 w-full px-4 py-3 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-700 text-sm text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+            />
+          )}
         </div>
 
         <button
