@@ -61,7 +61,5 @@
     "tsx": "4.19.2",
     "typescript": "5.9.3"
   },
-  "overrides": {
-    "@react-email/components": "^1.0.12"
-  }
+  "overrides": {}
 }

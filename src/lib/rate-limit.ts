@@ -12,9 +12,43 @@ interface RateLimitResult {
   reset: number;
 }
 
+const inMemory = new Map<string, { count: number; resetAt: number }>();
+
+const CLEANUP_INTERVAL = 60_000;
+const cleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of inMemory) {
+    if (val.resetAt <= now) inMemory.delete(key);
+  }
+}, CLEANUP_INTERVAL);
+if (typeof cleanupTimer.unref === "function") cleanupTimer.unref();
+
+let lookupsSinceCleanup = 0;
+
 async function limit(identifier: string): Promise<RateLimitResult> {
   if (!redis) {
-    return { success: true, remaining: 999, reset: 0 };
+    lookupsSinceCleanup++;
+    if (lookupsSinceCleanup >= 100) {
+      const now = Date.now();
+      for (const [key, val] of inMemory) {
+        if (val.resetAt <= now) inMemory.delete(key);
+      }
+      lookupsSinceCleanup = 0;
+    }
+
+    const now = Date.now();
+    const record = inMemory.get(identifier);
+    if (record && record.resetAt > now) {
+      const success = record.count <= 60;
+      record.count++;
+      return {
+        success,
+        remaining: Math.max(0, 60 - record.count),
+        reset: record.resetAt,
+      };
+    }
+    inMemory.set(identifier, { count: 1, resetAt: now + 60_000 });
+    return { success: true, remaining: 59, reset: now + 60_000 };
   }
 
   try {

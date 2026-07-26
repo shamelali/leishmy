@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (
-    pathname.startsWith("/dashboard/") &&
+    (pathname.startsWith("/dashboard/") || pathname === "/dashboard") &&
     !pathname.startsWith("/api/auth/")
   ) {
     const response = await authMiddleware(request);

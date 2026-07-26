@@ -92,6 +92,13 @@
       "when": 1784475600000,
       "tag": "0014_profiles_collapse",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784475900000,
+      "tag": "0015_payments_idempotency_key",
+      "breakpoints": true
     }
   ]
 }

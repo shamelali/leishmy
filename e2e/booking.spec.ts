@@ -86,16 +86,16 @@ test.describe("Booking Flow", () => {
 
     await expect(page.getByPlaceholder("Siti Nurhaliza")).toBeVisible();
     await expect(page.getByPlaceholder("you@example.com")).toBeVisible();
-    await expect(page.getByText("Book Now")).toBeVisible();
+    await expect(page.getByText("Book Now").last()).toBeVisible();
   });
 
   test("booking form validates required fields", async ({ page }) => {
     test.setTimeout(60_000);
 
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: "Book Now" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Book Now" }).last()).toBeVisible();
 
-    await page.getByRole("button", { name: "Book Now" }).click();
+    await page.getByRole("button", { name: "Book Now" }).last().click();
 
     await expect(page.getByText("Your Name")).toBeVisible();
     await expect(page.getByText("Booking Confirmed!")).not.toBeVisible();
