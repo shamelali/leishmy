@@ -48,7 +48,7 @@ function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
 }
 
-// --- Middleware ---
+// --- Proxy ---
 
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -70,7 +70,7 @@ const authMiddleware = auth.middleware({
   loginUrl: "/login",
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (
