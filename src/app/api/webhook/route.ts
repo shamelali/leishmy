@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { sendPaymentReceiptEmail } from "@/lib/email";
+import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
 
 export const runtime = "nodejs";
 
@@ -104,6 +105,15 @@ export async function POST(request: NextRequest) {
               paymentMethod: "Billplz",
               date: paidDate,
             }).catch((err) => console.error("sendPaymentReceiptEmail failed:", err));
+
+            if (user.phone) {
+              sendPaymentConfirmation({
+                customerName: user.name || "Valued Customer",
+                bookingId: String(payment.bookingId),
+                amount: Number(payment.amount),
+                phone: user.phone,
+              }).catch((err) => console.error("sendPaymentConfirmation WhatsApp failed:", err));
+            }
           }
         }
       }

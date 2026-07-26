@@ -4,6 +4,7 @@ import { bookings, users, profiles, notifications, referrals } from "@/db/schema
 import { eq, and, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { sendBookingConfirmation, sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
@@ -20,14 +21,13 @@ function resolveCustomerId(body: any): string | null {
 async function ensureCustomer(
   body: any,
   session: { id: string; name?: string | null; email: string } | null,
-): Promise<{ id: string; name: string | null; email: string } | null> {
+): Promise<{ id: string; name: string | null; email: string; phone: string | null } | null> {
   const email = (body.clientEmail || body.email || session?.email || "").toLowerCase();
   if (!email) return null;
 
-  // Prefer authenticated session user
   if (session?.id) {
     const existing = await db
-      .select({ id: users.id, name: users.name, email: users.email })
+      .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
       .from(users)
       .where(eq(users.id, session.id))
       .limit(1)
@@ -40,14 +40,15 @@ async function ensureCustomer(
       name: session.name || body.clientName || body.name || "Customer",
       email,
       role: "customer",
+      phone: body.phone || body.clientPhone || null,
       location: body.location || "",
     }).onConflictDoNothing({ target: users.email });
 
-    return { id: session.id, name: session.name || body.clientName || body.name || "Customer", email };
+    return { id: session.id, name: session.name || body.clientName || body.name || "Customer", email, phone: body.phone || body.clientPhone || null };
   }
 
   const existing = await db
-    .select({ id: users.id, name: users.name, email: users.email })
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
     .from(users)
     .where(eq(users.email, email))
     .limit(1)
@@ -61,10 +62,11 @@ async function ensureCustomer(
     name: body.clientName || body.name || "Guest",
     email,
     role: "customer",
+    phone: body.phone || body.clientPhone || null,
     location: body.location || "",
   }).onConflictDoNothing({ target: users.email });
 
-  return { id: newId, name: body.clientName || body.name || "Guest", email };
+  return { id: newId, name: body.clientName || body.name || "Guest", email, phone: body.phone || body.clientPhone || null };
 }
 
 async function resolveAmount(_body: any, artistId: string | null): Promise<string> {
@@ -159,6 +161,18 @@ export async function POST(request: NextRequest) {
         date: formattedDate,
         time: time || "To be confirmed",
       }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
+    }
+
+    if (customer.phone) {
+      sendBookingConfirmation({
+        customerName: customer.name || "Valued Customer",
+        bookingId: String(booking.id),
+        serviceName,
+        providerName: providerUser?.name || artist?.bio || "Your Provider",
+        date: formattedDate,
+        time: time || "To be confirmed",
+        phone: customer.phone,
+      }).catch((err) => console.error("sendBookingConfirmation WhatsApp failed:", err));
     }
 
     const refCookie = request.cookies.get("leish_ref");
@@ -453,6 +467,22 @@ export async function PATCH(request: NextRequest) {
       .set({ status })
       .where(eq(bookings.id, Number(id)))
       .returning();
+
+    if (status === "cancelled" && existing.userId) {
+      const [user] = await db
+        .select({ name: users.name, phone: users.phone })
+        .from(users)
+        .where(eq(users.id, existing.userId))
+        .limit(1);
+
+      if (user?.phone) {
+        sendCancellationNotice({
+          customerName: user.name || "Valued Customer",
+          bookingId: String(updated.id),
+          phone: user.phone,
+        }).catch((err) => console.error("sendCancellationNotice WhatsApp failed:", err));
+      }
+    }
 
     return NextResponse.json({ booking: updated });
   } catch (error) {
