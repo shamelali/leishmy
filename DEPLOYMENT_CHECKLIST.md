@@ -35,7 +35,7 @@ Set all from `.env.example` in Vercel Project Settings → Environment Variables
 **Optional but Recommended:**
 - [ ] `GOOGLE_CALENDAR_ID` - Calendar integration
 - [ ] `GOOGLE_SERVICE_ACCOUNT_KEY` - Service account JSON
-- [ ] `WHATSAPP_PHONE_NUMBER_ID` - WhatsApp Business API
+- [ ] `WHATSAPP_PHONE_NUMBER_ID` - WhatsApp Business API (module not yet wired into booking/payment flows)
 - [ ] `WHATSAPP_ACCESS_TOKEN` - WhatsApp token
 - [ ] `SENTRY_DSN` - Error monitoring
 - [ ] `SENTRY_ORG` - Sentry org slug
@@ -114,7 +114,7 @@ DATABASE_URL="<production-neon-url>" pnpm db:seed
 - [ ] Cloudinary upload works
 - [ ] Admin dashboard accessible
 - [ ] Artist dashboard accessible
-- [ ] All 4 locales work (en, ms-MY, zh-MY, ta-MY)
+- [ ] Browser translation works (next-intl removed, uses native browser translate)
 - [ ] Dark mode works
 - [ ] Sentry receives test error
 
