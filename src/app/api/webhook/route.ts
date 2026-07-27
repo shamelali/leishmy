@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
               userId: booking.userId,
               type: "booking_confirmed",
               title: "Booking Confirmed",
-              body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${Number(payment.amount)} received.`,
+              body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${(Number(payment.amount) / 100).toLocaleString()} received.`,
               data: { link: "/dashboard/bookings", bookingId: String(payment.bookingId) },
             }).catch(() => {});
 
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
               sendPaymentConfirmation({
                 customerName: user.name || "Valued Customer",
                 bookingId: String(payment.bookingId),
-                amount: Number(payment.amount),
+              amount: Number(payment.amount) / 100,
                 phone: user.phone,
               }).catch((err) => console.error("sendPaymentConfirmation WhatsApp failed:", err));
             }

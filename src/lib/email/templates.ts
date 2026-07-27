@@ -174,6 +174,7 @@ export function paymentReceiptTemplate(params: {
   paymentMethod: string;
   date: string;
 }) {
+  const amountStr = (params.amount / 100).toLocaleString();
   const subject = `Payment Receipt - ${params.bookingId}`;
   const html = `
 <!DOCTYPE html>
@@ -196,7 +197,7 @@ export function paymentReceiptTemplate(params: {
     <p>Hi ${params.customerName},</p>
     <p>Thank you for your payment. Here's your receipt.</p>
     <div class="receipt">
-      <div class="amount">MYR ${params.amount}</div>
+      <div class="amount">MYR ${amountStr}</div>
       <p style="text-align: center; color: #666;">Paid on ${params.date}</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
       <p><strong>Booking Reference:</strong> ${params.bookingId}</p>
@@ -208,7 +209,7 @@ export function paymentReceiptTemplate(params: {
   </div>
 </body>
 </html>`;
-  const text = `Payment Receipt - ${params.bookingId}\n\nHi ${params.customerName},\n\nThank you for your payment. Here's your receipt.\n\nAmount: MYR ${params.amount}\nPaid on: ${params.date}\nBooking Reference: ${params.bookingId}\nPayment Method: ${params.paymentMethod}\n\n&copy; 2026 Leish. All rights reserved.`;
+  const text = `Payment Receipt - ${params.bookingId}\n\nHi ${params.customerName},\n\nThank you for your payment. Here's your receipt.\n\nAmount: MYR ${amountStr}\nPaid on: ${params.date}\nBooking Reference: ${params.bookingId}\nPayment Method: ${params.paymentMethod}\n\n&copy; 2026 Leish. All rights reserved.`;
   return { subject, html, text };
 }
 

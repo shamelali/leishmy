@@ -1,11 +1,12 @@
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, profiles, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents } from "@/db/schema";
+import { users, profiles, bookings, payments, adminSettings, contacts, receivedEmails, webhookEvents, payouts } from "@/db/schema";
 import { eq, count, and, gte, lt, avg, sql, desc, ilike, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getAuthSession } from "@/lib/auth/server";
 import { reconcilePayment } from "@/lib/payment-reconcile";
+import { sendPayoutNotificationEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,17 +47,25 @@ export async function GET(request: NextRequest) {
 
       const paidPayments = paymentRows.filter((p) => p.status === "paid" || p.status === "released");
 
-      const totalRevenue = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      // payments.amount is stored in cents (see create-bill); divide by 100 for MYR display
+      const totalRevenue = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0) / 100;
       const revenueThisMonth = paidPayments
         .filter((p) => p.createdAt && p.createdAt >= startOfMonth)
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
+        .reduce((sum, p) => sum + (p.amount || 0), 0) / 100;
       const revenueLastMonth = paidPayments
         .filter((p) => p.createdAt && p.createdAt >= startOfLastMonth && p.createdAt < startOfMonth)
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
+        .reduce((sum, p) => sum + (p.amount || 0), 0) / 100;
 
-      const totalPendingPayouts = paymentRows
+      const [payoutRows] = await Promise.all([
+        db.select().from(payouts).where(eq(payouts.status, "pending")),
+      ]);
+      const totalPendingPayoutsFromPayments = paymentRows
         .filter((p) => p.status === "held")
+        .reduce((sum, p) => sum + (p.amount || 0), 0) / 100;
+      const totalPendingPayoutsFromPayouts = payoutRows
         .reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalPendingPayouts = totalPendingPayoutsFromPayments + totalPendingPayoutsFromPayouts;
+      const pendingPayoutCount = payoutRows.length + paymentRows.filter((p) => p.status === "held").length;
 
       const avgRating = ratingResult[0]?.avg ? Number(Number(ratingResult[0].avg).toFixed(1)) : 0;
 
@@ -78,6 +87,7 @@ export async function GET(request: NextRequest) {
         newBookingsLastMonth: newBookingsLastMonthResult[0]?.count || 0,
         pendingVerification: pendingVerificationResult[0]?.count || 0,
         commissionRate: 0.15,
+        pendingPayoutCount,
       });
     }
 
@@ -296,6 +306,8 @@ export async function GET(request: NextRequest) {
           method: payments.method,
           createdAt: payments.createdAt,
           updatedAt: payments.updatedAt,
+          paidAt: payments.paidAt,
+          releasedAt: payments.releasedAt,
           bookingId: payments.bookingId,
           userName: paymentUsers.name,
           userEmail: paymentUsers.email,
@@ -310,11 +322,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         payments: rows.map((p) => ({
           id: String(p.id),
-          amount: String(p.amount),
+          amount: String((p.amount || 0) / 100),
           status: p.status || "pending",
           paymentMethod: p.method || "billplz",
           createdAt: p.createdAt?.toISOString() || "",
-          releasedAt: p.updatedAt?.toISOString() || "",
+          paidAt: p.paidAt?.toISOString() || "",
+          releasedAt: p.releasedAt?.toISOString() || "",
           bookingId: String(p.bookingId || ""),
           userName: p.userName || "—",
           userEmail: p.userEmail || "",
@@ -453,6 +466,47 @@ export async function GET(request: NextRequest) {
         total: totalResult[0]?.count || 0,
         limit,
         offset,
+      });
+    }
+
+    if (action === "pending-payouts") {
+      const payoutUsers = alias(users, "payout_users");
+      const [rows, [{ count: total }]] = await Promise.all([
+        db
+          .select({
+            id: payouts.id,
+            userId: payouts.userId,
+            amount: payouts.amount,
+            status: payouts.status,
+            createdAt: payouts.createdAt,
+            updatedAt: payouts.updatedAt,
+            paymentId: payouts.paymentId,
+            userName: payoutUsers.name,
+            userEmail: payoutUsers.email,
+          })
+          .from(payouts)
+          .innerJoin(payoutUsers, eq(payoutUsers.id, payouts.userId))
+          .where(eq(payouts.status, "pending"))
+          .orderBy(desc(payouts.createdAt))
+          .limit(pageSize).offset(offset),
+        db
+          .select({ count: count() })
+          .from(payouts)
+          .where(eq(payouts.status, "pending")),
+      ]);
+      return NextResponse.json({
+        payouts: rows.map((r) => ({
+          id: r.id,
+          userId: r.userId,
+          amount: r.amount,
+          status: r.status,
+          createdAt: r.createdAt?.toISOString() || "",
+          updatedAt: r.updatedAt?.toISOString() || "",
+          paymentId: r.paymentId,
+          userName: r.userName || "",
+          userEmail: r.userEmail || "",
+        })),
+        total, page, pageSize,
       });
     }
 
@@ -661,6 +715,54 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({ success: true });
+    }
+
+    if (action === "mark-payouts-paid") {
+      const { payoutIds } = body;
+      if (!payoutIds || !Array.isArray(payoutIds) || payoutIds.length === 0) {
+        return NextResponse.json({ error: "payoutIds array required" }, { status: 400 });
+      }
+
+      const results: { id: number; notified: boolean; error?: string }[] = [];
+
+      for (const id of payoutIds) {
+        try {
+          const [payout] = await db
+            .update(payouts)
+            .set({ status: "paid", updatedAt: new Date() })
+            .where(and(eq(payouts.id, Number(id)), eq(payouts.status, "pending")))
+            .returning();
+
+          if (!payout) {
+            results.push({ id: Number(id), notified: false, error: "Not found or already paid" });
+            continue;
+          }
+
+          const [payoutUser] = await db
+            .select({ name: users.name, email: users.email })
+            .from(users)
+            .where(eq(users.id, payout.userId));
+
+          if (payoutUser?.email) {
+            const dateStr = new Date().toLocaleDateString("en-MY", {
+              year: "numeric", month: "long", day: "numeric",
+            });
+            await sendPayoutNotificationEmail({
+              email: payoutUser.email,
+              name: payoutUser.name || "Valued Partner",
+              amount: payout.amount,
+              date: dateStr,
+            });
+            results.push({ id: payout.id, notified: true });
+          } else {
+            results.push({ id: payout.id, notified: false, error: "No email" });
+          }
+        } catch (err) {
+          results.push({ id: Number(id), notified: false, error: String(err) });
+        }
+      }
+
+      return NextResponse.json({ success: true, results });
     }
 
     if (action === "reconcile-payment") {

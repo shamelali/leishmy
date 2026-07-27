@@ -171,9 +171,6 @@ export async function POST(request: NextRequest) {
 
     if (action === "create-bill") {
       const session = await getAuthSession();
-      if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
 
       const { bookingId, description, name, email, phone, idempotencyKey } = body;
 
@@ -210,8 +207,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
       }
 
-      if (!hasAdminAccess(session) && booking.userId !== session.id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      const isGuestBooking = booking.userId?.startsWith("guest_") ?? false;
+      if (!isGuestBooking) {
+        if (!session) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        if (!hasAdminAccess(session) && booking.userId !== session.id) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
       }
 
       // Prevent duplicate pending payments for same booking

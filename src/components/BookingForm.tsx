@@ -62,10 +62,40 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
         }),
       });
 
-      if (!res.ok) throw new Error("Booking failed");
-      setSuccess(true);
-    } catch {
-      setError("Failed to submit booking. Please try again.");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Booking failed");
+
+      const bookingId = data?.booking?.id;
+      if (!bookingId) throw new Error("Booking created without an id");
+
+      const billRes = await fetch("/api/payments?action=create-bill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          name,
+          email,
+          description: `${service} with ${artistName}`,
+          idempotencyKey: `booking_${bookingId}`,
+        }),
+      });
+
+      const billData = await billRes.json();
+      if (!billRes.ok) throw new Error(billData?.error || "Failed to start payment");
+
+      if (billData?.bill?.url) {
+        setSuccess(true);
+        window.location.href = billData.bill.url;
+        return;
+      }
+
+      throw new Error("Payment could not be started for this booking");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit booking. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -76,26 +106,11 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
       <div className="text-center py-8">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          Booking Confirmed!
+          Booking Received!
         </h3>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
-          Your booking with {artistName} has been submitted. We&apos;ll confirm your appointment shortly.
+          Redirecting you to secure payment for your booking with {artistName}...
         </p>
-        <button
-          onClick={() => {
-            setSuccess(false);
-            setName("");
-            setEmail("");
-            setService("");
-            setDate("");
-            setTime("");
-            setLocation("");
-            setNotes("");
-          }}
-          className="mt-6 text-sm text-rose-600 dark:text-rose-400 hover:text-rose-700 font-medium"
-        >
-          Make Another Booking
-        </button>
       </div>
     );
   }
