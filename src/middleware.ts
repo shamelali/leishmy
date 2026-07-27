@@ -11,7 +11,6 @@ const SESSION_COOKIE_NAMES = [
 
 const PROTECTED_ROUTES = [
   "/profile",
-  "/bookings",
   "/favorites",
   "/rewards",
   "/subscription",
@@ -23,7 +22,6 @@ const PROTECTED_ROUTES = [
 const PROTECTED_API_PREFIXES = [
   "/api/payments",
   "/api/user",
-  "/api/bookings",
 ];
 
 const PUBLIC_API_PATHS = [
