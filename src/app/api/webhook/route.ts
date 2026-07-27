@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       if (payment) {
         await db
           .update(payments)
-          .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+          .set({ status: "paid", updatedAt: new Date() })
           .where(eq(payments.billplzId, body.id));
 
         if (payment.bookingId) {

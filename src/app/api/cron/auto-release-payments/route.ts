@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         await db.transaction(async (tx) => {
           await tx
             .update(payments)
-            .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
+            .set({ status: "released", updatedAt: new Date() })
             .where(eq(payments.id, row.paymentId));
 
           if (row.bookingId) {

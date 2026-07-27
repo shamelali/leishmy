@@ -72,7 +72,7 @@ export async function reconcilePayment(
   if (billplzPaid && payment.status !== "paid" && !dryRun) {
     await db
       .update(payments)
-      .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+      .set({ status: "paid", updatedAt: new Date() })
       .where(eq(payments.id, payment.id));
     if (payment.bookingId) {
       await db
