@@ -157,7 +157,7 @@ export default function DashboardArtist() {
             bookings: allBookings.length,
             revenue: allBookings.reduce(
               (sum: number, b: Booking) =>
-                b.status === "completed" ? sum + Number(b.amount || 0) : sum,
+                (b.status === "completed" || b.status === "confirmed") ? sum + Number(b.amount || 0) : sum,
               0,
             ),
             rating: bookingData.rating || 0,

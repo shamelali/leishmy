@@ -3,8 +3,8 @@ import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals } from "@/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { sendBookingConfirmationEmail, sendProviderNewBookingEmail } from "@/lib/email";
-import { sendBookingConfirmation, sendCancellationNotice } from "@/lib/notifications/whatsapp";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
@@ -84,7 +84,7 @@ async function resolveAmount(_body: any, artistId: string | null): Promise<strin
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { artistId, studioId, serviceId, date, time, status } = body;
+    const { artistId, studioId, serviceId, date, time } = body;
     const artistIdStr = artistId ? String(artistId) : null;
 
     const session = await getAuthSession();
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         date: new Date(date),
         time: time || null,
         amount,
-        status: status || "pending",
+        status: "pending",
       })
       .returning();
 
@@ -132,14 +132,14 @@ export async function POST(request: NextRequest) {
     if (artist?.userId) {
       await db.insert(notifications).values({
         userId: artist.userId,
-        type: "booking_confirmed",
+        type: "booking_pending",
         title: "New Booking Received",
         body: `${customer.name || "A customer"} booked "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}.`,
         data: { link: "/dashboard/bookings", bookingId: String(booking.id) },
       }).catch(() => {});
     }
 
-    sendBookingConfirmationEmail({
+    sendBookingReceivedEmail({
       email: customer.email,
       customerName: customer.name || "Valued Customer",
       bookingId: String(booking.id),
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       time: time || "To be confirmed",
       amount: Number(amount),
       paymentType: "full",
-    }).catch((err) => console.error("sendBookingConfirmationEmail failed:", err));
+    }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
 
     if (providerUser?.email) {
       sendProviderNewBookingEmail({
@@ -161,18 +161,6 @@ export async function POST(request: NextRequest) {
         date: formattedDate,
         time: time || "To be confirmed",
       }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
-    }
-
-    if (customer.phone) {
-      sendBookingConfirmation({
-        customerName: customer.name || "Valued Customer",
-        bookingId: String(booking.id),
-        serviceName,
-        providerName: providerUser?.name || artist?.bio || "Your Provider",
-        date: formattedDate,
-        time: time || "To be confirmed",
-        phone: customer.phone,
-      }).catch((err) => console.error("sendBookingConfirmation WhatsApp failed:", err));
     }
 
     const refCookie = request.cookies.get("leish_ref");

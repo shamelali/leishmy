@@ -134,9 +134,9 @@ export async function GET(request: NextRequest) {
             if (payment.bookingId) {
               await db
                 .update(bookings)
-                .set({ status: "completed", updatedAt: new Date() })
+                .set({ status: "confirmed", updatedAt: new Date() })
                 .where(eq(bookings.id, payment.bookingId));
-              result.payment.bookingStatus = "completed";
+              result.payment.bookingStatus = "confirmed";
             }
           }
 
@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "release") {
       const session = await getAuthSession();
-      if (!session) {
+      if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const { paymentId } = body;
@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "refund") {
       const session = await getAuthSession();
-      if (!session) {
+      if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const { paymentId } = body;

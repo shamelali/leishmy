@@ -2,7 +2,7 @@ import { sendEmail } from "./brevo";
 import { bookingConfirmationTemplate, providerNewBookingTemplate } from "./templates";
 import { getEmailAlias } from "@/lib/constants";
 
-export async function sendBookingConfirmationEmail(params: {
+export async function sendBookingReceivedEmail(params: {
   email: string;
   customerName: string;
   bookingId: string;

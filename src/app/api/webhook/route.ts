@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { webhookEvents, payments, bookings, users } from "@/db/schema";
+import { webhookEvents, payments, bookings, users, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
       if (payment) {
         await db
           .update(payments)
-          .set({ status: "paid", updatedAt: new Date() })
+          .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
           .where(eq(payments.billplzId, body.id));
 
         if (payment.bookingId) {
           await db
             .update(bookings)
-            .set({ status: "completed", updatedAt: new Date() })
+            .set({ status: "confirmed", updatedAt: new Date() })
             .where(eq(bookings.id, payment.bookingId));
         }
       }
@@ -96,6 +96,24 @@ export async function POST(request: NextRequest) {
             const paidDate = new Date(body.paid_at).toLocaleDateString("en-MY", {
               weekday: "long", year: "numeric", month: "long", day: "numeric",
             });
+
+            await db.insert(notifications).values({
+              userId: booking.userId,
+              type: "booking_confirmed",
+              title: "Booking Confirmed",
+              body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${Number(payment.amount)} received.`,
+              data: { link: "/dashboard/bookings", bookingId: String(payment.bookingId) },
+            }).catch(() => {});
+
+            if (booking.artistId) {
+              await db.insert(notifications).values({
+                userId: booking.artistId,
+                type: "booking_confirmed",
+                title: "Payment Received — Booking Confirmed",
+                body: `Payment received for booking #${payment.bookingId}. The appointment is now confirmed.`,
+                data: { link: "/dashboard/artist", bookingId: String(payment.bookingId) },
+              }).catch(() => {});
+            }
 
             sendPaymentReceiptEmail({
               email: user.email,

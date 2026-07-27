@@ -8,14 +8,14 @@ export function bookingConfirmationTemplate(params: {
   amount: number;
   paymentType: "full" | "deposit";
 }) {
-  const subject = `Booking Confirmed - ${params.bookingId}`;
+  const subject = `Booking Received - ${params.bookingId}`;
 
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Booking Confirmation</title>
+  <title>Booking Received</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: #1a1a1a; color: white; padding: 30px; text-align: center; }
@@ -28,12 +28,12 @@ export function bookingConfirmationTemplate(params: {
 </head>
 <body>
   <div class="header">
-    <h1>Booking Confirmed</h1>
-    <p>Your appointment is all set!</p>
+    <h1>Booking Received</h1>
+    <p>Please complete your payment to confirm.</p>
   </div>
   <div class="content">
     <p>Hi ${params.customerName},</p>
-    <p>Thank you for booking with Leish. Your appointment has been confirmed.</p>
+    <p>Thank you for booking with Leish. Your booking request has been received. Please complete your payment to confirm the appointment.</p>
     <div class="details">
       <h3>Booking Details</h3>
       <div class="detail-row"><span>Reference:</span><strong>${params.bookingId}</strong></div>
@@ -41,7 +41,7 @@ export function bookingConfirmationTemplate(params: {
       <div class="detail-row"><span>Provider:</span><strong>${params.providerName}</strong></div>
       <div class="detail-row"><span>Date:</span><strong>${params.date}</strong></div>
       <div class="detail-row"><span>Time:</span><strong>${params.time}</strong></div>
-      <div class="detail-row"><span>Amount Paid:</span><strong>MYR ${params.amount} (${params.paymentType === "deposit" ? "30% Deposit" : "Full Payment"})</strong></div>
+      <div class="detail-row"><span>Amount:</span><strong>MYR ${params.amount} (Pending Payment)</strong></div>
     </div>
     <p style="text-align: center;">
       <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/bookings" class="button">View My Bookings</a>
@@ -60,11 +60,11 @@ export function bookingConfirmationTemplate(params: {
 </html>`;
 
   const text = `
-Booking Confirmed - ${params.bookingId}
+Booking Received - ${params.bookingId}
 
 Hi ${params.customerName},
 
-Thank you for booking with Leish. Your appointment has been confirmed.
+Thank you for booking with Leish. Your booking request has been received. Please complete your payment to confirm the appointment.
 
 BOOKING DETAILS:
 - Reference: ${params.bookingId}
@@ -72,7 +72,7 @@ BOOKING DETAILS:
 - Provider: ${params.providerName}
 - Date: ${params.date}
 - Time: ${params.time}
-- Amount Paid: MYR ${params.amount} (${params.paymentType === "deposit" ? "30% Deposit" : "Full Payment"})
+- Amount: MYR ${params.amount} (Pending Payment)
 
 View your bookings: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/bookings
 
@@ -549,5 +549,46 @@ export function subscriptionCanceledTemplate(params: {
 </body>
 </html>`;
   const text = `Subscription Canceled\n\nHi ${params.customerName},\n\nYour ${params.planName} subscription has been canceled and will not renew.\n\nYour Pro benefits will remain active until ${params.cancelDate}.\n\nResubscribe: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/pro/upgrade\n\nContact us at hello@leish.my if you have questions.\n\n&copy; 2026 Leish. All rights reserved.`;
+  return { subject, html, text };
+}
+
+export function payoutNotificationTemplate(params: {
+  name: string;
+  amount: number;
+  date: string;
+}) {
+  const subject = "Your Payout from Leish Has Been Processed";
+  const amountStr = (params.amount / 100).toLocaleString();
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Payout Processed</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #059669; color: white; padding: 30px; text-align: center; }
+    .content { background: #f9f9f9; padding: 30px; margin: 20px 0; }
+    .amount { font-size: 32px; color: #059669; text-align: center; margin: 20px 0; }
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="header"><h1>Payout Processed</h1></div>
+  <div class="content">
+    <p>Hi ${params.name},</p>
+    <p>Your payout has been processed successfully.</p>
+    <div class="amount">MYR ${amountStr}</div>
+    <p style="text-align: center; color: #666;">Processed on ${params.date}</p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+    <p>The funds should reflect in your bank account within <strong>1-3 business days</strong>.</p>
+    <p>If you have any questions, please contact us at hello@leish.my</p>
+  </div>
+  <div class="footer">
+    <p>&copy; 2026 Leish. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+  const text = `Your Payout from Leish Has Been Processed\n\nHi ${params.name},\n\nYour payout has been processed successfully.\n\nAmount: MYR ${amountStr}\nProcessed on: ${params.date}\n\nThe funds should reflect in your bank account within 1-3 business days.\n\nIf you have any questions, please contact us at hello@leish.my\n\n&copy; 2026 Leish. All rights reserved.`;
   return { subject, html, text };
 }

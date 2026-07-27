@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 export interface Notification {
   id: string;
   type:
+    | "booking_pending"
     | "booking_confirmed"
     | "booking_cancelled"
     | "booking_reminder"
