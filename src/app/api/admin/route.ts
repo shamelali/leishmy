@@ -105,11 +105,19 @@ export async function GET(request: NextRequest) {
             email: artistUsers.email,
             phone: artistUsers.phone,
             location: artistUsers.location,
+            image: artistUsers.image,
             rating: profiles.rating,
             reviewCount: profiles.reviewCount,
             verified: profiles.verified,
             available: profiles.available,
             createdAt: profiles.createdAt,
+            bio: profiles.bio,
+            price: profiles.price,
+            specialties: profiles.specialties,
+            languages: profiles.languages,
+            experience: profiles.experience,
+            area: profiles.area,
+            district: profiles.district,
           })
           .from(profiles)
           .innerJoin(artistUsers, eq(artistUsers.id, profiles.userId))
@@ -124,11 +132,19 @@ export async function GET(request: NextRequest) {
           email: a.email || "",
           phone: a.phone || "",
           location: a.location || "",
+          image: a.image || "",
           rating: a.rating || "0",
           reviewCount: a.reviewCount || 0,
           verified: a.verified || false,
           available: a.available ?? true,
           createdAt: a.createdAt?.toISOString() || "",
+          bio: a.bio || "",
+          price: a.price || "0",
+          specialties: a.specialties || [],
+          languages: a.languages || [],
+          experience: a.experience || 0,
+          area: a.area || "",
+          district: a.district || "",
         })),
         total, page, pageSize,
       });
@@ -683,6 +699,31 @@ export async function POST(request: NextRequest) {
           .delete(profiles)
           .where(eq(profiles.userId, String(artistId)));
       }
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "update-artist") {
+      const { artistId, name, email, phone, location, image, bio, price, specialties, languages, experience, area, district } = body;
+      if (!artistId) {
+        return NextResponse.json({ error: "artistId required" }, { status: 400 });
+      }
+      await db.update(users).set({
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(location !== undefined && { location }),
+        ...(image !== undefined && { image }),
+      }).where(eq(users.id, String(artistId)));
+      await db.update(profiles).set({
+        ...(bio !== undefined && { bio }),
+        ...(price !== undefined && { price: String(price) }),
+        ...(specialties !== undefined && { specialties }),
+        ...(languages !== undefined && { languages }),
+        ...(experience !== undefined && { experience: Number(experience) }),
+        ...(area !== undefined && { area }),
+        ...(district !== undefined && { district }),
+        updatedAt: new Date(),
+      }).where(eq(profiles.userId, String(artistId)));
       return NextResponse.json({ success: true });
     }
 

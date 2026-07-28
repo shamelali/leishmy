@@ -50,7 +50,7 @@ interface AdminStats {
   pendingPayoutCount: number;
 }
 
-interface Artist { id: string; name: string; email: string; phone: string; location: string; rating: string; reviewCount: number; verified: boolean; available: boolean; createdAt: string; }
+interface Artist { id: string; name: string; email: string; phone: string; location: string; rating: string; reviewCount: number; verified: boolean; available: boolean; createdAt: string; bio?: string; price?: string; specialties?: string[]; languages?: string[]; experience?: number; area?: string; district?: string; image?: string; }
 interface Studio { id: string; name: string; email: string; phone: string; location: string; rating: string; createdAt: string; }
 interface User { id: string; name: string; email: string; role: string; image: string; createdAt: string; }
 interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; notes: string; location: string; }
@@ -115,6 +115,8 @@ export default function DashboardAdmin() {
   const [addEventForm, setAddEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
   const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
   const [editEventForm, setEditEventForm] = useState({ title: "", description: "", date: "", time: "", location: "", category: "Workshop", image: "", ticketUrl: "", organizerName: "", published: false });
+  const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
+  const [editArtistForm, setEditArtistForm] = useState({ name: "", email: "", phone: "", location: "", image: "", bio: "", price: "", specialties: "", languages: "", experience: "", area: "", district: "" });
   const [receivedEmails, setReceivedEmails] = useState<ReceivedEmail[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<ReceivedEmail | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([]);
@@ -454,6 +456,109 @@ export default function DashboardAdmin() {
               </div>
             )}
 
+            {editingArtist && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setEditingArtist(null)}>
+                <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 w-full max-w-lg ${isMobile ? 'max-w-full mx-0 rounded-none h-full max-h-full' : ''} overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit Artist</h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Name</label>
+                        <input type="text" value={editArtistForm.name} onChange={(e) => setEditArtistForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Email</label>
+                        <input type="email" value={editArtistForm.email} onChange={(e) => setEditArtistForm((f) => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Phone</label>
+                        <input type="text" value={editArtistForm.phone} onChange={(e) => setEditArtistForm((f) => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Location</label>
+                        <input type="text" value={editArtistForm.location} onChange={(e) => setEditArtistForm((f) => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Area</label>
+                        <input type="text" value={editArtistForm.area} onChange={(e) => setEditArtistForm((f) => ({ ...f, area: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">District</label>
+                        <input type="text" value={editArtistForm.district} onChange={(e) => setEditArtistForm((f) => ({ ...f, district: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Image URL</label>
+                      <input type="text" value={editArtistForm.image} onChange={(e) => setEditArtistForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="https://..." />
+                      {editArtistForm.image && (
+                        <div className="mt-2 relative group">
+                          <img src={editArtistForm.image} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <button type="button" onClick={() => setEditArtistForm((f) => ({ ...f, image: "" }))} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Bio</label>
+                      <textarea rows={3} value={editArtistForm.bio} onChange={(e) => setEditArtistForm((f) => ({ ...f, bio: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Price (MYR)</label>
+                        <input type="number" value={editArtistForm.price} onChange={(e) => setEditArtistForm((f) => ({ ...f, price: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Experience (years)</label>
+                        <input type="number" value={editArtistForm.experience} onChange={(e) => setEditArtistForm((f) => ({ ...f, experience: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Specialties (comma separated)</label>
+                      <input type="text" value={editArtistForm.specialties} onChange={(e) => setEditArtistForm((f) => ({ ...f, specialties: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="e.g. Bridal, Editorial, Glam" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Languages (comma separated)</label>
+                      <input type="text" value={editArtistForm.languages} onChange={(e) => setEditArtistForm((f) => ({ ...f, languages: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="e.g. English, Malay, Arabic" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 mt-6">
+                    <button onClick={() => setEditingArtist(null)} className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!editArtistForm.name.trim()) return;
+                        setActionLoading("edit-artist");
+                        try {
+                          await fetch("/api/admin?action=update-artist", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              artistId: editingArtist.id,
+                              ...editArtistForm,
+                              specialties: editArtistForm.specialties ? editArtistForm.specialties.split(",").map((s) => s.trim()).filter(Boolean) : [],
+                              languages: editArtistForm.languages ? editArtistForm.languages.split(",").map((s) => s.trim()).filter(Boolean) : [],
+                            }),
+                          });
+                          setEditingArtist(null);
+                          await fetchData("artists");
+                        } finally { setActionLoading(""); }
+                      }}
+                      disabled={actionLoading === "edit-artist" || !editArtistForm.name.trim()}
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 transition-all"
+                    >
+                      {actionLoading === "edit-artist" ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
@@ -489,6 +594,28 @@ export default function DashboardAdmin() {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingArtist(artist);
+                            setEditArtistForm({
+                              name: artist.name,
+                              email: artist.email,
+                              phone: artist.phone,
+                              location: artist.location,
+                              image: artist.image || "",
+                              bio: artist.bio || "",
+                              price: artist.price || "0",
+                              specialties: Array.isArray(artist.specialties) ? artist.specialties.join(", ") : "",
+                              languages: Array.isArray(artist.languages) ? artist.languages.join(", ") : "",
+                              experience: String(artist.experience || ""),
+                              area: artist.area || "",
+                              district: artist.district || "",
+                            });
+                          }}
+                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
                         <a href={`/artists/${artist.id}`} target="_blank" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><ExternalLink className="w-4 h-4" /></a>
                         <button onClick={() => deleteArtist(artist.id)} disabled={actionLoading === artist.id} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                       </div>
