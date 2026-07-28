@@ -108,6 +108,7 @@ export function ProfilePictureUploader({
       }
 
       const data = (await uploadRes.json()) as { secure_url: string };
+      setPreview(null);
       onChange(data.secure_url);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
