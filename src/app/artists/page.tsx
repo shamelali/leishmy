@@ -127,7 +127,6 @@ export default async function ArtistsPage({ searchParams }: Props) {
           and(
             eq(bookings.date, new Date(date)),
             ne(bookings.status, "cancelled"),
-            ne(bookings.status, "rejected"),
           ),
         );
       const bookedIds = bookedRows.map((r) => r.artistId).filter(Boolean) as string[];

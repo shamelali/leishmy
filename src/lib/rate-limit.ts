@@ -67,9 +67,21 @@ async function limit(identifier: string): Promise<RateLimitResult> {
     const reset = Date.now() + (ttl > 0 ? ttl * 1000 : window * 1000);
 
     return { success, remaining, reset };
-  } catch {
-    console.error("Rate limiter error");
-    return { success: true, remaining: 999, reset: 0 };
+  } catch (err) {
+    console.error("Rate limiter Redis error, falling back to in-memory:", err);
+    const now = Date.now();
+    const record = inMemory.get(identifier);
+    if (record && record.resetAt > now) {
+      const success = record.count <= 60;
+      record.count++;
+      return {
+        success,
+        remaining: Math.max(0, 60 - record.count),
+        reset: record.resetAt,
+      };
+    }
+    inMemory.set(identifier, { count: 1, resetAt: now + 60_000 });
+    return { success: true, remaining: 59, reset: now + 60_000 };
   }
 }
 

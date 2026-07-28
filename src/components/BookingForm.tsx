@@ -20,6 +20,11 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const today = new Date().toISOString().split("T")[0];
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 90);
+  const maxDateStr = maxDate.toISOString().split("T")[0];
+
   const services = [
     "Bridal Makeup",
     "Event Glam",
@@ -177,6 +182,8 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
           value={date}
           onChange={(e) => setDate(e.target.value)}
           required
+          min={today}
+          max={maxDateStr}
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
         />
       </div>

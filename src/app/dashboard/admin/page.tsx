@@ -36,7 +36,7 @@ interface ReceivedEmail {
   createdAt: string;
 }
 
-type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "events" | "inbox" | "webhooks";
+type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "payouts" | "events" | "inbox" | "webhooks";
 
 interface AdminStats {
   totalUsers: number;
@@ -47,6 +47,7 @@ interface AdminStats {
   avgRating: number;
   pendingPayouts: number;
   newUsersThisMonth: number;
+  pendingPayoutCount: number;
 }
 
 interface Artist { id: string; name: string; email: string; phone: string; location: string; rating: string; reviewCount: number; verified: boolean; available: boolean; createdAt: string; }
@@ -54,6 +55,7 @@ interface Studio { id: string; name: string; email: string; phone: string; locat
 interface User { id: string; name: string; email: string; role: string; image: string; createdAt: string; }
 interface Booking { id: string; date: string; time: string; status: string; paymentStatus: string; totalAmount: string; userName: string; artistName: string; notes: string; location: string; }
 interface Payment { id: string; amount: string; status: string; paymentMethod: string; createdAt: string; releasedAt: string; bookingId: string; userName: string; userEmail: string; }
+interface PayoutItem { id: number; userId: string; amount: number; status: string; createdAt: string; updatedAt: string; paymentId: number | null; userName: string; userEmail: string; }
 interface AdminEvent { id: number; title: string; slug: string; date: string; time: string | null; location: string | null; category: string; published: boolean; featured: boolean; }
 
 const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
@@ -63,6 +65,7 @@ const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "users", label: "Users", icon: Users },
   { key: "bookings", label: "Bookings", icon: BookOpen },
   { key: "payments", label: "Payments", icon: CreditCard },
+  { key: "payouts", label: "Payouts", icon: DollarSign },
   { key: "events", label: "Events", icon: Calendar },
   { key: "inbox", label: "Inbox", icon: Mail },
   { key: "webhooks", label: "Webhooks", icon: Webhook },
@@ -97,6 +100,9 @@ export default function DashboardAdmin() {
   const [users, setUsers] = useState<User[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [payouts, setPayouts] = useState<PayoutItem[]>([]);
+  const [selectedPayouts, setSelectedPayouts] = useState<Set<number>>(new Set());
+  const [markingPaid, setMarkingPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [fetchError, setFetchError] = useState("");
@@ -121,10 +127,10 @@ export default function DashboardAdmin() {
   const [overviewDetailLoading, setOverviewDetailLoading] = useState(false);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
-    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, events: 1, inbox: 1, webhooks: 1, overview: 1,
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, payouts: 1, events: 1, inbox: 1, webhooks: 1, overview: 1,
   });
   const [total, setTotal] = useState<Record<Tab, number>>({
-    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, events: 0, inbox: 0, webhooks: 0, overview: 0,
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, payouts: 0, events: 0, inbox: 0, webhooks: 0, overview: 0,
   });
 
   const fetchData = useCallback(async (t: Tab, p?: number) => {
@@ -162,6 +168,15 @@ export default function DashboardAdmin() {
           setTotal((prev) => ({ ...prev, webhooks: data.summary?.total || 0 }));
         } else {
           setFetchError("Failed to load webhook data");
+        }
+      } else if (t === "payouts") {
+        const res = await fetch(`/api/admin?action=pending-payouts&page=${currentPage}&pageSize=${pageSize}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPayouts(data.payouts || []);
+          setTotal((prev) => ({ ...prev, payouts: data.total || 0 }));
+        } else {
+          setFetchError("Failed to load payouts");
         }
       } else if (t === "events") {
         const res = await fetch("/api/events?admin=true");
@@ -223,7 +238,7 @@ export default function DashboardAdmin() {
       else if (type === "bookings") url = "/api/admin?action=bookings&page=1&pageSize=50";
       else if (type === "payments") url = "/api/admin?action=payments&page=1&pageSize=50";
       else if (type === "revenue") url = "/api/admin?action=payments&page=1&pageSize=100";
-      else if (type === "pending") url = "/api/admin?action=payments&page=1&pageSize=100";
+      else if (type === "pending") url = "/api/admin?action=pending-payouts&page=1&pageSize=100";
       if (url) {
         const res = await fetch(url);
         if (res.ok) setOverviewDetailData(await res.json());
@@ -334,7 +349,7 @@ export default function DashboardAdmin() {
                   { icon: DollarSign, label: "Total Revenue", value: stats ? `MYR ${stats.totalRevenue.toLocaleString()}` : "—", sub: stats ? `MYR ${stats.pendingPayouts.toLocaleString()} pending` : "", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30", clickType: "revenue" },
                   { icon: Star, label: "Average Rating", value: stats ? String(stats.avgRating) : "—", sub: "Platform-wide", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-950/30", clickType: null },
                   { icon: TrendingUp, label: "Growth Rate", value: "+18%", sub: "vs last month", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30", clickType: null },
-                  { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${Math.ceil((stats?.pendingPayouts || 0) / 350)} payouts`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30", clickType: "pending" },
+                  { icon: DollarSign, label: "Pending Payouts", value: stats ? `MYR ${stats.pendingPayouts.toLocaleString()}` : "—", sub: `${stats?.pendingPayoutCount || 0} payout${stats?.pendingPayoutCount !== 1 ? "s" : ""}`, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30", clickType: "pending" },
                   { icon: BarChart3, label: "Conversion Rate", value: "12.4%", sub: "Views to bookings", color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30", clickType: null },
                 ].map((props) => (
                   <button
@@ -1169,6 +1184,105 @@ export default function DashboardAdmin() {
             )}
           </div>
         )}
+
+        {tab === "payouts" && (
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+            <div className="px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {total.payouts} pending payout{total.payouts !== 1 ? "s" : ""}
+              </p>
+              {selectedPayouts.size > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Mark ${selectedPayouts.size} payout${selectedPayouts.size !== 1 ? "s" : ""} as paid? This will send email notifications.`)) return;
+                    setMarkingPaid(true);
+                    try {
+                      const res = await fetch("/api/admin?action=mark-payouts-paid", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ payoutIds: Array.from(selectedPayouts) }),
+                      });
+                      if (res.ok) {
+                        setSelectedPayouts(new Set());
+                        await fetchData("payouts");
+                      } else {
+                        const err = await res.json();
+                        setFetchError(err.error || "Failed to mark payouts as paid");
+                      }
+                    } finally {
+                      setMarkingPaid(false);
+                    }
+                  }}
+                  disabled={markingPaid}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 disabled:opacity-40 transition-all shadow-sm"
+                >
+                  {markingPaid ? "Processing..." : `Mark ${selectedPayouts.size} Paid`}
+                </button>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead className="bg-gray-50 dark:bg-neutral-800">
+                  <tr>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300 w-10">
+                      <input
+                        type="checkbox"
+                        checked={payouts.length > 0 && selectedPayouts.size === payouts.length}
+                        onChange={() => {
+                          if (selectedPayouts.size === payouts.length) {
+                            setSelectedPayouts(new Set());
+                          } else {
+                            setSelectedPayouts(new Set(payouts.map((p) => p.id)));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-rose-500 focus:ring-rose-400"
+                      />
+                    </th>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Created</th>
+                    <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                  {loading ? (
+                    <tr><td colSpan={6} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
+                  ) : payouts.length === 0 ? (
+                    <tr><td colSpan={6} className="p-8 text-center text-gray-400">No pending payouts</td></tr>
+                  ) : payouts.map((po) => (
+                    <tr key={po.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedPayouts.has(po.id)}
+                          onChange={() => {
+                            const next = new Set(selectedPayouts);
+                            if (next.has(po.id)) next.delete(po.id);
+                            else next.add(po.id);
+                            setSelectedPayouts(next);
+                          }}
+                          className="rounded border-gray-300 text-rose-500 focus:ring-rose-400"
+                        />
+                      </td>
+                      <td className="p-3">
+                        <p className="font-medium text-gray-900 dark:text-white">{po.userName || "—"}</p>
+                        {po.userEmail && <p className="text-xs text-gray-400">{po.userEmail}</p>}
+                      </td>
+                      <td className="p-3 font-medium text-gray-900 dark:text-white">MYR {(po.amount / 100).toLocaleString()}</td>
+                      <td className="p-3"><PaymentBadge status={po.status} /></td>
+                      <td className="p-3 text-xs text-gray-400">{po.createdAt ? new Date(po.createdAt).toLocaleDateString() : "—"}</td>
+                      <td className="p-3 font-mono text-xs text-gray-500">{po.paymentId ? `#${po.paymentId}` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {total.payouts > pageSize && (
+              <Pagination page={page.payouts} total={total.payouts} pageSize={pageSize} onPage={(p) => goToPage("payouts", p)} />
+            )}
+          </div>
+        )}
       </div>
 
       {selectedEmail && (
@@ -1258,7 +1372,7 @@ export default function DashboardAdmin() {
                     </tbody>
                   </table>
                 </div>
-              ) : (overviewDetail === "payments" || overviewDetail === "revenue" || overviewDetail === "pending") ? (
+              ) : (overviewDetail === "payments" || overviewDetail === "revenue") ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-neutral-800">
@@ -1272,7 +1386,7 @@ export default function DashboardAdmin() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                       {(overviewDetailData.payments || [])
-                        .filter((p: any) => overviewDetail === "pending" ? p.status === "held" : overviewDetail === "revenue" ? (p.status === "paid" || p.status === "released") : true)
+                        .filter((p: any) => overviewDetail === "revenue" ? (p.status === "paid" || p.status === "released") : true)
                         .map((p: any) => (
                           <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                             <td className="p-3 font-mono text-xs text-gray-500">{(p.id || "").slice(0, 8)}</td>
@@ -1282,6 +1396,29 @@ export default function DashboardAdmin() {
                             <td className="p-3 text-xs text-gray-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</td>
                           </tr>
                         ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : overviewDetail === "pending" ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-neutral-800">
+                      <tr>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Amount</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                        <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {(overviewDetailData.payouts || []).map((p: any) => (
+                        <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                          <td className="p-3 font-medium text-gray-900 dark:text-white">{p.userName || "—"}</td>
+                          <td className="p-3 font-medium text-gray-900 dark:text-white">MYR {(p.amount / 100).toLocaleString()}</td>
+                          <td className="p-3"><PaymentBadge status={p.status} /></td>
+                          <td className="p-3 text-xs text-gray-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

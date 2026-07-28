@@ -7,6 +7,7 @@ import {
   favorites,
   notifications,
   bookings,
+  payments,
   categories,
   referrals,
 } from "@/db/schema";
@@ -685,6 +686,14 @@ export async function POST(
       if (booking.status !== "pending") {
         return NextResponse.json({ error: "Only pending bookings can be confirmed" }, { status: 400 });
       }
+      const [paidPayment] = await db
+        .select()
+        .from(payments)
+        .where(and(eq(payments.bookingId, Number(bookingId)), eq(payments.status, "paid")))
+        .limit(1);
+      if (!paidPayment) {
+        return NextResponse.json({ error: "Cannot confirm: payment not received" }, { status: 400 });
+      }
       const [artist] = await db
         .select()
         .from(profiles)
@@ -745,28 +754,30 @@ export async function DELETE(
   { params }: { params: Promise<{ action: string }> },
 ) {
   try {
-    const { searchParams } = new URL(request.url);
+    const session = await getSession();
     const { action } = await params;
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
 
     if (action === "favorites") {
       const body = await request.json().catch(() => ({}));
       const { artistId } = body;
-      const userId = searchParams.get("userId");
 
-      if (!userId) {
-        return NextResponse.json({ error: "userId required" }, { status: 400 });
+      if (!artistId) {
+        return NextResponse.json({ error: "artistId required" }, { status: 400 });
       }
 
-      if (artistId) {
-        await db
-          .delete(favorites)
-          .where(
-            and(
-              eq(favorites.userId, userId),
-              eq(favorites.artistId, String(artistId)),
-            ),
-          );
-      }
+      await db
+        .delete(favorites)
+        .where(
+          and(
+            eq(favorites.userId, userId),
+            eq(favorites.artistId, String(artistId)),
+          ),
+        );
 
       return NextResponse.json({ success: true, favorited: false });
     }

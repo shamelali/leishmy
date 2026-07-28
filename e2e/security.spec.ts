@@ -79,17 +79,10 @@ test.describe("Security Tests", () => {
       expect(page.url()).toContain("/login");
     });
 
-    test("Unauthenticated user cannot access /dashboard (SECURITY: currently redirects only after load)", async ({ page }) => {
+    test("Unauthenticated user cannot access /dashboard", async ({ page }) => {
       await page.goto("/dashboard");
-      // Note: Page may briefly show content before redirect due to client-side rendering
-      // This is a security finding - auth check should happen before page render
-      await page.waitForURL(/\/login/, { timeout: 5000 }).catch(() => {});
-      const url = page.url();
-      // SECURITY FINDING: Dashboard should redirect to login immediately
-      // Current behavior allows page to load briefly before redirect
-      if (url.includes("/dashboard")) {
-        console.log("SECURITY FINDING: /dashboard accessible without auth");
-      }
+      await page.waitForURL(/\/login/, { timeout: 10000 });
+      expect(page.url()).toContain("/login");
     });
   });
 
@@ -104,10 +97,9 @@ test.describe("Security Tests", () => {
       expect(res.status()).toBe(200);
     });
 
-    test("SECURITY FINDING: Contact API does not validate email format", async ({
+    test("Contact API rejects invalid email format", async ({
       request,
     }) => {
-      // Currently returns 200 even with invalid email - this is a validation gap
       const res = await request.post("/api/contact", {
         data: {
           name: "Test",
@@ -115,12 +107,9 @@ test.describe("Security Tests", () => {
           message: "Test message",
         },
       });
-      // SECURITY FINDING: Should return 400 for invalid email format
-      // Currently returns 200, meaning email validation is missing
-      if (res.status() === 200) {
-        console.log("SECURITY FINDING: Contact API accepts invalid email format");
-      }
-      expect([200, 400]).toContain(res.status()); // Document both behaviors
+      expect(res.status()).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("Validation failed");
     });
 
     test("Missing required fields in contact API returns 400", async ({

@@ -250,6 +250,8 @@ export const payments = pgTable("payments", {
   billplzId: varchar("billplz_id", { length: 255 }),
   method: varchar("method", { length: 50 }),
   idempotencyKey: varchar("idempotency_key", { length: 255 }).unique(),
+  paidAt: timestamp("paid_at", { mode: "date" }),
+  releasedAt: timestamp("released_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });

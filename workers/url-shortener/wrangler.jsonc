@@ -1,0 +1,22 @@
+{
+  "name": "url-shortener",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "URL_MAP",
+      "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "preview_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "binding": "ANALYTICS",
+      "id": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "preview_id": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

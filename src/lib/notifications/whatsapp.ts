@@ -67,60 +67,6 @@ async function sendMessage(to: string, message: string): Promise<SendMessageResu
   }
 }
 
-export async function sendBookingConfirmation({
-  customerName,
-  bookingId,
-  serviceName,
-  providerName,
-  date,
-  time,
-  phone,
-}: {
-  customerName: string;
-  bookingId: string;
-  serviceName: string;
-  providerName: string;
-  date: string;
-  time: string;
-  phone: string;
-}) {
-  const message =
-    `Hi ${customerName}! Your booking is confirmed.\n\n` +
-    `${serviceName} with ${providerName}\n` +
-    `📅 ${date} at ${time}\n` +
-    `📋 Ref: ${bookingId}\n\n` +
-    `Thank you for choosing Leish!`;
-
-  return sendMessage(phone, message);
-}
-
-export async function sendBookingReminder({
-  customerName,
-  bookingId,
-  serviceName,
-  providerName,
-  date,
-  time,
-  phone,
-}: {
-  customerName: string;
-  bookingId: string;
-  serviceName: string;
-  providerName: string;
-  date: string;
-  time: string;
-  phone: string;
-}) {
-  const message =
-    `Hi ${customerName}! Reminder: Your appointment is tomorrow.\n\n` +
-    `${serviceName} with ${providerName}\n` +
-    `📅 ${date} at ${time}\n` +
-    `📋 Ref: ${bookingId}\n\n` +
-    `Need to reschedule? Contact us at least 24hrs in advance.`;
-
-  return sendMessage(phone, message);
-}
-
 export async function sendPaymentConfirmation({
   customerName,
   bookingId,

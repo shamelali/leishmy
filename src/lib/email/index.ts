@@ -11,9 +11,6 @@ export { sendSubscriptionCanceledEmail } from "./subscription-canceled";
 export { sendPayoutNotificationEmail } from "./payout-notification";
 export {
   bookingConfirmationTemplate,
-  bookingReminderTemplate,
-  bookingExpiredTemplate,
-  bookingAutoCanceledTemplate,
   welcomeEmailTemplate,
   paymentReceiptTemplate,
   loyaltyPointsEarnedTemplate,

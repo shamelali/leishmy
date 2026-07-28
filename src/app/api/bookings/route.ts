@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals } from "@/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
@@ -97,6 +97,27 @@ export async function POST(request: NextRequest) {
     }
 
     const amount = await resolveAmount(body, artistIdStr);
+
+    if (artistIdStr) {
+      const [conflict] = await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.artistId, artistIdStr),
+            eq(bookings.date, new Date(date)),
+            eq(bookings.time, time || null),
+            inArray(bookings.status, ["pending", "confirmed"]),
+          ),
+        )
+        .limit(1);
+      if (conflict) {
+        return NextResponse.json(
+          { error: "Artist is already booked for this date and time" },
+          { status: 409 },
+        );
+      }
+    }
 
     const [booking] = await db
       .insert(bookings)
@@ -431,7 +452,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id and status required" }, { status: 400 });
     }
 
-    const allowedStatuses = ["confirmed", "cancelled", "completed"];
+    const allowedStatuses = ["cancelled"];
     if (!allowedStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
@@ -444,6 +465,13 @@ export async function PATCH(request: NextRequest) {
 
     if (!existing) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    if (existing.status === "completed") {
+      return NextResponse.json(
+        { error: "Cannot cancel a completed booking" },
+        { status: 400 }
+      );
     }
 
     if (existing.userId !== session.id && existing.artistId !== session.id) {
