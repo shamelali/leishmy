@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Camera, Loader2, X, User } from "lucide-react";
 import { validateImageFile } from "@/lib/utils/magic-bytes";
@@ -40,6 +40,8 @@ export function ProfilePictureUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const sizeClasses = {
     sm: "w-20 h-20",
@@ -53,11 +55,20 @@ export function ProfilePictureUploader({
     lg: "w-10 h-10",
   };
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     e.target.value = "";
+    processFile(file);
+  }
+
+  function handleRemove() {
+    onChange("");
+    setPreview(null);
+  }
+
+  const processFile = useCallback(async (file: File) => {
+    if (disabled || uploading) return;
 
     const validationError = await validateImageFile(file);
     if (validationError) {
@@ -118,23 +129,56 @@ export function ProfilePictureUploader({
       setUploading(false);
       if (localPreview) URL.revokeObjectURL(localPreview);
     }
+  }, [disabled, uploading, folder, onChange, onError]);
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setDragging(true);
+    }
   }
 
-  function handleRemove() {
-    onChange("");
-    setPreview(null);
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragging(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   }
 
   const displayUrl = preview || value;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div
+      className="flex flex-col items-center gap-3"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <div className="relative group">
         <button
           type="button"
           onClick={() => !disabled && !uploading && inputRef.current?.click()}
           disabled={disabled || uploading}
-          className={`${sizeClasses[size]} relative rounded-full overflow-hidden border-4 border-white dark:border-neutral-800 shadow-lg cursor-pointer hover:shadow-xl transition-shadow disabled:opacity-60 disabled:cursor-not-allowed bg-gray-100 dark:bg-neutral-900`}
+          className={`${sizeClasses[size]} relative rounded-full overflow-hidden border-4 ${dragging ? "border-rose-400 dark:border-rose-500 scale-105" : "border-white dark:border-neutral-800"} shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed bg-gray-100 dark:bg-neutral-900`}
         >
           {uploading ? (
             <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
@@ -150,12 +194,12 @@ export function ProfilePictureUploader({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-neutral-900">
-              <User className={`${iconSize[size]} text-gray-400`} />
+              <User className={`${iconSize[size]} ${dragging ? "text-rose-500" : "text-gray-400"} transition-colors`} />
             </div>
           )}
 
           {!uploading && !disabled && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+            <div className={`absolute inset-0 bg-black/40 ${dragging ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity flex items-center justify-center rounded-full`}>
               <Camera className="w-6 h-6 text-white" />
             </div>
           )}
@@ -177,7 +221,7 @@ export function ProfilePictureUploader({
         ref={inputRef}
         type="file"
         accept={ACCEPT}
-        onChange={handleFile}
+        onChange={handleFileInput}
         disabled={disabled || uploading}
         className="hidden"
       />
@@ -188,7 +232,7 @@ export function ProfilePictureUploader({
         disabled={disabled || uploading}
         className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 disabled:opacity-50"
       >
-        {displayUrl ? "Change photo" : "Upload photo"}
+        {dragging ? "Drop image here" : displayUrl ? "Change photo" : "Upload photo"}
       </button>
     </div>
   );
