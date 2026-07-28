@@ -162,6 +162,8 @@ export async function GET(request: NextRequest) {
             location: studioUsers.location,
             rating: profiles.rating,
             createdAt: profiles.createdAt,
+            image: studioUsers.image,
+            bio: profiles.bio,
           })
           .from(profiles)
           .innerJoin(studioUsers, eq(studioUsers.id, profiles.userId))
@@ -178,6 +180,8 @@ export async function GET(request: NextRequest) {
           location: s.location || "",
           rating: s.rating || "0",
           createdAt: s.createdAt?.toISOString() || "",
+          image: s.image || "",
+          bio: s.bio || "",
         })),
         total, page, pageSize,
       });
@@ -734,6 +738,25 @@ export async function POST(request: NextRequest) {
         ...(district !== undefined && { district }),
         updatedAt: new Date(),
       }).where(eq(profiles.userId, String(artistId)));
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "update-studio") {
+      const { studioId, name, email, phone, location, image, bio } = body;
+      if (!studioId) {
+        return NextResponse.json({ error: "studioId required" }, { status: 400 });
+      }
+      await db.update(users).set({
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(location !== undefined && { location }),
+        ...(image !== undefined && { image }),
+      }).where(eq(users.id, String(studioId)));
+      await db.update(profiles).set({
+        ...(bio !== undefined && { bio }),
+        updatedAt: new Date(),
+      }).where(eq(profiles.userId, String(studioId)));
       return NextResponse.json({ success: true });
     }
 
