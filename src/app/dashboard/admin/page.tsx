@@ -161,7 +161,7 @@ export default function DashboardAdmin() {
           setFetchError("Failed to load inbox");
         }
       } else if (t === "webhooks") {
-        const res = await fetch(`/api/admin?action=webhooks&limit=${pageSize}`);
+        const res = await fetch(`/api/admin?action=webhooks&page=${currentPage}&pageSize=${pageSize}`);
         if (res.ok) {
           const data = await res.json();
           setWebhookEvents(data.events || []);
@@ -181,11 +181,11 @@ export default function DashboardAdmin() {
           setFetchError("Failed to load payouts");
         }
       } else if (t === "events") {
-        const res = await fetch("/api/events?admin=true");
+        const res = await fetch(`/api/events?admin=true&page=${currentPage}&pageSize=${pageSize}`);
         if (res.ok) {
           const data = await res.json();
-          setAdminEvents(data);
-          setTotal((prev) => ({ ...prev, events: data.length }));
+          setAdminEvents(data.events || (Array.isArray(data) ? data : []));
+          setTotal((prev) => ({ ...prev, events: data.total || (Array.isArray(data) ? data.length : 0) }));
         } else {
           setFetchError("Failed to load events");
         }
@@ -1089,6 +1089,9 @@ export default function DashboardAdmin() {
               </tbody>
             </table>
             </div>
+            {total.events > pageSize && (
+              <Pagination page={page.events} total={total.events} pageSize={pageSize} onPage={(p) => goToPage("events", p)} />
+            )}
           </div>
         )}
 
@@ -1241,6 +1244,9 @@ export default function DashboardAdmin() {
                 </table>
               </div>
             </div>
+            {total.webhooks > pageSize && (
+              <Pagination page={page.webhooks} total={total.webhooks} pageSize={pageSize} onPage={(p) => goToPage("webhooks", p)} />
+            )}
           </div>
         )}
 

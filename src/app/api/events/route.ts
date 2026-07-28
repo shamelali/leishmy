@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { events } from "@/db/schema";
-import { desc, asc, eq, and, gte, lte, ilike, or } from "drizzle-orm";
+import { desc, asc, eq, and, gte, lte, ilike, or, count } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 
@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const upcoming = searchParams.get("upcoming") !== "false";
     const admin = searchParams.get("admin") === "true";
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(Math.max(1, Number(searchParams.get("pageSize")) || 20), 100);
 
     let conditions = [];
 
@@ -45,13 +47,27 @@ export async function GET(request: NextRequest) {
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const offset = (page - 1) * pageSize;
+
+    if (admin) {
+      const [totalResult] = await db.select({ count: count() }).from(events).where(where);
+      const result = await db
+        .select()
+        .from(events)
+        .where(where)
+        .orderBy(asc(events.date))
+        .limit(pageSize)
+        .offset(offset);
+      return NextResponse.json({ events: result, total: totalResult?.count || 0 });
+    }
 
     const result = await db
       .select()
       .from(events)
       .where(where)
       .orderBy(asc(events.date))
-      .limit(50);
+      .limit(pageSize)
+      .offset(offset);
 
     return NextResponse.json(result);
   } catch (error) {

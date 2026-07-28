@@ -527,12 +527,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "webhooks") {
-      const limit = Math.max(1, Math.min(200, parseInt(searchParams.get("limit") || "50")));
+      const wp = Math.max(1, Number(searchParams.get("page")) || 1);
+      const wps = Math.min(Math.max(1, Number(searchParams.get("pageSize")) || 20), 100);
+      const wOffset = (wp - 1) * wps;
+
+      const [totalResult] = await db.select({ count: count() }).from(webhookEvents);
+      const totalWebhooks = totalResult?.count || 0;
+
       const events = await db
         .select()
         .from(webhookEvents)
         .orderBy(desc(webhookEvents.createdAt))
-        .limit(limit);
+        .limit(wps)
+        .offset(wOffset);
 
       const allPayments = await db.select().from(payments);
 
@@ -555,7 +562,8 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const rejected = events.filter((e) => e.status === "rejected").length;
+      const [receivedResult] = await db.select({ count: count() }).from(webhookEvents).where(eq(webhookEvents.status, "received"));
+      const [rejectedResult] = await db.select({ count: count() }).from(webhookEvents).where(eq(webhookEvents.status, "rejected"));
 
       return NextResponse.json({
         events: events.map((e) => ({
@@ -567,10 +575,12 @@ export async function GET(request: NextRequest) {
         })),
         reconcile,
         summary: {
-          total: events.length,
-          received: events.filter((e) => e.status === "received").length,
-          rejected,
+          total: totalWebhooks,
+          received: receivedResult?.count || 0,
+          rejected: rejectedResult?.count || 0,
         },
+        page: wp,
+        pageSize: wps,
       });
     }
 
