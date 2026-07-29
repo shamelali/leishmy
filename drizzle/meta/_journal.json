@@ -127,6 +127,20 @@
       "when": 1785965000000,
       "tag": "0019_fix_booking_column_casing",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785320594908,
+      "tag": "0018_add_url_shortener",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785320594909,
+      "tag": "0020_add_accommodation_fee",
+      "breakpoints": true
     }
   ]
 }

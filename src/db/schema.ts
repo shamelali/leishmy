@@ -67,6 +67,7 @@ export const profiles = pgTable(
     experience: integer("experience").default(0),
     responseTime: varchar("response_time", { length: 50 }),
     price: decimal("price", { precision: 10, scale: 2 }).default("0"),
+    accommodationFee: decimal("accommodation_fee", { precision: 10, scale: 2 }).default("0"),
     rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
     reviewCount: integer("review_count").default(0),
     area: varchar("area", { length: 100 }),
@@ -206,6 +207,7 @@ export const bookings = pgTable("bookings", {
   lateFeeCharged: boolean("late_fee_charged").default(false),
   noShow: boolean("no_show").default(false),
   travelSurcharge: decimal("travel_surcharge", { precision: 10, scale: 2 }).default("0"),
+  accommodationFee: decimal("accommodation_fee", { precision: 10, scale: 2 }).default("0"),
   remainingPaymentSent: boolean("remaining_payment_sent").default(false),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
@@ -641,3 +643,36 @@ export const referrals = pgTable(
 );
 
 
+
+export const urls = pgTable(
+  "urls",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 20 }).unique().notNull(),
+    url: text("url").notNull(),
+    custom: boolean("custom").default(false).notNull(),
+    clicks: integer("clicks").default(0).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("urls_code_idx").on(table.code),
+    index("urls_created_idx").on(table.createdAt),
+  ],
+);
+
+export const urlAnalytics = pgTable(
+  "url_analytics",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 20 }).notNull(),
+    referer: text("referer"),
+    userAgent: text("user_agent"),
+    country: varchar("country", { length: 100 }),
+    timestamp: timestamp("timestamp", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("url_analytics_code_idx").on(table.code),
+    index("url_analytics_timestamp_idx").on(table.timestamp),
+  ],
+);

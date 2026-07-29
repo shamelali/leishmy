@@ -1,14 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Clock, CheckCircle } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin } from "lucide-react";
+
+interface ArtistService {
+  id: string;
+  name: string;
+  description: string;
+  duration: string;
+  price: number;
+  popular: boolean;
+}
 
 interface BookingFormProps {
   artistId: string;
   artistName: string;
+  services: ArtistService[];
+  travelSurchargeAmount?: number;
+  accommodationFeeAmount?: number;
 }
 
-export function BookingForm({ artistId, artistName }: BookingFormProps) {
+export function BookingForm({ 
+  artistId, 
+  artistName, 
+  services, 
+  travelSurchargeAmount = 50, 
+  accommodationFeeAmount = 0 
+}: BookingFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [service, setService] = useState("");
@@ -20,33 +38,23 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [showTravelSurcharge, setShowTravelSurcharge] = useState(false);
+  const [showAccommodationFee, setShowAccommodationFee] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 90);
   const maxDateStr = maxDate.toISOString().split("T")[0];
 
-  const services = [
-    "Bridal Makeup",
-    "Event Glam",
-    "Editorial/Photoshoot",
-    "Natural Look",
-    "Party Makeup",
-    "Hijab Styling + Makeup",
-    "Trial Session",
+  const timeSlots = [
+    "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
   ];
 
-  const timeSlots = [
-    "9:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "1:00 PM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-    "5:00 PM",
-  ];
+  const selectedService = services.find((s) => s.name === service);
+  const servicePrice = selectedService?.price || 0;
+  const travelFee = showTravelSurcharge ? travelSurchargeAmount : 0;
+  const accommodationFee = showAccommodationFee ? accommodationFeeAmount : 0;
+  const totalPrice = servicePrice + travelFee + accommodationFee;
 
   function getDepositInfo(svc: string) {
     const s = svc.toLowerCase();
@@ -75,6 +83,7 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
           location,
           notes,
           travelSurcharge: showTravelSurcharge,
+          accommodationFee: showAccommodationFee,
         }),
       });
 
@@ -163,7 +172,7 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
         />
       </div>
 
-      {/* Service */}
+      {/* Service with prices */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
           Service
@@ -176,17 +185,23 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
         >
           <option value="">Select a service</option>
           {services.map((s) => (
-            <option key={s} value={s}>
-              {s}
+            <option key={s.id} value={s.name}>
+              {s.name} - MYR {s.price}
             </option>
           ))}
         </select>
+        {selectedService && (
+          <p className="mt-1.5 text-sm text-rose-600 dark:text-rose-400 font-medium">
+            {selectedService.duration && `${selectedService.duration} • `}
+            Starting from MYR {selectedService.price}
+          </p>
+        )}
       </div>
 
       {/* Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          <CalendarDays className="w-4 h-4 inline-block mr-1" /> Date
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+          <CalendarDays className="w-4 h-4" /> Date
         </label>
         <input
           type="date"
@@ -201,8 +216,8 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
 
       {/* Time */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          <Clock className="w-4 h-4 inline-block mr-1" /> Time
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+          <Clock className="w-4 h-4" /> Time
         </label>
         <select
           value={time}
@@ -219,90 +234,143 @@ export function BookingForm({ artistId, artistName }: BookingFormProps) {
         </select>
       </div>
 
-       {/* Location */}
-       <div>
-         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-           Location
-         </label>
-         <input
-           type="text"
-           value={location}
-           onChange={(e) => setLocation(e.target.value)}
-           placeholder="e.g. Hotel name, studio address, or venue"
-           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-         />
-       </div>
+      {/* Location */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+          <MapPin className="w-4 h-4" /> Location
+        </label>
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Hotel name, studio address, or venue"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+        />
+      </div>
 
-       {/* Travel Surcharge */}
-       <div className="flex items-center gap-3">
-         <input
-           type="checkbox"
-           id="travelSurcharge"
-           checked={showTravelSurcharge}
-           onChange={(e) => setShowTravelSurcharge(e.target.checked)}
-           className="w-4 h-4 rounded border-gray-300 text-rose-500 focus:ring-rose-500"
-         />
-         <label htmlFor="travelSurcharge" className="text-sm text-gray-600 dark:text-gray-400">
-           Out-of-area travel (additional charge applies)
-         </label>
-       </div>
+      {/* Travel Surcharge */}
+      {travelSurchargeAmount > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700">
+          <input
+            type="checkbox"
+            id="travelSurcharge"
+            checked={showTravelSurcharge}
+            onChange={(e) => setShowTravelSurcharge(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-rose-500 focus:ring-rose-500"
+          />
+          <label htmlFor="travelSurcharge" className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+            Out-of-area travel (additional MYR {travelSurchargeAmount})
+          </label>
+          {showTravelSurcharge && (
+            <span className="text-sm font-semibold text-rose-600 dark:text-rose-400">+ MYR {travelSurchargeAmount}</span>
+          )}
+        </div>
+      )}
 
-       {/* Notes */}
-       <div>
-         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-           Notes (optional)
-         </label>
-         <textarea
-           value={notes}
-           onChange={(e) => setNotes(e.target.value)}
-           rows={3}
-           placeholder="Any special requests..."
-           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none resize-none"
-         />
-       </div>
+      {/* Accommodation Fee */}
+      {accommodationFeeAmount > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700">
+          <input
+            type="checkbox"
+            id="accommodationFee"
+            checked={showAccommodationFee}
+            onChange={(e) => setShowAccommodationFee(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-rose-500 focus:ring-rose-500"
+          />
+          <label htmlFor="accommodationFee" className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+            Overnight accommodation (additional MYR {accommodationFeeAmount})
+          </label>
+          {showAccommodationFee && (
+            <span className="text-sm font-semibold text-rose-600 dark:text-rose-400">+ MYR {accommodationFeeAmount}</span>
+          )}
+        </div>
+      )}
 
-       {/* Deposit Info */}
-       {service && (() => {
-         const info = getDepositInfo(service);
-         return (
-           <div className="bg-rose-50 dark:bg-rose-950/30 rounded-xl p-4 border border-rose-200 dark:border-rose-800">
-             <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
-               Payment Plan
-             </p>
-             <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">
-               {info.label} — the deposit is{" "}
-               <strong>non-refundable</strong> if cancelled within 48 hours of the booking.
-               {info.percentage < 100 && (
-                 <>
-                   {" "}
-                   The remaining balance is collected{" "}
-                   {info.percentage === 50
-                     ? "7 days before the wedding date via a follow-up payment link."
-                     : "after the service is completed via QR code on-site."}
-                 </>
-               )}
-             </p>
-           </div>
-         );
-       })()}
+      {/* Price Breakdown */}
+      <div className="bg-rose-50 dark:bg-rose-950/30 rounded-xl p-4 border border-rose-200 dark:border-rose-800">
+        <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 mb-3 flex items-center gap-2">
+          <CreditCard className="w-4 h-4" /> Price Summary
+        </p>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600 dark:text-gray-400">Service ({service || "Select a service"})</span>
+            <span className="font-medium text-gray-900 dark:text-white">MYR {servicePrice}</span>
+          </div>
+          {showTravelSurcharge && (
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Travel surcharge</span>
+              <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {travelFee}</span>
+            </div>
+          )}
+          {showAccommodationFee && (
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Accommodation</span>
+              <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {accommodationFee}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-lg font-bold text-rose-600 dark:text-rose-400 pt-2 border-t border-rose-200 dark:border-rose-800">
+            <span>Total (starts from)</span>
+            <span>MYR {totalPrice}</span>
+          </div>
+        </div>
+      </div>
 
-       {/* Policies */}
-       <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-         <p>• Late arrival: RM50 fee after 15 min; booking cancelled after 30 min</p>
-         <p>• No-show: deposit forfeited</p>
-       </div>
+      {/* Notes */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Notes (optional)
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="Any special requests..."
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none resize-none"
+        />
+      </div>
 
-       {error && (
-         <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
-       )}
+      {/* Deposit Info */}
+      {service && (() => {
+        const info = getDepositInfo(service);
+        return (
+          <div className="bg-rose-50 dark:bg-rose-950/30 rounded-xl p-4 border border-rose-200 dark:border-rose-800">
+            <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+              Payment Plan
+            </p>
+            <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">
+              {info.label} — the deposit is{" "}
+              <strong>non-refundable</strong> if cancelled within 48 hours of the booking.
+              {info.percentage < 100 && (
+                <>
+                  {" "}
+                  The remaining balance is collected{" "}
+                  {info.percentage === 50
+                    ? "7 days before the wedding date via a follow-up payment link."
+                    : "after the service is completed via QR code on-site."}
+                </>
+              )}
+            </p>
+          </div>
+        );
+      })()}
 
-       <button
-         type="submit"
-         disabled={submitting}
-         className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-       >
-         {submitting ? "Booking..." : "Book Now"}
-       </button>
-     </form>
-   );
- }
+      {/* Policies */}
+      <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+        <p>• Late arrival: RM50 fee after 15 min; booking cancelled after 30 min</p>
+        <p>• No-show: deposit forfeited</p>
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+      )}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+      >
+        {submitting ? "Booking..." : "Book Now"}
+      </button>
+    </form>
+  );
+}

@@ -138,7 +138,7 @@ export async function GET(
         .where(eq(users.id, userId))
         .limit(1);
 
-      return NextResponse.json({
+return NextResponse.json({
         artist: {
           id: profile.userId,
           name: userRow?.name || "",
@@ -166,6 +166,7 @@ export async function GET(
           categories: profile.categories || [],
           responseTime: profile.responseTime || "",
           price: Number(profile.price) || 0,
+          accommodationFee: Number(profile.accommodationFee) || 0,
           portfolio: profile.portfolio || [],
           verified: profile.verified || false,
           available: profile.available ?? true,
@@ -531,6 +532,7 @@ export async function POST(
         "languages",
         "responseTime",
         "price",
+        "accommodationFee",
         "location",
         "phone",
         "area",

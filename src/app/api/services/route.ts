@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { services } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { services, profiles } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
+
+async function syncArtistPrice(artistId: string) {
+  const [result] = await db
+    .select({ minPrice: sql<number>`COALESCE(MIN(${services.price}), 0)::numeric` })
+    .from(services)
+    .where(eq(services.artistId, artistId));
+
+  await db
+    .update(profiles)
+    .set({ price: String(result.minPrice), updatedAt: new Date() })
+    .where(eq(profiles.userId, artistId));
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,6 +64,11 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    // Sync artist's starting price to minimum service price
+    if (artistId) {
+      await syncArtistPrice(artistId);
+    }
+
     return NextResponse.json({ success: true, service }, { status: 201 });
   } catch (error) {
     console.error("Services POST error:", error);
@@ -72,7 +89,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
+    // Get artistId before deleting to sync price
+    const [service] = await db
+      .select({ artistId: services.artistId })
+      .from(services)
+      .where(eq(services.id, Number(id)))
+      .limit(1);
+
     await db.delete(services).where(eq(services.id, Number(id)));
+
+    // Sync artist's starting price to minimum service price
+    if (service?.artistId) {
+      await syncArtistPrice(service.artistId);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Services DELETE error:", error);

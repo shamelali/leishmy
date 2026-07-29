@@ -61,6 +61,7 @@ async function findArtist(slug: string) {
         rating: profiles.rating,
         reviewCount: profiles.reviewCount,
         price: profiles.price,
+        accommodationFee: profiles.accommodationFee,
         verified: profiles.verified,
         responseTime: profiles.responseTime,
         categories: profiles.categories,
@@ -104,6 +105,7 @@ async function findArtist(slug: string) {
         rating: Number(a.rating) || 0,
         reviewCount: a.reviewCount || 0,
         price: Number(a.price) || 0,
+        accommodationFee: Number(a.accommodationFee) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
         categories: (a.categories || []) as string[],
@@ -400,7 +402,13 @@ export default async function ArtistDetailPage({ params }: Props) {
 {/* Right Column - Booking & Inquiry */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <BookingInquiryTabs artistId={artist.id} artistName={artist.name} price={artist.price} />
+              <BookingInquiryTabs 
+                artistId={artist.id} 
+                artistName={artist.name} 
+                price={artist.price}
+                accommodationFee={artist.accommodationFee}
+                services={artist.services}
+              />
             </div>
           </div>
         </div>

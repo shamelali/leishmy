@@ -124,7 +124,19 @@ export async function POST(request: NextRequest) {
     }
 
     const travelSurcharge = body.travelSurcharge ? 50 : 0;
-    const totalAmount = String(Number(amount) + travelSurcharge);
+
+    // Fetch artist's accommodation fee if provided
+    let accommodationFee = 0;
+    if (artistIdStr && body.accommodationFee) {
+      const [artistProfile] = await db
+        .select({ accommodationFee: profiles.accommodationFee })
+        .from(profiles)
+        .where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist")))
+        .limit(1);
+      accommodationFee = artistProfile?.accommodationFee ? Number(artistProfile.accommodationFee) : 0;
+    }
+
+    const totalAmount = String(Number(amount) + travelSurcharge + accommodationFee);
 
     const depositAmount = String(Math.round(Number(totalAmount) * depositPercentage * 100) / 100);
 
@@ -167,6 +179,7 @@ export async function POST(request: NextRequest) {
         milestone,
         secondPaymentDueDate,
         travelSurcharge: String(travelSurcharge),
+        accommodationFee: String(accommodationFee),
         status: "pending",
       })
       .returning();

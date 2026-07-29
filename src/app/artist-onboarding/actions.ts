@@ -376,10 +376,19 @@ export async function saveStepServices(input: unknown): Promise<ActionResult<{ s
         })),
       );
     }
+
+    // Compute minimum service price for profile.price sync
+    const [minPriceResult] = await tx
+      .select({ minPrice: sql<number>`COALESCE(MIN(${services.price}), 0)::numeric` })
+      .from(services)
+      .where(eq(services.artistId, session.id));
+
+    const minPrice = minPriceResult?.minPrice ?? 0;
+
     await tx
       .update(profiles)
       .set({
-        price: String(parsed.data.price),
+        price: String(minPrice),
         onboardingStep: Math.max(current.onboardingStep ?? 0, 4),
         updatedAt: new Date(),
       })

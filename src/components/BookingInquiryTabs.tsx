@@ -174,9 +174,11 @@ interface BookingInquiryTabsProps {
   artistId: string;
   artistName: string;
   price: number;
+  accommodationFee?: number;
+  services: Array<{ id: string; name: string; description: string; duration: string; price: number; popular: boolean }>;
 }
 
-export function BookingInquiryTabs({ artistId, artistName, price }: BookingInquiryTabsProps) {
+export function BookingInquiryTabs({ artistId, artistName, price, accommodationFee, services }: BookingInquiryTabsProps) {
   const [activeTab, setActiveTab] = useState<"book" | "inquire">("book");
 
   return (
@@ -212,9 +214,15 @@ export function BookingInquiryTabs({ artistId, artistName, price }: BookingInqui
             Book {artistName}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Starting from MYR {price}/hr
+            Starting from MYR {price}
           </p>
-          <BookingForm artistId={artistId} artistName={artistName} />
+          <BookingForm 
+            artistId={artistId} 
+            artistName={artistName} 
+            services={services}
+            travelSurchargeAmount={50}
+            accommodationFeeAmount={accommodationFee || 0}
+          />
         </>
       )}
 
