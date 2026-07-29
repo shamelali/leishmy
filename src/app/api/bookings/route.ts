@@ -12,12 +12,6 @@ import crypto from "crypto";
 
 export const runtime = "nodejs";
 
-function resolveCustomerId(body: any): string | null {
-  if (body.userId) return body.userId;
-  if (body.clientEmail) return "guest_" + crypto.randomUUID();
-  return null;
-}
-
 async function ensureCustomer(
   body: any,
   session: { id: string; name?: string | null; email: string } | null,

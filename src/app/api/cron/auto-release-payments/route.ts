@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { payments, payouts, bookings, notifications } from "@/db/schema";
+import { awardPoints } from "@/lib/loyalty";
 import { eq, sql, and, lte } from "drizzle-orm";
 import { Redis } from "@upstash/redis";
 
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         billplzId: payments.billplzId,
         bookingId: bookings.id,
         bookingDate: bookings.date,
+        userId: bookings.userId,
         artistId: bookings.artistId,
         studioId: bookings.studioId,
       })
@@ -172,6 +174,10 @@ export async function POST(request: NextRequest) {
             data: { link: "/dashboard/artist" },
           });
         });
+
+        if (row.userId) {
+          awardPoints(row.userId, "booking_completed", String(row.bookingId), `Booking #${row.bookingId} completed`).catch(() => {});
+        }
 
         released += 1;
         details.push({

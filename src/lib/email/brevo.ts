@@ -104,11 +104,6 @@ export async function sendEmail(payload: EmailPayload) {
         textContent: payload.text,
       });
 
-      if (attempt > 0) {
-        console.log(
-          `[email] succeeded on attempt ${attempt + 1} to ${payload.to}`,
-        );
-      }
       return { success: true, data: response };
     } catch (err) {
       lastError = err;

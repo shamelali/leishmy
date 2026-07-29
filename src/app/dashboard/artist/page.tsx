@@ -659,7 +659,7 @@ export default function DashboardArtist() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-neutral-800">
                       <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Client</th>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Service</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Event type</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Date</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Amount</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Status</th>
@@ -723,7 +723,7 @@ export default function DashboardArtist() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Service</span>
+                        <span className="block text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Event type</span>
                         <span className="text-gray-700 dark:text-gray-300">{b.service || "—"}</span>
                       </div>
                       <div>
