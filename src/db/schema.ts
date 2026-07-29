@@ -200,6 +200,12 @@ export const bookings = pgTable("bookings", {
   location: varchar("location", { length: 255 }),
   status: varchar("status", { length: 50 }).default("pending"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }),
+  milestone: varchar("milestone", { length: 50 }),
+  secondPaymentDueDate: timestamp("second_payment_due_date", { mode: "date" }),
+  lateFeeCharged: boolean("late_fee_charged").default(false),
+  noShow: boolean("no_show").default(false),
+  travelSurcharge: decimal("travel_surcharge", { precision: 10, scale: 2 }).default("0"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });

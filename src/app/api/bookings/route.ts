@@ -98,6 +98,33 @@ export async function POST(request: NextRequest) {
 
     const amount = await resolveAmount(body, artistIdStr);
 
+    const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
+
+    const normalizedService = serviceName.toLowerCase();
+    let depositPercentage: number;
+    let milestone: string;
+    let secondPaymentDueDate: Date | null = null;
+
+    if (normalizedService.includes("bridal")) {
+      depositPercentage = 0.50;
+      milestone = "deposit_50";
+      const weddingDate = new Date(date);
+      const dueDate = new Date(weddingDate);
+      dueDate.setDate(dueDate.getDate() - 7);
+      secondPaymentDueDate = dueDate;
+    } else if (normalizedService.includes("event") || normalizedService.includes("glam") || normalizedService.includes("personal makeup")) {
+      depositPercentage = 0.30;
+      milestone = "deposit_30";
+    } else if (normalizedService.includes("trial")) {
+      depositPercentage = 1.00;
+      milestone = "full_upfront";
+    } else {
+      depositPercentage = 0.30;
+      milestone = "deposit_30";
+    }
+
+    const depositAmount = String(Math.round(Number(totalAmount) * depositPercentage * 100) / 100);
+
     if (artistIdStr) {
       const [conflict] = await db
         .select({ id: bookings.id })
@@ -119,6 +146,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const travelSurcharge = body.travelSurcharge ? 50 : 0;
+    const totalAmount = String(Number(amount) + travelSurcharge);
+
     const [booking] = await db
       .insert(bookings)
       .values({
@@ -131,7 +161,11 @@ export async function POST(request: NextRequest) {
         location: body.location || null,
         date: new Date(date),
         time: time || null,
-        amount,
+        amount: totalAmount,
+        depositAmount,
+        milestone,
+        secondPaymentDueDate,
+        travelSurcharge: String(travelSurcharge),
         status: "pending",
       })
       .returning();
@@ -147,8 +181,6 @@ export async function POST(request: NextRequest) {
     const formattedDate = new Date(date).toLocaleDateString("en-MY", {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
     });
-
-    const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
 
     if (artist?.userId) {
       await db.insert(notifications).values({

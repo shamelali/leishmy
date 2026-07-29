@@ -239,7 +239,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const realAmount = Number(booking.amount);
+      const depositAmount = booking.depositAmount
+        ? Number(booking.depositAmount)
+        : Number(booking.amount);
+      const realAmount = depositAmount;
       if (!realAmount || realAmount < 1 || isNaN(realAmount)) {
         return NextResponse.json(
           { error: "Booking amount is invalid" },
@@ -247,9 +250,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const milestoneLabel = booking.milestone
+        ? booking.milestone === "deposit_50"
+          ? " (50% deposit)"
+          : booking.milestone === "deposit_30"
+            ? " (30% deposit)"
+            : " (full payment)"
+        : "";
+
       const billplzBody = new URLSearchParams({
         collection_id: billplz.require("COLLECTION_ID"),
-        description: description || "Beauty booking payment",
+        description: `${description || "Beauty booking payment"}${milestoneLabel}`,
         amount: String(Math.round(realAmount * 100)),
         name: name || "Customer",
         email: email || "",
@@ -310,6 +321,102 @@ export async function POST(request: NextRequest) {
         });
 
       return NextResponse.json({ success: true, bank });
+    }
+
+    if (action === "create-remaining-bill") {
+      const session = await getAuthSession();
+
+      const { bookingId, idempotencyKey } = body;
+
+      if (!bookingId) {
+        return NextResponse.json(
+          { error: "bookingId is required" },
+          { status: 400 },
+        );
+      }
+
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, Number(bookingId)))
+        .limit(1);
+
+      if (!booking) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+
+      const isGuestBooking = booking.userId?.startsWith("guest_") ?? false;
+      if (!isGuestBooking) {
+        if (!session) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        if (!hasAdminAccess(session) && booking.userId !== session.id) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+
+      const remainingAmount =
+        Number(booking.amount) - (Number(booking.depositAmount) || 0);
+      if (!remainingAmount || remainingAmount < 1) {
+        return NextResponse.json(
+          { error: "No remaining balance to collect" },
+          { status: 400 },
+        );
+      }
+
+      if (idempotencyKey) {
+        const [existing] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.idempotencyKey, idempotencyKey))
+          .limit(1);
+        if (existing) {
+          return NextResponse.json(
+            { bill: { id: existing.billplzId }, payment: existing, cached: true },
+            { status: 200 },
+          );
+        }
+      }
+
+      const billplzBody = new URLSearchParams({
+        collection_id: billplz.require("COLLECTION_ID"),
+        description: `Remaining balance for booking #${bookingId} (${booking.service || "service"})`,
+        amount: String(Math.round(remainingAmount * 100)),
+        name: "Customer",
+        email: "",
+        phone: "",
+        callback_url: `${BASE_URL}/api/webhook`,
+        redirect_url: `${BASE_URL}/bookings/${bookingId}/success`,
+      });
+
+      const billplzResponse = await fetch(`${BILLPLZ_API}/bills`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: billplzAuth(),
+        },
+        body: billplzBody,
+      });
+
+      const billplzData = await billplzResponse.json();
+
+      if (!billplzResponse.ok) {
+        return NextResponse.json({ error: billplzData }, { status: billplzResponse.status });
+      }
+
+      const [payment] = await db
+        .insert(payments)
+        .values({
+          bookingId: Number(bookingId),
+          amount: Math.round(remainingAmount * 100),
+          status: "pending",
+          billplzId: billplzData.id,
+          method: "billplz",
+          idempotencyKey: idempotencyKey || null,
+        })
+        .returning();
+
+      return NextResponse.json({ bill: billplzData, payment }, { status: 201 });
     }
 
     if (action === "release") {

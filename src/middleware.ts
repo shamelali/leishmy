@@ -20,7 +20,6 @@ const PROTECTED_ROUTES = [
 ];
 
 const PROTECTED_API_PREFIXES = [
-  "/api/payments",
   "/api/user",
 ];
 
