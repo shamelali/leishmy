@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users } from "@/db/schema";
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, isNull } from "drizzle-orm";
 import { sendMessage } from "@/lib/notifications/whatsapp";
 
 const CRON_SECRET_HEADER = "x-cron-secret";
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
           gte(bookings.secondPaymentDueDate, sevenDaysFromNow),
           lte(bookings.secondPaymentDueDate, eightDaysFromNow),
           inArray(bookings.status, ["pending", "confirmed"]),
+          isNull(bookings.remainingPaymentSent),
         ),
       )
       .limit(100);
@@ -82,6 +83,11 @@ export async function POST(request: Request) {
         "\n\nThank you,\nLeish";
 
       await sendMessage(user.name || "Customer", message).catch(() => {});
+
+      await db
+        .update(bookings)
+        .set({ remainingPaymentSent: true })
+        .where(eq(bookings.id, booking.id));
     }
 
     return NextResponse.json({

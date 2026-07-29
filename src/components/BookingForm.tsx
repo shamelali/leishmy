@@ -1,7 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin } from "lucide-react";
+
+// Type declarations for Google Maps
+declare global {
+  interface Window {
+    google: {
+      maps: {
+        places: {
+          Autocomplete: new (input: HTMLInputElement, opts: AutocompleteOptions) => Autocomplete;
+        };
+        event: {
+          clearInstanceListeners(instance: unknown): void;
+        };
+      };
+    };
+  }
+}
+
+interface AutocompleteOptions {
+  types?: string[];
+  componentRestrictions?: { country: string };
+  fields?: string[];
+}
+
+interface Autocomplete {
+  addListener(event: string, handler: () => void): void;
+  getPlace(): PlaceResult;
+}
+
+interface PlaceResult {
+  place_id?: string;
+  formatted_address?: string;
+  name?: string;
+}
 
 interface ArtistService {
   id: string;
@@ -20,6 +53,110 @@ interface BookingFormProps {
   accommodationFeeAmount?: number;
 }
 
+// Google Places Autocomplete Component
+function GooglePlacesAutocomplete({
+  value,
+  onChange,
+  onPlaceSelect,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPlaceSelect: (place: PlaceResult) => void;
+  placeholder: string;
+  className: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<Autocomplete | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.google?.maps?.places) return;
+
+    const input = inputRef.current;
+    if (!input) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      types: ["address", "establishment"],
+      componentRestrictions: { country: "my" },
+      fields: ["place_id", "formatted_address", "name"],
+    });
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (place.place_id && place.formatted_address) {
+        onPlaceSelect(place as PlaceResult);
+      }
+    });
+
+    autocompleteRef.current = autocomplete;
+
+    return () => {
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [onPlaceSelect]);
+
+  useEffect(() => {
+    if (inputRef.current && inputRef.current.value !== value) {
+      inputRef.current.value = value;
+    }
+  }, [value]);
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (typeof window === "undefined" || window.google?.maps) {
+      setLoaded(true);
+      return;
+    }
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return;
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setLoaded(true);
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  if (!loaded) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+        disabled
+      />
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={className}
+      autoComplete="off"
+    />
+  );
+}
+
 export function BookingForm({ 
   artistId, 
   artistName, 
@@ -33,6 +170,7 @@ export function BookingForm({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
+  const [placeId, setPlaceId] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -81,6 +219,7 @@ export function BookingForm({
           date,
           time,
           location,
+          placeId,
           notes,
           travelSurcharge: showTravelSurcharge,
           accommodationFee: showAccommodationFee,
@@ -239,13 +378,17 @@ export function BookingForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
           <MapPin className="w-4 h-4" /> Location
         </label>
-        <input
-          type="text"
+        <GooglePlacesAutocomplete
           value={location}
           onChange={(e) => setLocation(e.target.value)}
+          onPlaceSelect={(place) => {
+            setLocation(place.formatted_address || "");
+            setPlaceId(place.place_id || "");
+          }}
           placeholder="e.g. Hotel name, studio address, or venue"
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
         />
+        {placeId && <input type="hidden" name="placeId" value={placeId} />}
       </div>
 
       {/* Travel Surcharge */}

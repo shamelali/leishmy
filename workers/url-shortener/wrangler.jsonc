@@ -6,13 +6,13 @@
   "kv_namespaces": [
     {
       "binding": "URL_MAP",
-      "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      "preview_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "id": "1789e0ff148f437e9dda21c37dbb7ab7",
+      "preview_id": "1a7b9cc1d9bc4c01a980c14fc3483435"
     },
     {
       "binding": "ANALYTICS",
-      "id": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "preview_id": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "id": "f971aebcb4c2460a99f39088bc113b91",
+      "preview_id": "542aabf56e4b42fe92cce027c9d58b81"
     }
   ],
   "observability": {

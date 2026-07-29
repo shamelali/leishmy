@@ -1,11 +1,13 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cloudflare-worker-leish",
+  "name": "email-worker",
   "main": "src/index.ts",
-  "compatibility_date": "2026-07-23",
+  "compatibility_date": "2025-03-07",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true
+  "vars": {
+    "ENVIRONMENT": "production"
   },
-  "send_metrics": false
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
 }

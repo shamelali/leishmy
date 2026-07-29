@@ -199,6 +199,7 @@ export const bookings = pgTable("bookings", {
   service: varchar("service", { length: 255 }),
   notes: text("notes"),
   location: varchar("location", { length: 255 }),
+  placeId: varchar("place_id", { length: 255 }),
   status: varchar("status", { length: 50 }).default("pending"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }),

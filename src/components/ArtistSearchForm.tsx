@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
 
-const bridalTypes = ["Engagement", "Solemnization", "Reception"];
-const nonBridalTypes = ["Dinner", "Graduation", "Ceremony", "Corporate"];
+const bridalTypes = ["Engagement", "Solemnization", "Reception", "Full Package (Engagement + Solemnization + Reception)"];
+const nonBridalTypes = ["Dinner", "Graduation", "Ceremony", "Corporate", "Touch-up"];
 
 function toISO(d: Date) {
   const y = d.getFullYear();

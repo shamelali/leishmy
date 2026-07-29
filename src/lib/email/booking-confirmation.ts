@@ -12,6 +12,8 @@ export async function sendBookingReceivedEmail(params: {
   time: string;
   amount: number;
   paymentType: "full" | "deposit";
+  travelSurcharge?: number;
+  accommodationFee?: number;
 }) {
   const template = bookingConfirmationTemplate({
     customerName: params.customerName,
@@ -22,6 +24,8 @@ export async function sendBookingReceivedEmail(params: {
     time: params.time,
     amount: params.amount,
     paymentType: params.paymentType,
+    travelSurcharge: params.travelSurcharge,
+    accommodationFee: params.accommodationFee,
   });
   return sendEmail({
     to: params.email,
@@ -40,6 +44,8 @@ export async function sendProviderNewBookingEmail(params: {
   serviceName: string;
   date: string;
   time: string;
+  travelSurcharge?: number;
+  accommodationFee?: number;
 }) {
   const template = providerNewBookingTemplate({
     providerName: params.providerName,
@@ -48,6 +54,8 @@ export async function sendProviderNewBookingEmail(params: {
     serviceName: params.serviceName,
     date: params.date,
     time: params.time,
+    travelSurcharge: params.travelSurcharge,
+    accommodationFee: params.accommodationFee,
   });
   return sendEmail({
     to: params.email,

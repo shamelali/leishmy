@@ -7,8 +7,14 @@ export function bookingConfirmationTemplate(params: {
   time: string;
   amount: number;
   paymentType: "full" | "deposit";
+  travelSurcharge?: number;
+  accommodationFee?: number;
 }) {
   const subject = `Booking Received - ${params.bookingId}`;
+
+  const travelSurcharge = params.travelSurcharge || 0;
+  const accommodationFee = params.accommodationFee || 0;
+  const serviceAmount = params.amount - travelSurcharge - accommodationFee;
 
   const html = `
 <!DOCTYPE html>
@@ -22,6 +28,8 @@ export function bookingConfirmationTemplate(params: {
     .content { background: #f9f9f9; padding: 30px; margin: 20px 0; }
     .details { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #c9a96e; }
     .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .detail-row.total { border-bottom: 2px solid #c9a96e; font-weight: bold; font-size: 16px; }
+    .detail-row.fee { color: #e57373; }
     .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
     .button { display: inline-block; background: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; margin-top: 20px; }
   </style>
@@ -41,7 +49,10 @@ export function bookingConfirmationTemplate(params: {
       <div class="detail-row"><span>Provider:</span><strong>${params.providerName}</strong></div>
       <div class="detail-row"><span>Date:</span><strong>${params.date}</strong></div>
       <div class="detail-row"><span>Time:</span><strong>${params.time}</strong></div>
-      <div class="detail-row"><span>Amount:</span><strong>MYR ${params.amount} (Pending Payment)</strong></div>
+      <div class="detail-row"><span>Service Fee:</span><strong>MYR ${serviceAmount}</strong></div>
+      ${travelSurcharge > 0 ? `<div class="detail-row fee"><span>Travel Surcharge:</span><strong>+ MYR ${travelSurcharge}</strong></div>` : ''}
+      ${accommodationFee > 0 ? `<div class="detail-row fee"><span>Accommodation:</span><strong>+ MYR ${accommodationFee}</strong></div>` : ''}
+      <div class="detail-row total"><span>Total (starts from):</span><strong>MYR ${params.amount}</strong></div>
     </div>
     <p style="text-align: center;">
       <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/bookings" class="button">View My Bookings</a>
@@ -312,6 +323,8 @@ export function providerNewBookingTemplate(params: {
   serviceName: string;
   date: string;
   time: string;
+  travelSurcharge?: number;
+  accommodationFee?: number;
 }) {
   const subject = `New Booking Received - ${params.bookingId}`;
   const html = `

@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
         service: body.service || null,
         notes: body.notes || null,
         location: body.location || null,
+        placeId: body.placeId || null,
         date: new Date(date),
         time: time || null,
         amount: totalAmount,
