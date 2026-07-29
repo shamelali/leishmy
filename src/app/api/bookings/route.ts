@@ -517,6 +517,10 @@ export async function PATCH(request: NextRequest) {
       .returning();
 
     if (status === "cancelled" && existing.userId) {
+      const isNoShow =
+        existing.status === "confirmed" || existing.status === "completed";
+      const depositForfeited = isNoShow || existing.lateFeeCharged;
+
       const [user] = await db
         .select({ name: users.name, phone: users.phone })
         .from(users)
@@ -524,11 +528,24 @@ export async function PATCH(request: NextRequest) {
         .limit(1);
 
       if (user?.phone) {
-        sendCancellationNotice({
-          customerName: user.name || "Valued Customer",
-          bookingId: String(updated.id),
-          phone: user.phone,
-        }).catch((err) => console.error("sendCancellationNotice WhatsApp failed:", err));
+        if (depositForfeited) {
+          sendCancellationNotice({
+            customerName: user.name || "Valued Customer",
+            bookingId: String(updated.id),
+            phone: user.phone,
+            depositForfeited: true,
+          }).catch((err) =>
+            console.error("sendCancellationNotice WhatsApp failed:", err)
+          );
+        } else {
+          sendCancellationNotice({
+            customerName: user.name || "Valued Customer",
+            bookingId: String(updated.id),
+            phone: user.phone,
+          }).catch((err) =>
+            console.error("sendCancellationNotice WhatsApp failed:", err)
+          );
+        }
       }
     }
 

@@ -91,15 +91,22 @@ export async function sendCancellationNotice({
   customerName,
   bookingId,
   phone,
+  depositForfeited,
 }: {
   customerName: string;
   bookingId: string;
   phone: string;
+  depositForfeited?: boolean;
 }) {
+  const forfeitureNote = depositForfeited
+    ? "\n⚠️ Your deposit has been forfeited per our 48-hour cancellation policy."
+    : "";
+
   const message =
     `Hi ${customerName}, your booking has been cancelled.\n\n` +
-    `📋 Ref: ${bookingId}\n\n` +
-    `If you have questions, contact us at hello@leish.my\n` +
+    `📋 Ref: ${bookingId}\n` +
+    `${forfeitureNote}` +
+    `\nIf you have questions, contact us at hello@leish.my\n` +
     `- Leish`;
 
   return sendMessage(phone, message);

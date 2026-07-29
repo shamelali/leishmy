@@ -54,6 +54,7 @@ export function bookingConfirmationTemplate(params: {
   </div>
   <div class="footer">
     <p>If you need to reschedule or cancel, please contact us at hello@leish.my</p>
+    <p><a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/terms" style="color: #666;">Terms & Conditions</a></p>
     <p>&copy; 2026 Leish. All rights reserved.</p>
   </div>
 </body>
@@ -80,6 +81,7 @@ View your bookings: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/booking
 ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist/share
 
 If you need to reschedule or cancel, please contact us at hello@leish.my
+Terms & Conditions: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/terms
 
 &copy; 2026 Leish. All rights reserved.`;
 
