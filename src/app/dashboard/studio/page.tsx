@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   BarChart3, Users, DollarSign, Star, TrendingUp,
   Calendar, Clock, Wallet, Store, Package, Briefcase,
-  Share2,
+  Share2, Settings,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -98,6 +98,7 @@ export default function DashboardStudio() {
             { href: "/dashboard/studio/staff", label: "Staff", icon: Users },
             { href: "/dashboard/studio/finance", label: "Finance", icon: DollarSign },
             { href: "/dashboard/studio/inventory", label: "Inventory", icon: Package },
+            { href: "/dashboard/studio/edit", label: "Edit Profile", icon: Settings },
             { href: "/dashboard/studio/share", label: "Share & Refer", icon: Share2 },
           ].map(({ href, label, icon: Icon }) => (
             <Link

@@ -45,3 +45,4 @@ opencode.json
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.neon

@@ -674,6 +674,142 @@ export async function POST(
       return NextResponse.json({ success: true });
     }
 
+    if (action === "studio-profile") {
+      const [profile] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "studio")))
+        .limit(1);
+
+      if (!profile) {
+        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
+      }
+
+      const updateData: Record<string, unknown> = {};
+      if (body.description !== undefined) updateData.description = body.description;
+      if (body.price !== undefined) updateData.price = String(body.price);
+
+      const userUpdateData: Record<string, unknown> = {};
+      if (typeof body.name === "string" && body.name.trim()) {
+        userUpdateData.name = body.name.trim().slice(0, 255);
+      }
+      if (typeof body.phone === "string") {
+        userUpdateData.phone = body.phone;
+      }
+      if (typeof body.location === "string") {
+        userUpdateData.location = body.location;
+      }
+      if (typeof body.image === "string") {
+        if (body.image === "" || isAllowedImageUrl(body.image)) {
+          userUpdateData.image = body.image;
+        } else {
+          return NextResponse.json(
+            { error: "image must be a valid HTTPS URL on an allowlisted host" },
+            { status: 400 },
+          );
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        updateData.updatedAt = new Date();
+        await db
+          .update(profiles)
+          .set(updateData)
+          .where(and(eq(profiles.userId, userId), eq(profiles.role, "studio")));
+      }
+
+      if (Object.keys(userUpdateData).length > 0) {
+        await db
+          .update(users)
+          .set(userUpdateData)
+          .where(eq(users.id, userId));
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "add-staff") {
+      const { email } = body;
+      if (!email) {
+        return NextResponse.json({ error: "email required" }, { status: 400 });
+      }
+
+      const [studio] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "studio")))
+        .limit(1);
+
+      if (!studio) {
+        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
+      }
+
+      const [artist] = await db
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()))
+        .limit(1);
+
+      if (!artist) {
+        return NextResponse.json({ error: "No user found with that email" }, { status: 404 });
+      }
+
+      const [artistProfile] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, artist.id), eq(profiles.role, "artist")))
+        .limit(1);
+
+      if (!artistProfile) {
+        return NextResponse.json({ error: "User is not an artist" }, { status: 400 });
+      }
+
+      if (artistProfile.studioId) {
+        return NextResponse.json({ error: "Artist is already linked to a studio" }, { status: 409 });
+      }
+
+      await db
+        .update(profiles)
+        .set({ studioId: userId, updatedAt: new Date() })
+        .where(eq(profiles.userId, artist.id));
+
+      return NextResponse.json({ success: true, artist: { id: artist.id, name: artist.name } });
+    }
+
+    if (action === "remove-staff") {
+      const { artistId } = body;
+      if (!artistId) {
+        return NextResponse.json({ error: "artistId required" }, { status: 400 });
+      }
+
+      const [studio] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, userId), eq(profiles.role, "studio")))
+        .limit(1);
+
+      if (!studio) {
+        return NextResponse.json({ error: "Studio profile not found" }, { status: 404 });
+      }
+
+      const [artistProfile] = await db
+        .select()
+        .from(profiles)
+        .where(and(eq(profiles.userId, artistId), eq(profiles.studioId, userId), eq(profiles.role, "artist")))
+        .limit(1);
+
+      if (!artistProfile) {
+        return NextResponse.json({ error: "Artist not found in your staff" }, { status: 404 });
+      }
+
+      await db
+        .update(profiles)
+        .set({ studioId: null, updatedAt: new Date() })
+        .where(eq(profiles.userId, artistId));
+
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "confirm-booking") {
       const { bookingId } = body;
       if (!bookingId) {
