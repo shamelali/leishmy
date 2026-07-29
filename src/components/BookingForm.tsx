@@ -314,7 +314,7 @@ export function BookingForm({
       {/* Service with prices */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          Service
+          Event type
         </label>
         <select
           value={service}
@@ -322,7 +322,7 @@ export function BookingForm({
           required
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
         >
-          <option value="">Select a service</option>
+          <option value="">Select an event type</option>
           {services.map((s) => (
             <option key={s.id} value={s.name}>
               {s.name} - MYR {s.price}
@@ -436,7 +436,7 @@ export function BookingForm({
         </p>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Service ({service || "Select a service"})</span>
+            <span className="text-gray-600 dark:text-gray-400">Event type ({service || "Select an event type"})</span>
             <span className="font-medium text-gray-900 dark:text-white">MYR {servicePrice}</span>
           </div>
           {showTravelSurcharge && (
