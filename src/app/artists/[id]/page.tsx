@@ -62,6 +62,7 @@ async function findArtist(slug: string) {
         reviewCount: profiles.reviewCount,
         price: profiles.price,
         accommodationFee: profiles.accommodationFee,
+        travelSurcharge: profiles.travelSurcharge,
         verified: profiles.verified,
         responseTime: profiles.responseTime,
         categories: profiles.categories,
@@ -106,6 +107,7 @@ async function findArtist(slug: string) {
         reviewCount: a.reviewCount || 0,
         price: Number(a.price) || 0,
         accommodationFee: Number(a.accommodationFee) || 0,
+        travelSurcharge: Number(a.travelSurcharge) || 0,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
         categories: (a.categories || []) as string[],
@@ -407,6 +409,7 @@ export default async function ArtistDetailPage({ params }: Props) {
                 artistName={artist.name} 
                 price={artist.price}
                 accommodationFee={artist.accommodationFee}
+                travelSurcharge={artist.travelSurcharge}
                 services={artist.services}
               />
             </div>

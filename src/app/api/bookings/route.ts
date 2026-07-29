@@ -123,18 +123,22 @@ export async function POST(request: NextRequest) {
       milestone = "deposit_30";
     }
 
-    const travelSurcharge = body.travelSurcharge ? 50 : 0;
-
-    // Fetch artist's accommodation fee if provided
+    // Fetch artist's accommodation fee and travel surcharge
+    let travelSurchargeAmount = 0;
     let accommodationFee = 0;
-    if (artistIdStr && body.accommodationFee) {
+    if (artistIdStr) {
       const [artistProfile] = await db
-        .select({ accommodationFee: profiles.accommodationFee })
+        .select({ accommodationFee: profiles.accommodationFee, travelSurcharge: profiles.travelSurcharge })
         .from(profiles)
         .where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist")))
         .limit(1);
-      accommodationFee = artistProfile?.accommodationFee ? Number(artistProfile.accommodationFee) : 0;
+      travelSurchargeAmount = artistProfile?.travelSurcharge ? Number(artistProfile.travelSurcharge) : 0;
+      if (body.accommodationFee) {
+        accommodationFee = artistProfile?.accommodationFee ? Number(artistProfile.accommodationFee) : 0;
+      }
     }
+
+    const travelSurcharge = body.travelSurcharge ? travelSurchargeAmount : 0;
 
     const totalAmount = String(Number(amount) + travelSurcharge + accommodationFee);
 
@@ -215,8 +219,10 @@ export async function POST(request: NextRequest) {
       providerName: providerUser?.name || artist?.bio || "Your Provider",
       date: formattedDate,
       time: time || "To be confirmed",
-      amount: Number(amount),
+      amount: Number(totalAmount),
       paymentType: "full",
+      travelSurcharge: travelSurcharge > 0 ? travelSurcharge : undefined,
+      accommodationFee: accommodationFee > 0 ? accommodationFee : undefined,
     }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
 
     if (providerUser?.email) {
@@ -228,6 +234,8 @@ export async function POST(request: NextRequest) {
         serviceName,
         date: formattedDate,
         time: time || "To be confirmed",
+        travelSurcharge: travelSurcharge > 0 ? travelSurcharge : undefined,
+        accommodationFee: accommodationFee > 0 ? accommodationFee : undefined,
       }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
     }
 
@@ -396,9 +404,18 @@ export async function GET(request: NextRequest) {
           service: bookings.service,
           notes: bookings.notes,
           location: bookings.location,
+          placeId: bookings.placeId,
           date: bookings.date,
           time: bookings.time,
           amount: bookings.amount,
+          depositAmount: bookings.depositAmount,
+          milestone: bookings.milestone,
+          secondPaymentDueDate: bookings.secondPaymentDueDate,
+          lateFeeCharged: bookings.lateFeeCharged,
+          noShow: bookings.noShow,
+          travelSurcharge: bookings.travelSurcharge,
+          accommodationFee: bookings.accommodationFee,
+          remainingPaymentSent: bookings.remainingPaymentSent,
           status: bookings.status,
           createdAt: bookings.createdAt,
           updatedAt: bookings.updatedAt,

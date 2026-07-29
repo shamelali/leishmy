@@ -14,6 +14,7 @@ export default function ArtistServices() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", duration: "", price: "" });
   const [accommodationFee, setAccommodationFee] = useState("");
+  const [travelSurcharge, setTravelSurcharge] = useState("");
   const [savingFee, setSavingFee] = useState(false);
 
   useEffect(() => {
@@ -26,6 +27,9 @@ export default function ArtistServices() {
           setArtistId(id);
           if (data.artist.accommodationFee !== undefined) {
             setAccommodationFee(String(data.artist.accommodationFee));
+          }
+          if (data.artist.travelSurcharge !== undefined) {
+            setTravelSurcharge(String(data.artist.travelSurcharge));
           }
           return fetch(`/api/services?artistId=${id}`);
         }
@@ -67,19 +71,22 @@ export default function ArtistServices() {
     setServices(services.filter((s) => s.id !== id));
   };
 
-  const handleSaveAccommodationFee = async () => {
+  const handleSaveFees = async () => {
     if (!artistId) return;
     setSavingFee(true);
     try {
       const res = await fetch("/api/user/artist-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accommodationFee: Number(accommodationFee) || 0 }),
+        body: JSON.stringify({
+          accommodationFee: Number(accommodationFee) || 0,
+          travelSurcharge: Number(travelSurcharge) || 0,
+        }),
       });
       if (!res.ok) throw new Error("Failed to save");
     } catch (err) {
       console.error(err);
-      alert("Failed to save accommodation fee");
+      alert("Failed to save fees");
     } finally {
       setSavingFee(false);
     }
@@ -112,33 +119,48 @@ export default function ArtistServices() {
         </form>
       )}
 
-      {/* Accommodation Fee Section */}
+      {/* Fees Section */}
       <div className="mb-6 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
         <div className="flex items-center gap-2 mb-2">
           <Hotel className="w-5 h-5 text-rose-500" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Overnight Accommodation Fee</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Fees</h2>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Flat fee added when client requires overnight stay. Included in deposit calculation.
+          Flat fees added when applicable. Included in deposit calculation.
         </p>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={accommodationFee}
-            onChange={(e) => setAccommodationFee(e.target.value)}
-            className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
-            placeholder="0.00"
-          />
-          <button
-            onClick={handleSaveAccommodationFee}
-            disabled={savingFee}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50"
-          >
-            {savingFee ? "Saving..." : "Save Fee"}
-          </button>
+        <div className="grid sm:grid-cols-2 gap-4 mb-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Overnight Accommodation (MYR)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={accommodationFee}
+              onChange={(e) => setAccommodationFee(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Out-of-Area Travel (MYR)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={travelSurcharge}
+              onChange={(e) => setTravelSurcharge(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
+              placeholder="0.00"
+            />
+          </div>
         </div>
+        <button
+          onClick={handleSaveFees}
+          disabled={savingFee}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50"
+        >
+          {savingFee ? "Saving..." : "Save Fees"}
+        </button>
       </div>
 
       {loading ? (

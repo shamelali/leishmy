@@ -68,6 +68,7 @@ export const profiles = pgTable(
     responseTime: varchar("response_time", { length: 50 }),
     price: decimal("price", { precision: 10, scale: 2 }).default("0"),
     accommodationFee: decimal("accommodation_fee", { precision: 10, scale: 2 }).default("0"),
+    travelSurcharge: decimal("travel_surcharge", { precision: 10, scale: 2 }).default("0"),
     rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
     reviewCount: integer("review_count").default(0),
     area: varchar("area", { length: 100 }),

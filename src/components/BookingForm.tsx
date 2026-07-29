@@ -161,7 +161,7 @@ export function BookingForm({
   artistId, 
   artistName, 
   services, 
-  travelSurchargeAmount = 50, 
+  travelSurchargeAmount = 0, 
   accommodationFeeAmount = 0 
 }: BookingFormProps) {
   const [name, setName] = useState("");
