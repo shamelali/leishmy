@@ -123,6 +123,9 @@ export async function POST(request: NextRequest) {
       milestone = "deposit_30";
     }
 
+    const travelSurcharge = body.travelSurcharge ? 50 : 0;
+    const totalAmount = String(Number(amount) + travelSurcharge);
+
     const depositAmount = String(Math.round(Number(totalAmount) * depositPercentage * 100) / 100);
 
     if (artistIdStr) {
@@ -144,10 +147,8 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
-    }
-
-    const travelSurcharge = body.travelSurcharge ? 50 : 0;
-    const totalAmount = String(Number(amount) + travelSurcharge);
+            
+      }
 
     const [booking] = await db
       .insert(bookings)

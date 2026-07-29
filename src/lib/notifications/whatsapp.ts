@@ -24,7 +24,7 @@ interface SendMessageResult {
   error?: string;
 }
 
-async function sendMessage(to: string, message: string): Promise<SendMessageResult> {
+export async function sendMessage(to: string, message: string): Promise<SendMessageResult> {
   if (!isConfigured()) {
     return { success: false, error: "WhatsApp not configured" };
   }

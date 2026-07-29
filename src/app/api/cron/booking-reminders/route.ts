@@ -67,7 +67,7 @@ export async function POST(request: Request) {
           ". Service: " +
           booking.service +
           ".\n\nThank you,\nLeish";
-        await sendMessage(user.phone, reminderText).catch((err) =>
+        await sendMessage(user.phone, reminderText)        .catch((err: unknown) =>
           console.error("Reminder WhatsApp failed for booking", booking.id, err)
         );
       }
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       success: true,
       remindersSent: upcomingBookings.length,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[cron/booking-reminders] error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
