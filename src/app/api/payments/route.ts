@@ -7,6 +7,7 @@ import { prefixedEnvReader } from "@/lib/env-prefix";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { rateLimitApi } from "@/lib/rate-limit-api";
+import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -417,6 +418,90 @@ export async function POST(request: NextRequest) {
         .returning();
 
       return NextResponse.json({ bill: billplzData, payment }, { status: 201 });
+    }
+
+    if (action === "qr-payment") {
+      const session = await getAuthSession();
+      if (!session || !hasAdminAccess(session)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const { bookingId } = body;
+      if (!bookingId) {
+        return NextResponse.json(
+          { error: "bookingId is required" },
+          { status: 400 },
+        );
+      }
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, Number(bookingId)))
+        .limit(1);
+      if (!booking) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+      const remainingAmount =
+        Number(booking.amount) - (Number(booking.depositAmount) || 0);
+      if (remainingAmount <= 0) {
+        return NextResponse.json(
+          { error: "No remaining balance to collect" },
+          { status: 400 },
+        );
+      }
+      const existingQr = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.bookingId, Number(bookingId)),
+            eq(payments.method, "qr"),
+          ),
+        )
+        .limit(1);
+      if (existingQr.length > 0) {
+        return NextResponse.json(
+          { error: "QR payment already recorded for this booking" },
+          { status: 409 },
+        );
+      }
+      const [payment] = await db
+        .insert(payments)
+        .values({
+          bookingId: Number(bookingId),
+          amount: Math.round(remainingAmount * 100),
+          status: "paid",
+          method: "qr",
+          idempotencyKey: `qr_${bookingId}`,
+          paidAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      await db
+        .update(bookings)
+        .set({ status: "confirmed", updatedAt: new Date() })
+        .where(eq(bookings.id, Number(bookingId)));
+
+      if (booking.artistId) {
+        const [artistUser] = await db
+          .select({ name: users.name, phone: users.phone })
+          .from(users)
+          .where(eq(users.id, booking.artistId))
+          .limit(1);
+        if (artistUser?.phone) {
+          await sendPaymentConfirmation({
+            customerName: "Customer",
+            bookingId: String(bookingId),
+            amount: remainingAmount,
+            phone: artistUser.phone,
+          }).catch((err: unknown) =>
+            console.error("QR payment WhatsApp failed:", err)
+          );
+        }
+      }
+
+      return NextResponse.json({ success: true, payment });
     }
 
     if (action === "release") {
