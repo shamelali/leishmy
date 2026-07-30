@@ -87,6 +87,7 @@ function GooglePlacesAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<Autocomplete | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [useAutocomplete, setUseAutocomplete] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.google?.maps?.places) return;
@@ -122,7 +123,7 @@ function GooglePlacesAutocomplete({
     }
   }, [value]);
 
-  // Load Google Maps script
+  // Load Google Maps script only if API key exists
   useEffect(() => {
     if (typeof window === "undefined" || window.google?.maps) {
       setLoaded(true);
@@ -130,7 +131,10 @@ function GooglePlacesAutocomplete({
     }
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
+    if (!apiKey) {
+      setLoaded(true); // Skip autocomplete, use manual input
+      return;
+    }
 
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
