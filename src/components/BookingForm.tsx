@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin, ArrowRight, ArrowLeft, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin, ArrowRight, ArrowLeft, X, Send } from "lucide-react";
 
 interface ArtistService {
   id: string;
@@ -19,7 +19,7 @@ interface BookingFormProps {
   services: ArtistService[];
 }
 
-type BookingStep = "service" | "details" | "fees" | "checkout";
+type BookingStep = "service" | "details" | "submit" | "awaiting_quote" | "checkout";
 
 const BRIDAL_SERVICES = [
   { id: "engagement", name: "Engagement", category: "bridal" },
@@ -37,31 +37,6 @@ const EVENT_GLAM_SERVICES = [
   { id: "event_other", name: "Other", category: "event", isCustom: true },
 ];
 
-// Simple Location Input Component (manual entry)
-function LocationInput({
-  value,
-  onChange,
-  placeholder,
-  className,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
-  className: string;
-}) {
-  // Just a regular text input - no Google Maps dependency
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className={className}
-      autoComplete="off"
-    />
-  );
-}
-
 export function BookingForm({ 
   artistId, 
   artistName, 
@@ -72,7 +47,7 @@ export function BookingForm({
   const [email, setEmail] = useState("");
   const [service, setService] = useState("");
   const [customService, setCustomService] = useState("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]); // for package selection
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
@@ -80,14 +55,14 @@ export function BookingForm({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  
-  // Fees entered by MUA
-  const [accommodationFee, setAccommodationFee] = useState("");
-  const [travelFee, setTravelFee] = useState("");
-  
-  // Prices (only shown at checkout)
-  const [servicePrice, setServicePrice] = useState(0);
-  const [totalPrice, setTotalPrice] = useState(0);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [quoteData, setQuoteData] = useState<{
+    servicePrice: number;
+    accommodationFee: number;
+    travelFee: number;
+    totalPrice: number;
+    quoteId: string;
+  } | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const maxDate = new Date();
@@ -106,56 +81,9 @@ export function BookingForm({
   const isCustomService = selectedServiceData?.isCustom;
   const isPackage = service === "package";
 
-  // Calculate prices when step changes to checkout
-  useEffect(() => {
-    if (step === "checkout") {
-      // In real app, these would come from artist's service pricing
-      // For now, use mock pricing based on selection
-      let price = 0;
-      
-      if (isPackage) {
-        // Package: sum of selected services
-        selectedServices.forEach(sId => {
-          const s = allServices.find(x => x.id === sId);
-          if (s) {
-            // Mock prices - in production, fetch from DB
-            const mockPrices: Record<string, number> = {
-              engagement: 500,
-              solemnization: 800,
-              reception: 800,
-            };
-            price += mockPrices[sId] || 0;
-          }
-        });
-      } else if (isCustomService) {
-        price = 0; // Custom quote
-      } else {
-        const mockPrices: Record<string, number> = {
-          engagement: 500,
-          solemnization: 800,
-          reception: 800,
-          event_makeup: 400,
-          personal_glam: 600,
-          photoshoot: 700,
-          workshop: 300,
-        };
-        price = mockPrices[service] || 0;
-      }
-      
-      const accFee = Number(accommodationFee) || 0;
-      const trvFee = Number(travelFee) || 0;
-      setServicePrice(price);
-      setTotalPrice(price + accFee + trvFee);
-    }
-  }, [step, service, selectedServices, accommodationFee, travelFee]);
-
   function getServiceLabel(id: string): string {
     const s = allServices.find(x => x.id === id);
     return s?.name || id;
-  }
-
-  function getCategoryServices(category: string) {
-    return allServices.filter(s => s.category === category);
   }
 
   const handleNext = () => {
@@ -180,17 +108,15 @@ export function BookingForm({
         return;
       }
       setError("");
-      setStep("fees");
-    } else if (step === "fees") {
-      setError("");
-      setStep("checkout");
+      setStep("submit");
     }
   };
 
   const handleBack = () => {
     if (step === "details") setStep("service");
-    else if (step === "fees") setStep("details");
-    else if (step === "checkout") setStep("fees");
+    else if (step === "submit") setStep("details");
+    else if (step === "awaiting_quote") setStep("submit");
+    else if (step === "checkout") setStep("awaiting_quote");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,7 +125,6 @@ export function BookingForm({
     setError("");
 
     try {
-      // Build service description
       let serviceDesc = "";
       if (isPackage) {
         serviceDesc = `Package: ${selectedServices.map(getServiceLabel).join(", ")}`;
@@ -221,29 +146,58 @@ export function BookingForm({
           time,
           location,
           notes,
-          accommodationFee: Number(accommodationFee) || 0,
-          travelFee: Number(travelFee) || 0,
-          servicePrice,
-          totalPrice,
+          // No fees - MUA will add them
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Booking failed");
 
-      const bookingId = data?.booking?.id;
-      if (!bookingId) throw new Error("Booking created without an id");
+      const bid = data?.booking?.id;
+      if (!bid) throw new Error("Booking created without an id");
+
+      setBookingId(bid);
+      setStep("awaiting_quote");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit booking. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAcceptQuote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quoteData) return;
+    
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/bookings/${quoteData.quoteId}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: bookingId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to accept quote");
 
       const billRes = await fetch("/api/payments?action=create-bill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId,
+          bookingId: quoteData.quoteId,
           name,
           email,
-          description: `${serviceDesc} with ${artistName}`,
-          idempotencyKey: `booking_${bookingId}`,
-          amount: totalPrice * 100, // convert to cents
+          description: `Booking with ${artistName}`,
+          idempotencyKey: `booking_${quoteData.quoteId}`,
+          amount: quoteData.totalPrice * 100,
         }),
       });
 
@@ -256,20 +210,21 @@ export function BookingForm({
         return;
       }
 
-      throw new Error("Payment could not be started for this booking");
+      throw new Error("Payment could not be started");
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to submit booking. Please try again.",
+          : "Failed to accept quote. Please try again.",
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReject = () => {
-    setStep("fees");
+  const handleRejectQuote = () => {
+    setQuoteData(null);
+    setStep("submit");
   };
 
   if (success) {
@@ -290,11 +245,14 @@ export function BookingForm({
   const steps: { key: BookingStep; label: string }[] = [
     { key: "service", label: "Service" },
     { key: "details", label: "Details" },
-    { key: "fees", label: "Fees" },
-    { key: "checkout", label: "Checkout" },
+    { key: "submit", label: "Submit" },
+    { key: "awaiting_quote", label: "Quote" },
+    { key: "checkout", label: "Payment" },
   ];
 
   const currentStepIndex = steps.findIndex(s => s.key === step);
+  const isAwaitingQuote = step === "awaiting_quote";
+  const isCheckout = step === "checkout";
 
   return (
     <div className="space-y-6">
@@ -334,7 +292,7 @@ export function BookingForm({
         <div className="space-y-6">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Select Service</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Prices will be shared privately after you confirm your selection.
+            Prices will be shared privately after the MUA reviews your venue location.
           </p>
 
           {/* Bridal Category */}
@@ -529,6 +487,7 @@ export function BookingForm({
               placeholder="e.g. Hotel name, studio address, or venue"
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
             />
+            <p className="text-xs text-gray-500 mt-1">MUA will use this to calculate any travel/accommodation fees</p>
           </div>
 
           <div>
@@ -544,98 +503,140 @@ export function BookingForm({
         </div>
       )}
 
-      {/* Step 3: Fees (entered by MUA) */}
-      {step === "fees" && (
+      {/* Step 3: Submit Request */}
+      {step === "submit" && (
         <div className="space-y-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Additional Fees</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Review & Submit Request</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Enter fees based on venue location. Leave blank if not applicable.
+            The MUA will review your venue location and send you a quote with any applicable travel/accommodation fees.
           </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Overnight Accommodation (MYR)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={accommodationFee}
-              onChange={(e) => setAccommodationFee(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty if not needed</p>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Service</h4>
+            <p className="text-gray-900 dark:text-white">
+              {isPackage 
+                ? `Package: ${selectedServices.map(getServiceLabel).join(", ")}`
+                : isCustomService
+                ? `Custom: ${customService}`
+                : getServiceLabel(service)
+              }
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Travel Fee (MYR)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={travelFee}
-              onChange={(e) => setTravelFee(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty if not needed</p>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-neutral-800 rounded-xl p-4 border border-gray-200 dark:border-neutral-700">
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Estimated Total (for reference):</p>
-            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              MYR {totalPrice || (Number(accommodationFee) || 0) + (Number(travelFee) || 0)}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Event Details</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Date</span>
+                <span className="font-medium text-gray-900 dark:text-white">{date}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Time</span>
+                <span className="font-medium text-gray-900 dark:text-white">{time}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Location</span>
+                <span className="font-medium text-gray-900 dark:text-white">{location}</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Service price will be confirmed by MUA before checkout</p>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              <strong>Important:</strong> No payment is required yet. The MUA will review your request and send you a quote with the service price and any applicable travel/accommodation fees. You'll then be able to accept or reject the quote.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Step 4: Checkout / Summary */}
-      {step === "checkout" && (
+      {/* Step 4: Awaiting Quote from MUA */}
+      {step === "awaiting_quote" && (
+        <div className="space-y-6 text-center">
+          <div className="w-20 h-20 mx-auto rounded-full bg-rose-100 dark:bg-rose-950/30 flex items-center justify-center">
+            <Send className="w-10 h-10 text-rose-500 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Request Submitted!</h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+            Your booking request has been sent to <strong>{artistName}</strong>. They will review your venue location and send you a quote with the service price and any applicable travel/accommodation fees.
+          </p>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">What happens next?</h4>
+            <div className="space-y-3 text-sm text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-rose-500 font-bold text-xs">1</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400">MUA receives your request and checks venue location</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-gray-500 font-bold text-xs">2</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400">MUA adds service price + any travel/accommodation fees</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-gray-500 font-bold text-xs">3</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400">You receive a notification with the complete quote</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-gray-500 font-bold text-xs">4</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400">You Accept or Reject the quote</p>
+              </div>
+            </div>
+          </div>
+          {bookingId && (
+            <div className="text-xs text-gray-400">
+              Booking ID: {bookingId}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 5: Checkout - Quote Review with Accept/Reject */}
+      {step === "checkout" && quoteData && (
         <div className="space-y-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Review & Confirm</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Review Quote</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            The MUA has prepared a quote based on your venue location. Review and decide.
+          </p>
 
           {/* Service Summary */}
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Service</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">
-                  {isPackage 
-                    ? `Package: ${selectedServices.map(getServiceLabel).join(", ")}`
-                    : isCustomService
-                    ? `Custom: ${customService}`
-                    : getServiceLabel(service)
-                  }
-                </span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {servicePrice > 0 ? `MYR ${servicePrice}` : "Price to be confirmed"}
-                </span>
-              </div>
-            </div>
+            <p className="text-gray-900 dark:text-white">
+              {isPackage 
+                ? `Package: ${selectedServices.map(getServiceLabel).join(", ")}`
+                : isCustomService
+                ? `Custom: ${customService}`
+                : getServiceLabel(service)
+              }
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Service Price: MYR {quoteData.servicePrice}
+            </p>
           </div>
 
           {/* Fees Summary */}
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Additional Fees</h4>
             <div className="space-y-2 text-sm">
-              {(Number(accommodationFee) || 0) > 0 && (
+              {quoteData.accommodationFee > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Accommodation</span>
-                  <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {accommodationFee}</span>
+                  <span className="text-gray-600 dark:text-gray-400">Overnight Accommodation</span>
+                  <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {quoteData.accommodationFee}</span>
                 </div>
               )}
-              {(Number(travelFee) || 0) > 0 && (
+              {quoteData.travelFee > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Travel</span>
-                  <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {travelFee}</span>
+                  <span className="text-gray-600 dark:text-gray-400">Travel Fee</span>
+                  <span className="font-medium text-rose-600 dark:text-rose-400">+ MYR {quoteData.travelFee}</span>
                 </div>
               )}
-              {(Number(accommodationFee) || 0) === 0 && (Number(travelFee) || 0) === 0 && (
+              {quoteData.accommodationFee === 0 && quoteData.travelFee === 0 && (
                 <div className="text-gray-500 dark:text-gray-400 text-center py-2">No additional fees</div>
               )}
             </div>
@@ -645,7 +646,7 @@ export function BookingForm({
           <div className="bg-rose-50 dark:bg-rose-950/30 rounded-2xl p-4 border border-rose-200 dark:border-rose-800">
             <div className="flex justify-between text-lg font-bold text-rose-600 dark:text-rose-400">
               <span>Total</span>
-              <span>MYR {totalPrice}</span>
+              <span>MYR {quoteData.totalPrice}</span>
             </div>
             <p className="text-xs text-rose-700 dark:text-rose-300 mt-2 text-center">
               By accepting, you agree to the booking terms and deposit policy.
@@ -656,13 +657,14 @@ export function BookingForm({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={handleReject}
+              onClick={handleRejectQuote}
               className="flex-1 py-3.5 px-4 border border-gray-200 dark:border-neutral-700 rounded-xl text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
             >
               <X className="w-4 h-4 inline mr-2" /> Reject
             </button>
             <button
               type="submit"
+              onClick={handleAcceptQuote}
               disabled={submitting}
               className="flex-1 py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -681,7 +683,7 @@ export function BookingForm({
 
       {/* Navigation Buttons */}
       <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-neutral-800">
-        {step !== "service" && (
+        {step !== "service" && step !== "awaiting_quote" && step !== "checkout" && (
           <button
             type="button"
             onClick={handleBack}
@@ -690,7 +692,7 @@ export function BookingForm({
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
         )}
-        {step !== "checkout" && (
+        {step !== "checkout" && step !== "awaiting_quote" && !success && (
           <button
             type="button"
             onClick={handleNext}
@@ -702,6 +704,7 @@ export function BookingForm({
         {step === "checkout" && (
           <button
             type="submit"
+            onClick={handleAcceptQuote}
             disabled={submitting}
             className="flex-1 py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
