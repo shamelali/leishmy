@@ -62,6 +62,7 @@ async function findArtist(slug: string) {
         rating: profiles.rating,
         reviewCount: profiles.reviewCount,
         price: profiles.price,
+        showPrices: profiles.showPrices,
         accommodationFee: profiles.accommodationFee,
         travelSurcharge: profiles.travelSurcharge,
         verified: profiles.verified,
@@ -108,6 +109,7 @@ const serviceRows = await db
         rating: Number(a.rating) || 0,
         reviewCount: a.reviewCount || 0,
         price: Number(a.price) || 0,
+        showPrices: a.showPrices || false,
         accommodationFee: Number(a.accommodationFee) || 0,
         travelSurcharge: Number(a.travelSurcharge) || 0,
         verified: a.verified || false,
@@ -236,7 +238,11 @@ export default async function ArtistDetailPage({ params }: Props) {
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <Palette className="w-5 h-5 text-rose-500 mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">Starting From</p>
-                <p className="font-semibold text-gray-900 dark:text-white">Price on request</p>
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  {artist.showPrices && Number(artist.price) > 0
+                    ? `MYR ${Number(artist.price).toFixed(0)}`
+                    : "Price on request"}
+                </p>
               </div>
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <CalendarDays className="w-5 h-5 text-rose-500 mb-2" />
@@ -365,7 +371,9 @@ export default async function ArtistDetailPage({ params }: Props) {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                          Price on request
+                          {artist.showPrices && Number(s.price) > 0
+                            ? `MYR ${Number(s.price).toFixed(0)}`
+                            : "Price on request"}
                         </p>
                       </div>
                     </div>

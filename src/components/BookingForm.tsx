@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin, ArrowRight, ArrowLeft, X, Send } from "lucide-react";
 
 interface ArtistService {
@@ -63,6 +63,7 @@ export function BookingForm({
     totalPrice: number;
     quoteId: string;
   } | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const maxDate = new Date();
@@ -96,8 +97,8 @@ export function BookingForm({
         setError("Please specify the service");
         return;
       }
-      if (isPackage && selectedServices.length === 0) {
-        setError("Please select at least one service for the package");
+      if (isPackage && selectedServices.length < 2) {
+        setError("Please select at least 2 services for the package");
         return;
       }
       setError("");
@@ -109,6 +110,8 @@ export function BookingForm({
       }
       setError("");
       setStep("submit");
+    } else if (step === "submit") {
+      handleSubmit(new Event("submit") as any);
     }
   };
 
@@ -168,6 +171,50 @@ export function BookingForm({
       setSubmitting(false);
     }
   };
+
+  const checkQuoteStatus = useCallback(async () => {
+    if (!bookingId) return;
+    try {
+      const res = await fetch(`/api/bookings?id=${bookingId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const booking = data?.booking;
+      if (!booking) return;
+
+      if (booking.status === "quote_sent" && booking.servicePrice) {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        setQuoteData({
+          servicePrice: Number(booking.servicePrice) || 0,
+          accommodationFee: Number(booking.accommodationFee) || 0,
+          travelFee: Number(booking.travelSurcharge) || 0,
+          totalPrice:
+            (Number(booking.servicePrice) || 0) +
+            (Number(booking.accommodationFee) || 0) +
+            (Number(booking.travelSurcharge) || 0),
+          quoteId: String(booking.quoteId || booking.id),
+        });
+        setStep("checkout");
+      }
+    } catch {
+      // silently ignore polling errors
+    }
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (step === "awaiting_quote" && bookingId) {
+      checkQuoteStatus();
+      pollingRef.current = setInterval(checkQuoteStatus, 12000);
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [step, bookingId, checkQuoteStatus]);
 
   const handleAcceptQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -611,8 +658,17 @@ export function BookingForm({
             </div>
           </div>
           {bookingId && (
-            <div className="text-xs text-gray-400">
-              Booking ID: {bookingId}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={checkQuoteStatus}
+                className="px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+              >
+                Check Status
+              </button>
+              <div className="text-xs text-gray-400">
+                Booking ID: {bookingId}
+              </div>
             </div>
           )}
         </div>
@@ -718,9 +774,19 @@ export function BookingForm({
           <button
             type="button"
             onClick={handleNext}
-            className="flex-1 py-3 px-4 bg-rose-500 text-white font-medium rounded-xl hover:bg-rose-600 transition-colors flex items-center justify-center gap-2"
+            disabled={submitting}
+            className="flex-1 py-3 px-4 bg-rose-500 text-white font-medium rounded-xl hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next <ArrowRight className="w-4 h-4" />
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Submitting...
+              </span>
+            ) : step === "submit" ? (
+              "Submit Request"
+            ) : (
+              <>Next <ArrowRight className="w-4 h-4" /></>
+            )}
           </button>
         )}
         {step === "checkout" && (

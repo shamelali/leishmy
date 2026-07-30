@@ -146,6 +146,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
           rating: profiles.rating,
           reviewCount: profiles.reviewCount,
           price: profiles.price,
+          showPrices: profiles.showPrices,
           verified: profiles.verified,
           responseTime: profiles.responseTime,
           categories: profiles.categories,
@@ -167,6 +168,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
         rating: Number(a.rating) || 0,
         reviewCount: a.reviewCount || 0,
         price: Number(a.price) || 0,
+        showPrices: a.showPrices || false,
         verified: a.verified || false,
         responseTime: a.responseTime || "",
         categories: (a.categories || []) as string[],
@@ -295,7 +297,11 @@ export default async function ArtistsPage({ searchParams }: Props) {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs text-gray-400">from </span>
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">Price on request</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {artist.showPrices && artist.price > 0
+                          ? `MYR ${artist.price.toFixed(0)}`
+                          : "Price on request"}
+                      </span>
                     </div>
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-rose-600 dark:text-rose-400">
                       View Profile <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

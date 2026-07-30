@@ -166,6 +166,7 @@ return NextResponse.json({
           categories: profile.categories || [],
           responseTime: profile.responseTime || "",
           price: Number(profile.price) || 0,
+          showPrices: profile.showPrices || false,
           accommodationFee: Number(profile.accommodationFee) || 0,
           travelSurcharge: Number(profile.travelSurcharge) || 0,
           portfolio: profile.portfolio || [],
@@ -544,6 +545,7 @@ export async function POST(
         "tiktokUrl",
         "certifications",
         "availability",
+        "showPrices",
       ];
       for (const field of allowedFields) {
         if (body[field] !== undefined) updateData[field] = body[field];

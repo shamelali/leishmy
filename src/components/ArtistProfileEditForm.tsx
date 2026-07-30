@@ -21,6 +21,7 @@ export interface ArtistProfileEditValues {
   portfolio: string[];
   responseTime: string;
   price: number;
+  showPrices: boolean;
   certifications: string;
   availability: string;
   availabilityNotes: string;
@@ -111,6 +112,7 @@ const [responseTime, setResponseTime] = useState(initial.responseTime);
     initial.availabilityNotes || initial.availability,
   );
   const [socialProfiles, setSocialProfiles] = useState(initial.socialProfiles);
+  const [showPrices, setShowPrices] = useState(initial.showPrices || false);
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -323,6 +325,7 @@ const [responseTime, setResponseTime] = useState(initial.responseTime);
         portfolio: allPortfolio,
         responseTime,
         price: initial.price,
+        showPrices,
         certifications: certifications.trim(),
         availability: availabilityValue,
         availabilityNotes,
@@ -524,6 +527,26 @@ const [responseTime, setResponseTime] = useState(initial.responseTime);
             Services page
           </Link>.
         </p>
+      </div>
+
+      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+        <div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Display prices publicly</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Show your service prices on your profile and listings</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPrices(!showPrices)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            showPrices ? "bg-rose-500" : "bg-gray-300 dark:bg-neutral-600"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              showPrices ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
       </div>
 
       <div>

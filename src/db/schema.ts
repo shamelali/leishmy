@@ -74,6 +74,7 @@ export const profiles = pgTable(
     area: varchar("area", { length: 100 }),
     district: varchar("district", { length: 100 }),
     featured: boolean("featured").default(false),
+    showPrices: boolean("show_prices").default(false),
     bankName: varchar("bank_name", { length: 255 }),
     accountNumber: varchar("account_number", { length: 100 }),
     accountHolder: varchar("account_holder", { length: 255 }),
