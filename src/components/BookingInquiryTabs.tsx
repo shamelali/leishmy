@@ -221,8 +221,6 @@ export function BookingInquiryTabs({ artistId, artistName, price, accommodationF
             artistId={artistId} 
             artistName={artistName} 
             services={services}
-            travelSurchargeAmount={travelSurcharge || 0}
-            accommodationFeeAmount={accommodationFee || 0}
           />
         </>
       )}
