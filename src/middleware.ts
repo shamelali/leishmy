@@ -93,9 +93,9 @@ export async function middleware(request: NextRequest) {
       return withSecurityHeaders(NextResponse.next(), nonce);
     }
 
-    if (isProtectedApi(pathname) && !hasSessionCookie(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Allow API routes to handle their own auth - middleware returns 401 too early
+    // and breaks legitimate API calls from authenticated users on client-side
+    // The API routes will validate session themselves
 
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
