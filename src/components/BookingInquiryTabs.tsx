@@ -215,7 +215,7 @@ export function BookingInquiryTabs({ artistId, artistName, price, accommodationF
             Book {artistName}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Starting from MYR {price}
+            Price will be provided after you submit your booking request
           </p>
           <BookingForm 
             artistId={artistId} 

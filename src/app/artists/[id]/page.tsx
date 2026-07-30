@@ -236,7 +236,7 @@ export default async function ArtistDetailPage({ params }: Props) {
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <Palette className="w-5 h-5 text-rose-500 mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">Starting From</p>
-                <p className="font-semibold text-gray-900 dark:text-white">MYR {artist.price}/hr</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Price on request</p>
               </div>
               <div className="bg-gray-50 dark:bg-neutral-900 rounded-2xl p-5 border border-gray-100 dark:border-neutral-800">
                 <CalendarDays className="w-5 h-5 text-rose-500 mb-2" />
@@ -365,7 +365,7 @@ export default async function ArtistDetailPage({ params }: Props) {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                          MYR {s.price}
+                          Price on request
                         </p>
                       </div>
                     </div>

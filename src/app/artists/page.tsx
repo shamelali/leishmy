@@ -295,7 +295,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs text-gray-400">from </span>
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">MYR {artist.price ?? artist.price}</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">Price on request</span>
                     </div>
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-rose-600 dark:text-rose-400">
                       View Profile <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
