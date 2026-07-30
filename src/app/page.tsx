@@ -31,8 +31,8 @@ async function getCategoryCounts() {
       ),
     );
     return rows.map((r, i) => ({ ...r, artistCount: counts[i] }));
-  } catch {
-    console.error("Failed to load category counts");
+  } catch (e) {
+    console.error("Failed to load category counts:", e);
     return [];
   }
 }
@@ -45,8 +45,8 @@ async function getRealTestimonials() {
       .orderBy(desc(testimonials.createdAt))
       .limit(4);
     return rows.length > 0 ? rows : null;
-  } catch {
-    console.error("Failed to load testimonials");
+  } catch (e) {
+    console.error("Failed to load testimonials:", e);
     return null;
   }
 }
@@ -71,8 +71,8 @@ async function getStats() {
       { value: `${artistCount}+`.replace("0+", "0"), label: "Pro Artists" },
       { value: `${bookingCount[0]?.count || 0}+`.replace("0+", "0"), label: "Bookings" },
     ];
-  } catch {
-    console.error("Failed to load homepage stats");
+  } catch (e) {
+    console.error("Failed to load homepage stats:", e);
     return undefined;
   }
 }
@@ -90,8 +90,8 @@ async function getFeaturedStats() {
       onboardingArtists: onboardingCount[0]?.count || 0,
       categoryCount: catCount[0]?.count || 0,
     };
-  } catch {
-    console.error("Failed to load featured section stats");
+  } catch (e) {
+    console.error("Failed to load featured section stats:", e);
     return { onboardingArtists: 0, categoryCount: 0 };
   }
 }
