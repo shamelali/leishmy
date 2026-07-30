@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, Save, Store } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +12,7 @@ export default function StudioEdit() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -36,7 +38,7 @@ export default function StudioEdit() {
           setPrice(String(data.studio.price || ""));
         }
       } catch {
-        console.error("Failed to load studio profile");
+        setFetchError("Failed to load studio profile");
       }
       setLoading(false);
     })();
@@ -63,6 +65,17 @@ export default function StudioEdit() {
     }
     setSaving(false);
   };
+
+  if (fetchError) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Link>
+        <p className="text-red-500 text-center py-16">{fetchError}</p>
+      </div>
+    );
+  }
 
   if (loading) return <div className="max-w-2xl mx-auto px-4 py-8"><DashboardLoading /></div>;
 

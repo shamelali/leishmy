@@ -46,6 +46,7 @@ export default function ModerationPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [items, setItems] = useState<ModItem[]>([]);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -55,7 +56,9 @@ export default function ModerationPage() {
           const data = await res.json();
           setArtists(data.artists || []);
         }
-      } catch { console.error("Failed to load pending artists"); }
+      } catch {
+        setActionError("Failed to load pending artists");
+      }
       setLoading(false);
     })();
   }, []);
@@ -66,7 +69,9 @@ export default function ModerationPage() {
         const res = await fetch("/api/admin?action=moderation");
         const data = await res.json();
         if (data?.items) setItems(data.items);
-      } catch { console.error("Failed to load moderation items"); }
+      } catch {
+        setActionError("Failed to load moderation items");
+      }
     })();
   }, []);
 
@@ -79,7 +84,9 @@ export default function ModerationPage() {
         body: JSON.stringify({ artistId }),
       });
       setArtists((prev) => prev.filter((a) => a.id !== artistId));
-    } catch { console.error("Failed to approve artist"); }
+    } catch {
+      setActionError("Failed to approve artist");
+    }
     setActionLoading(null);
   };
 
@@ -94,7 +101,9 @@ export default function ModerationPage() {
       setArtists((prev) => prev.filter((a) => a.id !== artistId));
       setRejectId(null);
       setRejectReason("");
-    } catch { console.error("Failed to reject artist"); }
+    } catch {
+      setActionError("Failed to reject artist");
+    }
     setActionLoading(null);
   };
 
@@ -110,7 +119,9 @@ export default function ModerationPage() {
         body: JSON.stringify({ id, type }),
       });
       setItems((prev) => prev.filter((r) => r.id !== id));
-    } catch { console.error("Failed to resolve item"); }
+    } catch {
+      setActionError("Failed to resolve item");
+    }
   };
 
   return (
@@ -132,6 +143,13 @@ export default function ModerationPage() {
               </div>
             </div>
           </div>
+
+          {actionError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-sm flex items-center justify-between">
+              <span>{actionError}</span>
+              <button onClick={() => setActionError("")} className="ml-2 hover:opacity-70">&times;</button>
+            </div>
+          )}
 
           <div className="flex gap-2 mb-6">
             <button

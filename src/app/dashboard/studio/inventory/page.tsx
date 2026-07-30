@@ -10,6 +10,7 @@ export default function StudioInventory() {
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", category: "", quantity: "" });
 
@@ -23,7 +24,9 @@ export default function StudioInventory() {
         const res = await fetch(`/api/inventory?studioId=${profile.studio.id}`);
         const data = await res.json();
         if (data?.items) setItems(data.items);
-      } catch { console.error("Failed to load inventory"); }
+      } catch {
+        setFetchError("Failed to load inventory");
+      }
       setLoading(false);
     })();
   }, [user?.id]);
@@ -85,7 +88,9 @@ export default function StudioInventory() {
           </form>
         )}
 
-        {loading ? (
+        {fetchError ? (
+          <p className="text-red-500 text-center py-16">{fetchError}</p>
+        ) : loading ? (
           <DashboardLoading />
         ) : items.length === 0 ? (
           <div className="text-center py-16">

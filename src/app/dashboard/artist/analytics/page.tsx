@@ -11,6 +11,7 @@ export default function ArtistAnalytics() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -22,10 +23,16 @@ export default function ArtistAnalytics() {
         const res = await fetch(`/api/analytics?artistId=${profile.artist.id}`);
         const json = await res.json();
         if (json?.totalBookings !== undefined) setData(json);
-      } catch { console.error("Failed to load analytics"); }
+      } catch {
+        setFetchError("Failed to load analytics");
+      }
       setLoading(false);
     })();
   }, [user?.id]);
+
+  if (fetchError) {
+    return <div className="text-center py-16 text-red-500">{fetchError}</div>;
+  }
 
   if (loading) {
     return <DashboardLoading fullPage />;

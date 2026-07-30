@@ -42,6 +42,7 @@ export default function StudioFinance() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [showBankForm, setShowBankForm] = useState(false);
   const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountHolder: "" });
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -56,7 +57,9 @@ export default function StudioFinance() {
         if (paymentsData?.payouts) setPayouts(paymentsData.payouts);
         if (paymentsData?.bankAccounts) setBankAccounts(paymentsData.bankAccounts);
         if (studioData?.stats?.revenue !== undefined) setRevenue(studioData.stats.revenue);
-      } catch { console.error("Failed to load finance data"); }
+      } catch {
+        setFetchError("Failed to load finance data");
+      }
       setLoading(false);
     })();
   }, [user?.id]);
@@ -86,7 +89,9 @@ export default function StudioFinance() {
 
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Finance</h1>
 
-        {loading ? (
+        {fetchError ? (
+          <p className="text-red-500 text-center py-16">{fetchError}</p>
+        ) : loading ? (
           <DashboardLoading />
         ) : (
           <>

@@ -63,7 +63,9 @@ export default function AdminSettings() {
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { console.error("Failed to save settings"); }
+    } catch {
+      setError("Failed to save settings");
+    }
     setSaving(false);
   };
 

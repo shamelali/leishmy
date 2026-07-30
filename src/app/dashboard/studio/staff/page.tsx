@@ -23,8 +23,10 @@ export default function StudioStaff() {
       const res = await fetch(`/api/user/studio-staff?studioId=${profile.studio.id}`);
       const data = await res.json();
       if (data?.staff) setStaff(data.staff);
-    } catch { console.error("Failed to load staff"); }
-    setLoading(false);
+      } catch {
+        setError("Failed to load staff");
+      }
+      setLoading(false);
   };
 
   useEffect(() => {
@@ -65,8 +67,10 @@ export default function StudioStaff() {
       if (res.ok) {
         setStaff((prev) => prev.filter((s) => s.id !== artistId));
       }
-    } catch { console.error("Failed to remove staff"); }
-  };
+      } catch {
+        setError("Failed to remove staff");
+      }
+    };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

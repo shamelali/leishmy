@@ -22,6 +22,7 @@ export default function StudioCalendar() {
   const [month, setMonth] = useState(now.getMonth());
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [studioId, setStudioId] = useState<string | null>(null);
 
@@ -52,7 +53,9 @@ export default function StudioCalendar() {
         const res = await fetch(`/api/calendar?studioId=${profile.studio.id}&month=${monthStr}`);
         const data = await res.json();
         if (data?.events) setEvents(data.events);
-      } catch { console.error("Failed to load calendar events"); }
+      } catch {
+        setFetchError("Failed to load calendar events");
+      }
       setLoading(false);
     })();
   }, [user?.id, monthStr]);
@@ -80,7 +83,9 @@ export default function StudioCalendar() {
           </button>
         </div>
 
-        {loading ? (
+        {fetchError ? (
+          <p className="text-red-500 text-center py-16">{fetchError}</p>
+        ) : loading ? (
           <DashboardLoading />
         ) : (
           <div className="grid grid-cols-7">
