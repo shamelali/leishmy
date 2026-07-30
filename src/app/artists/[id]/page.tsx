@@ -15,6 +15,7 @@ import {
   Scissors,
   Clock as ClockIcon,
 } from "lucide-react";
+import SaveToBoard from "@/components/SaveToBoard";
 import { db } from "@/db";
 import {
   profiles,
@@ -379,7 +380,7 @@ export default async function ArtistDetailPage({ params }: Props) {
                   {artist.portfolio.map((img, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl overflow-hidden aspect-square group"
+                      className="rounded-2xl overflow-hidden aspect-square group relative"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -388,6 +389,7 @@ export default async function ArtistDetailPage({ params }: Props) {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
                       />
+                      <SaveToBoard imageUrl={img} artistId={artist.id} artistName={artist.name} />
                     </div>
                   ))}
                 </div>

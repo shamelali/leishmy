@@ -31,13 +31,14 @@ function buildRelativeDates() {
 
   const nextMonthFirst = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  return [
+  const dates = [
     { label: "Today", value: toISO(today) },
     { label: "Tomorrow", value: toISO(tomorrow) },
     { label: "This Weekend", value: toISO(thisSaturday) },
     { label: "Next Week", value: toISO(nextMonday) },
     { label: "Next Month", value: toISO(nextMonthFirst) },
   ];
+  return dates.filter((d, i, arr) => arr.findIndex((x) => x.value === d.value) === i);
 }
 
 type Props = {
