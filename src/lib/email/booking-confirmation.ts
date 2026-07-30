@@ -78,6 +78,7 @@ export async function sendQuoteReadyEmail(params: {
   accommodationFee: number;
   travelFee: number;
   totalPrice: number;
+  depositAmount?: number;
 }) {
   const subject = `Your quote is ready for booking #${params.bookingId}`;
   const html = `

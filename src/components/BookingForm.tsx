@@ -177,11 +177,11 @@ export function BookingForm({
     setError("");
 
     try {
-      const res = await fetch(`/api/bookings/${quoteData.quoteId}/accept`, {
+      const res = await fetch(`/api/bookings/${bookingId}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId: bookingId,
+          bookingId: Number(bookingId),
         }),
       });
 
@@ -192,11 +192,11 @@ export function BookingForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId: quoteData.quoteId,
+          bookingId: Number(bookingId),
           name,
           email,
           description: `Booking with ${artistName}`,
-          idempotencyKey: `booking_${quoteData.quoteId}`,
+          idempotencyKey: `booking_${bookingId}`,
           amount: quoteData.totalPrice * 100,
         }),
       });
@@ -222,9 +222,31 @@ export function BookingForm({
     }
   };
 
-  const handleRejectQuote = () => {
-    setQuoteData(null);
-    setStep("submit");
+  const handleRejectQuote = async () => {
+    if (!bookingId) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: Number(bookingId) }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error || "Failed to reject quote");
+      }
+      setQuoteData(null);
+      setStep("submit");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to reject quote. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (success) {

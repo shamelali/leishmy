@@ -117,12 +117,12 @@ export async function POST(
             providerName: providerUser.name || "Your Provider",
             customerName: customer?.name || "A customer",
             bookingId: String(booking.id),
-            serviceName: booking.service,
+            serviceName: booking.service || "Service",
             date: new Date(booking.date).toLocaleDateString("en-MY", {
               weekday: "long", year: "numeric", month: "long", day: "numeric",
             }),
             time: booking.time || "To be confirmed",
-            travelSurcharge: Number(booking.travelFee) || undefined,
+            travelSurcharge: Number(booking.travelSurcharge) || undefined,
             accommodationFee: Number(booking.accommodationFee) || undefined,
           }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
         }

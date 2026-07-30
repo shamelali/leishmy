@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals, services } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendQuoteAcceptedEmail } from "@/lib/email";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       date: formattedDate,
       time: time || "To be confirmed",
       amount: 0,
-      paymentType: "quote_pending",
+      paymentType: "deposit",
     }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
 
     // Email MUA

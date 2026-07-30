@@ -83,8 +83,8 @@ export async function PUT(
         depositAmount: String(depositAmount),
         servicePrice: String(servicePrice),
         accommodationFee: String(accommodationFee || 0),
-        travelFee: String(travelFee || 0),
-        quoteNotes: notes || null,
+        travelSurcharge: String(travelFee || 0),
+        notes: notes || null,
         status: "quote_sent",
         milestone: "deposit_30",
       })
@@ -93,7 +93,7 @@ export async function PUT(
 
     // Notify customer
     const [user] = await db
-      .select({ name: users.name, email: users.email })
+      .select({ id: users.id, name: users.name, email: users.email })
       .from(users)
       .where(eq(users.id, booking.userId))
       .limit(1);
@@ -114,7 +114,7 @@ export async function PUT(
         email: user.email,
         customerName: user.name || "Valued Customer",
         bookingId: String(booking.id),
-        serviceName: booking.service,
+        serviceName: booking.service || "Service",
         providerName: "", // Will be filled by email template
         date: new Date(booking.date).toLocaleDateString("en-MY", {
           weekday: "long", year: "numeric", month: "long", day: "numeric",
