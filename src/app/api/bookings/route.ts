@@ -3,14 +3,14 @@ import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals, services } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendQuoteAcceptedEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
-import { createBookingSchema, updateBookingSchema } from "@/lib/validations/bookings";
+import { createBookingSchema, updateBookingSchema, addQuoteSchema, acceptQuoteSchema, rejectQuoteSchema } from "@/lib/validations/bookings";
 
 export const runtime = "nodejs";
 
@@ -119,57 +119,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resolved = await resolveAmount(serviceIdNum, artistIdStr, studioIdStr);
-    if ("error" in resolved) {
-      return NextResponse.json({ error: resolved.error }, { status: 400 });
-    }
-    const amount = resolved.amount;
-    const serviceName = resolved.serviceName;
-
-    const normalizedService = serviceName.toLowerCase();
-    let depositPercentage: number;
-    let milestone: string;
-    let secondPaymentDueDate: Date | null = null;
-
-    if (normalizedService.includes("bridal")) {
-      depositPercentage = 0.50;
-      milestone = "deposit_50";
-      const weddingDate = new Date(date);
-      const dueDate = new Date(weddingDate);
-      dueDate.setDate(dueDate.getDate() - 7);
-      secondPaymentDueDate = dueDate;
-    } else if (normalizedService.includes("event") || normalizedService.includes("glam") || normalizedService.includes("personal makeup")) {
-      depositPercentage = 0.30;
-      milestone = "deposit_30";
-    } else if (normalizedService.includes("trial")) {
-      depositPercentage = 1.00;
-      milestone = "full_upfront";
-    } else {
-      depositPercentage = 0.30;
-      milestone = "deposit_30";
-    }
-
-    // Fetch artist's accommodation fee and travel surcharge
-    let travelSurchargeAmount = 0;
-    let accommodationFee = 0;
-    if (artistIdStr) {
-      const [artistProfile] = await db
-        .select({ accommodationFee: profiles.accommodationFee, travelSurcharge: profiles.travelSurcharge })
-        .from(profiles)
-        .where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist")))
+    // For quote_pending, we don't need to resolve amount yet
+    // Just get service name if serviceId provided
+    let serviceName = body.service || "Service Request";
+    if (serviceIdNum) {
+      const [service] = await db
+        .select({ name: services.name })
+        .from(services)
+        .where(eq(services.id, serviceIdNum))
         .limit(1);
-      travelSurchargeAmount = artistProfile?.travelSurcharge ? Number(artistProfile.travelSurcharge) : 0;
-      if (body.accommodationFee) {
-        accommodationFee = artistProfile?.accommodationFee ? Number(artistProfile.accommodationFee) : 0;
-      }
+      if (service) serviceName = service.name;
     }
 
-    const travelSurcharge = body.travelSurcharge ? travelSurchargeAmount : 0;
-
-    const totalAmount = String(Number(amount) + travelSurcharge + accommodationFee);
-
-    const depositAmount = String(Math.round(Number(totalAmount) * depositPercentage * 100) / 100);
-
+    // Check for scheduling conflicts
     if (artistIdStr) {
       const [conflict] = await db
         .select({ id: bookings.id })
@@ -179,7 +141,7 @@ export async function POST(request: NextRequest) {
             eq(bookings.artistId, artistIdStr),
             eq(bookings.date, new Date(date)),
             eq(bookings.time, time ?? null as unknown as string),
-            inArray(bookings.status, ["pending", "confirmed"]),
+            inArray(bookings.status, ["pending", "confirmed", "quote_pending", "quote_sent"]),
           ),
         )
         .limit(1);
@@ -189,9 +151,9 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
-            
-      }
+    }
 
+    // Create booking with quote_pending status
     const [booking] = await db
       .insert(bookings)
       .values({
@@ -205,13 +167,10 @@ export async function POST(request: NextRequest) {
         placeId: body.placeId || null,
         date: new Date(date),
         time: time || null,
-        amount: totalAmount,
-        depositAmount,
-        milestone,
-        secondPaymentDueDate,
-        travelSurcharge: String(travelSurcharge),
-        accommodationFee: String(accommodationFee),
-        status: "pending",
+        amount: "0", // Will be set when quote is added
+        depositAmount: "0",
+        milestone: "quote_pending",
+        status: "quote_pending",
       })
       .returning();
 
@@ -227,16 +186,18 @@ export async function POST(request: NextRequest) {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
     });
 
+    // Notify MUA of new quote request
     if (artist?.userId) {
       await db.insert(notifications).values({
         userId: artist.userId,
-        type: "booking_pending",
-        title: "New Booking Received",
-        body: `${customer.name || "A customer"} booked "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}.`,
-        data: { link: "/dashboard/bookings", bookingId: String(booking.id) },
+        type: "quote_request",
+        title: "New Quote Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
+        data: { link: "/dashboard/artist/quotes", bookingId: String(booking.id) },
       }).catch(() => {});
     }
 
+    // Email customer confirmation
     sendBookingReceivedEmail({
       email: customer.email,
       customerName: customer.name || "Valued Customer",
@@ -245,12 +206,11 @@ export async function POST(request: NextRequest) {
       providerName: providerUser?.name || artist?.bio || "Your Provider",
       date: formattedDate,
       time: time || "To be confirmed",
-      amount: Number(totalAmount),
-      paymentType: "full",
-      travelSurcharge: travelSurcharge > 0 ? travelSurcharge : undefined,
-      accommodationFee: accommodationFee > 0 ? accommodationFee : undefined,
+      amount: 0,
+      paymentType: "quote_pending",
     }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
 
+    // Email MUA
     if (providerUser?.email) {
       sendProviderNewBookingEmail({
         email: providerUser.email,
@@ -260,8 +220,6 @@ export async function POST(request: NextRequest) {
         serviceName,
         date: formattedDate,
         time: time || "To be confirmed",
-        travelSurcharge: travelSurcharge > 0 ? travelSurcharge : undefined,
-        accommodationFee: accommodationFee > 0 ? accommodationFee : undefined,
       }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
     }
 

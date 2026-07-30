@@ -13,11 +13,26 @@ export const createBookingSchema = z.object({
   phone: z.string().max(20).optional(),
   clientEmail: z.string().email().optional(),
   clientName: z.string().max(255).optional(),
-  accommodationFee: z.boolean().optional(),
-  travelSurcharge: z.boolean().optional(),
+  // No fees - MUA adds them later
 });
 
 export const updateBookingSchema = z.object({
   id: z.number().positive(),
   status: z.enum(["cancelled"]),
+});
+
+export const addQuoteSchema = z.object({
+  bookingId: z.number().positive(),
+  servicePrice: z.number().nonnegative(),
+  accommodationFee: z.number().nonnegative().optional().default(0),
+  travelFee: z.number().nonnegative().optional().default(0),
+  notes: z.string().max(2000).optional(),
+});
+
+export const acceptQuoteSchema = z.object({
+  bookingId: z.number().positive(),
+});
+
+export const rejectQuoteSchema = z.object({
+  bookingId: z.number().positive(),
 });
