@@ -335,10 +335,9 @@ export function BookingForm({
             
             const categoryLabels: Record<string, string> = {
               bridal: 'Bridal',
-              trial: 'Trial Sessions',
               event: 'Event & Glam',
             };
-            const categoryOrder = ['bridal', 'trial', 'event'];
+            const categoryOrder = ['bridal', 'event'];
             
             return categoryOrder
               .filter(cat => grouped[cat]?.length)
