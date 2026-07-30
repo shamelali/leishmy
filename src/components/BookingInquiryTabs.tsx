@@ -176,7 +176,7 @@ interface BookingInquiryTabsProps {
   price: number;
   accommodationFee?: number;
   travelSurcharge?: number;
-  services: Array<{ id: string; name: string; description: string; duration: string; price: number; popular: boolean }>;
+  services: Array<{ id: string; name: string; description: string; duration: string; price: number; popular: boolean; category: string }>;
 }
 
 export function BookingInquiryTabs({ artistId, artistName, price, accommodationFee, travelSurcharge, services }: BookingInquiryTabsProps) {

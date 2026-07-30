@@ -161,6 +161,7 @@ export const services = pgTable("services", {
     onDelete: "cascade",
   }),
   popular: boolean("popular").default(false),
+  category: varchar("category", { length: 50 }).default("event"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 },
 (table) => [

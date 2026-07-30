@@ -83,7 +83,7 @@ async function findArtist(slug: string) {
     if (rows.length > 0) {
       const a = rows[0];
 
-      const serviceRows = await db
+const serviceRows = await db
         .select({
           id: servicesTable.id,
           name: servicesTable.name,
@@ -91,6 +91,7 @@ async function findArtist(slug: string) {
           duration: servicesTable.duration,
           price: servicesTable.price,
           popular: servicesTable.popular,
+          category: servicesTable.category,
         })
         .from(servicesTable)
         .where(eq(servicesTable.artistId, a.userId))
@@ -127,6 +128,7 @@ async function findArtist(slug: string) {
           duration: s.duration || "",
           price: Number(s.price) || 0,
           popular: Boolean(s.popular),
+          category: s.category || "event",
         })),
         featured: false,
       };

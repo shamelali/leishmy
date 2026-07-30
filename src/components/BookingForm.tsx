@@ -43,6 +43,7 @@ interface ArtistService {
   duration: string;
   price: number;
   popular: boolean;
+  category: string;
 }
 
 interface BookingFormProps {
@@ -324,11 +325,33 @@ export function BookingForm({
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
         >
           <option value="">Select an event type</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.name}>
-              {s.name} - MYR {s.price}
-            </option>
-          ))}
+          {(() => {
+            const grouped = services.reduce((acc, s) => {
+              const cat = s.category || 'event';
+              if (!acc[cat]) acc[cat] = [];
+              acc[cat].push(s);
+              return acc;
+            }, {} as Record<string, ArtistService[]>);
+            
+            const categoryLabels: Record<string, string> = {
+              bridal: 'Bridal',
+              trial: 'Trial Sessions',
+              event: 'Event & Glam',
+            };
+            const categoryOrder = ['bridal', 'trial', 'event'];
+            
+            return categoryOrder
+              .filter(cat => grouped[cat]?.length)
+              .map(cat => (
+                <optgroup key={cat} label={categoryLabels[cat] || cat}>
+                  {grouped[cat].map(s => (
+                    <option key={s.id} value={s.name}>
+                      {s.name} - MYR {s.price}
+                    </option>
+                  ))}
+                </optgroup>
+              ));
+          })()}
         </select>
         {selectedService && (
           <p className="mt-1.5 text-sm text-rose-600 dark:text-rose-400 font-medium">

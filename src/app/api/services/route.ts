@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const body = await request.json();
-    const { artistId, studioId, name, description, duration, price, popular } = body;
+    const { artistId, studioId, name, description, duration, price, popular, category } = body;
 
     if (!name || !price || (!artistId && !studioId)) {
       return NextResponse.json({ error: "name, price, and artistId or studioId required" }, { status: 400 });
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
         artistId: artistId ? String(artistId) : null,
         studioId: studioId ? String(studioId) : null,
         popular: popular || false,
+        category: category || "event",
       })
       .returning();
 
@@ -89,7 +90,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const body = await request.json();
-    const { id, name, description, duration, price, popular } = body;
+    const { id, name, description, duration, price, popular, category } = body;
 
     if (!id) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -134,6 +135,7 @@ export async function PUT(request: NextRequest) {
         duration: duration !== undefined ? duration : undefined,
         price: price ?? undefined,
         popular: popular !== undefined ? popular : undefined,
+        category: category !== undefined ? category : undefined,
       })
       .where(eq(services.id, Number(id)))
       .returning();
