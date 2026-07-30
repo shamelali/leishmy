@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Sparkles, Trash2, ArrowLeft, Hotel } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, Hotel, AlertCircle } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
@@ -10,6 +10,7 @@ export default function ArtistServices() {
   const { user } = useAuth();
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [artistId, setArtistId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", duration: "", price: "" });
@@ -39,7 +40,7 @@ export default function ArtistServices() {
       .then((data) => {
         if (data?.services) setServices(data.services);
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load services"))
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -163,7 +164,12 @@ export default function ArtistServices() {
         </button>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="text-center py-16">
+          <AlertCircle className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+          <p className="text-red-500 dark:text-red-400">{error}</p>
+        </div>
+      ) : loading ? (
         <DashboardLoading />
       ) : services.length === 0 ? (
         <div className="text-center py-16">

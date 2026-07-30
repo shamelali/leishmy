@@ -14,6 +14,7 @@ export default function InspirationPage() {
   const [items, setItems] = useState<any[]>([]);
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [boardName, setBoardName] = useState("");
   const [boardDescription, setBoardDescription] = useState("");
@@ -34,7 +35,7 @@ export default function InspirationPage() {
           setActiveBoardId(data.boards[0].id);
         }
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load inspiration"))
       .finally(() => setLoading(false));
   }, [user, authLoading, router, activeBoardId]);
 
@@ -81,6 +82,20 @@ export default function InspirationPage() {
 
   const boardItems = items.filter((i) => i.boardId === activeBoardId);
   const activeBoard = boards.find((b) => b.id === activeBoardId);
+
+  if (error) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="text-center">
+          <ImageIcon className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+          <p className="text-red-500 dark:text-red-400 text-lg">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-rose-600 hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || loading || !user) {
     return (

@@ -11,6 +11,7 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -24,7 +25,7 @@ export default function SubscriptionPage() {
     fetch(`/api/subscriptions?action=my`)
       .then((r) => r.json())
       .then((data) => setSubscription(data.subscription))
-      .catch(console.error)
+      .catch(() => setError("Failed to load subscription"))
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 
@@ -48,6 +49,20 @@ export default function SubscriptionPage() {
       setShowConfirm(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+          <p className="text-red-500 dark:text-red-400 text-lg">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-rose-600 hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || loading) {
     return (

@@ -47,6 +47,7 @@ function formatTime(time: string) {
 export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -57,7 +58,7 @@ export default function EventsPage() {
     fetch(`/api/events?${params.toString()}`)
       .then((r) => r.json())
       .then(setEvents)
-      .catch(console.error)
+      .catch(() => setError("Failed to load events"))
       .finally(() => setLoading(false));
   }, [category, search]);
   return (
@@ -104,7 +105,13 @@ export default function EventsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
+            {error ? (
+              <div className="col-span-full text-center py-16">
+                <Calendar className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+                <p className="text-red-500 dark:text-red-400 text-lg">{error}</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Please try again later.</p>
+              </div>
+            ) : loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-neutral-800">
                   <Skeleton className="aspect-[2/1]" />

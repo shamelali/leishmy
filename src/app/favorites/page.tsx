@@ -13,6 +13,7 @@ export default function FavoritesPage() {
   const { favorites, removeFavorite } = useFavorites();
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [allArtists, setAllArtists] = useState<any[]>([]);
 
@@ -34,7 +35,7 @@ export default function FavoritesPage() {
         setAllArtists(favArtists);
         setArtists(favArtists.slice(0, PER_PAGE));
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load favorites"))
       .finally(() => setLoading(false));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [favorites]);
@@ -60,7 +61,12 @@ export default function FavoritesPage() {
           </span>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="text-center py-16">
+            <p className="text-red-500 dark:text-red-400 text-lg">{error}</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Please try again later.</p>
+          </div>
+        ) : loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div

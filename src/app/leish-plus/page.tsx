@@ -56,6 +56,7 @@ export default function LeishPlusPage() {
   const router = useRouter();
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function LeishPlusPage() {
         const popular = data.plans?.find((p: any) => p.popular);
         setPlan(popular || data.plans?.[0] || null);
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load subscription plans"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -144,7 +145,11 @@ export default function LeishPlusPage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-rose-600 text-white text-xs font-bold rounded-full">
                 BEST VALUE
               </div>
-              {loading ? (
+              {error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-500 dark:text-red-400">{error}</p>
+                </div>
+              ) : loading ? (
                 <div className="space-y-4 py-4">
                   <div className="h-6 w-3/4 mx-auto bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />
                   <div className="h-4 w-1/2 mx-auto bg-gray-200 dark:bg-neutral-800 rounded animate-pulse" />

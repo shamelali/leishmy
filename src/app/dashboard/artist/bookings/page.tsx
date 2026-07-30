@@ -10,6 +10,7 @@ export default function ArtistBookings() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function ArtistBookings() {
       .then((data) => {
         if (data?.bookings) setBookings(data.bookings);
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load bookings"))
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -50,7 +51,12 @@ export default function ArtistBookings() {
           </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="text-center py-16">
+            <AlertCircle className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+            <p className="text-red-500 dark:text-red-400">{error}</p>
+          </div>
+        ) : loading ? (
           <DashboardLoading />
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">

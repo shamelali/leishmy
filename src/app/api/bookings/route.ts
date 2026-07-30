@@ -8,6 +8,7 @@ import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
+import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -574,6 +575,10 @@ export async function PATCH(request: NextRequest) {
         }
       }
     }
+
+    revalidatePath("/bookings");
+    revalidatePath("/dashboard/artist");
+    revalidatePath("/bookings/" + id);
 
     return NextResponse.json({ booking: updated });
   } catch (error) {

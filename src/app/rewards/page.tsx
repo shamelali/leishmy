@@ -23,6 +23,7 @@ export default function RewardsPage() {
   const [nextTier, setNextTier] = useState<any>(null);
   const [allTiers, setAllTiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,9 +41,22 @@ export default function RewardsPage() {
         setNextTier(data.nextTier);
         setAllTiers(data.allTiers || []);
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load loyalty data"))
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
+
+  if (error) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 dark:text-red-400 text-lg">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-rose-600 hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || loading || !user) {
     return (

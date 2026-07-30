@@ -14,6 +14,7 @@ function pct(num: number, denom: number): string {
 export default function AdminReports() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [detailView, setDetailView] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -22,7 +23,7 @@ export default function AdminReports() {
     fetch("/api/admin?action=overview")
       .then((r) => r.json())
       .then((json) => { if (json?.totalUsers !== undefined) setData(json); })
-      .catch(console.error)
+      .catch(() => setError("Failed to load reports"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,6 +38,20 @@ export default function AdminReports() {
     } catch (e) { console.error(e); }
     setDetailLoading(false);
   };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <BarChart3 className="w-12 h-12 text-red-300 dark:text-red-600 mx-auto mb-4" />
+          <p className="text-red-500 dark:text-red-400">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-rose-600 hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <DashboardLoading fullPage />;

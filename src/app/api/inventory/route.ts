@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { studioInventory, profiles } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { getAuthSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -69,6 +70,60 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Inventory POST error:", error);
     return NextResponse.json({ error: "Failed to create item" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const body = await request.json();
+    const { id, name, category, quantity, notes, lowStockThreshold } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    const [existing] = await db
+      .select({ studioId: studioInventory.studioId })
+      .from(studioInventory)
+      .where(eq(studioInventory.id, Number(id)))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    const [studio] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, existing.studioId), eq(profiles.role, "studio")))
+      .limit(1);
+
+    if (!studio || studio.userId !== session.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const [updated] = await db
+      .update(studioInventory)
+      .set({
+        name: name ?? undefined,
+        category: category !== undefined ? category : undefined,
+        quantity: quantity != null ? Number(quantity) : undefined,
+        notes: notes !== undefined ? notes : undefined,
+        lowStockThreshold: lowStockThreshold != null ? Number(lowStockThreshold) : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(studioInventory.id, Number(id)))
+      .returning();
+
+    revalidatePath("/dashboard/studio/inventory");
+    return NextResponse.json({ success: true, item: updated });
+  } catch (error) {
+    console.error("Inventory PUT error:", error);
+    return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
   }
 }
 

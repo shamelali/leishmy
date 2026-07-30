@@ -39,7 +39,7 @@ export default function ArtistPortfolio() {
             .map((url, i) => ({ url, publicId: `existing-${i}` })),
         );
       })
-      .catch(console.error)
+      .catch(() => { if (!cancelled) setError("Failed to load portfolio"); })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });

@@ -67,35 +67,20 @@ export async function POST(request: NextRequest) {
       await handleUpdateEvent(body);
       break;
     default:
-      console.log("Unhandled Cloudinary event:", body.event);
+      break;
   }
 
   return NextResponse.json({ success: true });
 }
 
 async function handleDeleteEvent(body: Record<string, any>) {
-  // body contains: public_id, resource_type, type, etc.
-  const { public_id, resource_type } = body;
-  console.log(`Cloudinary delete: ${public_id} (${resource_type})`);
-  // Could trigger local DB cleanup if tracking assets
 }
 
 async function handleUploadEvent(body: Record<string, any>) {
-  // body contains: public_id, secure_url, width, height, format, bytes, etc.
-  const { public_id, secure_url, width, height, format, bytes, tags, context } =
-    body;
-  console.log(`Cloudinary upload: ${public_id} (${format}, ${bytes} bytes)`);
-  // Could store asset metadata in DB, trigger processing, etc.
 }
 
 async function handleReplaceEvent(body: Record<string, any>) {
-  // Similar to upload but for asset replacement
-  const { public_id, secure_url } = body;
-  console.log(`Cloudinary replace: ${public_id}`);
 }
 
 async function handleUpdateEvent(body: Record<string, any>) {
-  // Metadata updates (tags, context, etc.)
-  const { public_id, tags, context } = body;
-  console.log(`Cloudinary update: ${public_id}`);
 }
