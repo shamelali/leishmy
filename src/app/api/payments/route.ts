@@ -8,6 +8,7 @@ import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { rateLimitApi } from "@/lib/rate-limit-api";
 import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
+import { createBillSchema, registerBankSchema, qrPaymentSchema, releasePaymentSchema, refundPaymentSchema } from "@/lib/validations/payments";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -171,16 +172,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (action === "create-bill") {
-      const session = await getAuthSession();
-
-      const { bookingId, description, name, email, phone, idempotencyKey } = body;
-
-      if (!bookingId) {
+      const parsed = createBillSchema.safeParse(body);
+      if (!parsed.success) {
         return NextResponse.json(
-          { error: "bookingId is required" },
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
           { status: 400 },
         );
       }
+
+      const session = await getAuthSession();
+
+      const { bookingId, description, name, email, phone, idempotencyKey } = parsed.data;
 
       // Idempotency: prevent duplicate bill creation on retry
       if (idempotencyKey) {
@@ -301,13 +303,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "register-bank") {
+      const parsed = registerBankSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
       const session = await getAuthSession();
-      const { userId, bankName, accountNumber, accountHolder } = body;
+      const { userId, bankName, accountNumber, accountHolder } = parsed.data;
       if (!session || session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-      if (!userId || !bankName || !accountNumber || !accountHolder) {
-        return NextResponse.json({ error: "All bank fields required" }, { status: 400 });
       }
 
       const [bank] = await db
@@ -421,17 +428,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "qr-payment") {
+      const parsed = qrPaymentSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
       const session = await getAuthSession();
       if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const { bookingId } = body;
-      if (!bookingId) {
-        return NextResponse.json(
-          { error: "bookingId is required" },
-          { status: 400 },
-        );
-      }
+      const { bookingId } = parsed.data;
       const [booking] = await db
         .select()
         .from(bookings)
@@ -505,14 +514,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "release") {
+      const parsed = releasePaymentSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
       const session = await getAuthSession();
       if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const { paymentId } = body;
-      if (!paymentId) {
-        return NextResponse.json({ error: "paymentId required" }, { status: 400 });
-      }
+      const { paymentId } = parsed.data;
 
       const [payment] = await db
         .select()
@@ -536,14 +550,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "refund") {
+      const parsed = refundPaymentSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
       const session = await getAuthSession();
       if (!session || !hasAdminAccess(session)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const { paymentId } = body;
-      if (!paymentId) {
-        return NextResponse.json({ error: "paymentId required" }, { status: 400 });
-      }
+      const { paymentId } = parsed.data;
 
       const [payment] = await db
         .select()

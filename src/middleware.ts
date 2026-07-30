@@ -45,9 +45,15 @@ function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
 }
 
+function generateNonce(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 // --- Middleware ---
 
-function withSecurityHeaders(res: NextResponse) {
+function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-XSS-Protection", "1; mode=block");
@@ -56,9 +62,10 @@ function withSecurityHeaders(res: NextResponse) {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), interest-cohort=()",
   );
+  res.headers.set("x-nonce", nonce);
   res.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com; frame-src 'none'; object-src 'none'",
+    `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com; frame-src 'none'; object-src 'none'`,
   );
   return res;
 }
@@ -69,6 +76,7 @@ const authMiddleware = auth.middleware({
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const nonce = generateNonce();
 
   if (
     (pathname.startsWith("/dashboard/") || pathname === "/dashboard") &&
@@ -76,13 +84,13 @@ export async function middleware(request: NextRequest) {
   ) {
     const response = await authMiddleware(request);
     if (response) {
-      return withSecurityHeaders(response);
+      return withSecurityHeaders(response, nonce);
     }
   }
 
   if (pathname.startsWith("/api")) {
     if (isPublicApiPath(pathname)) {
-      return withSecurityHeaders(NextResponse.next());
+      return withSecurityHeaders(NextResponse.next(), nonce);
     }
 
     if (isProtectedApi(pathname) && !hasSessionCookie(request)) {
@@ -104,7 +112,7 @@ export async function middleware(request: NextRequest) {
       res.headers.set("X-RateLimit-Limit", "60");
       res.headers.set("X-RateLimit-Remaining", String(remaining));
       res.headers.set("X-RateLimit-Reset", String(reset));
-      return withSecurityHeaders(res);
+      return withSecurityHeaders(res, nonce);
     }
   }
 
@@ -114,7 +122,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return withSecurityHeaders(NextResponse.next());
+  return withSecurityHeaders(NextResponse.next(), nonce);
 }
 
 export const config = {

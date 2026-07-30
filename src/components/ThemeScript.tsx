@@ -2,11 +2,12 @@
 
 import Script from "next/script";
 
-export function ThemeScript() {
+export function ThemeScript({ nonce }: { nonce?: string }) {
   return (
     <Script
       id="theme-init"
       strategy="afterInteractive"
+      nonce={nonce}
       dangerouslySetInnerHTML={{
         __html: `
           (function() {

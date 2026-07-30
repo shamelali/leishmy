@@ -4,6 +4,7 @@ import { reviews } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { limit } from "@/lib/rate-limit";
+import { createReviewSchema } from "@/lib/validations/reviews";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,24 +18,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const body = await request.json();
-    const { artistId, studioId, author, rating, text, service, userId } = body;
+    const parsed = createReviewSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const { artistId, studioId, author, rating, text, service, userId } = parsed.data;
 
     if (userId && userId !== session.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!author || !rating) {
-      return NextResponse.json(
-        { error: "author and rating are required" },
-        { status: 400 },
-      );
-    }
-
-    if (rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { error: "rating must be between 1 and 5" },
-        { status: 400 },
-      );
     }
 
     const [review] = await db

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CheckCircle, Upload, X, Save, Loader2 } from "lucide-react";
 import { malaysiaDistricts, initialStates } from "@/data/malaysia-districts";
 import { useAuth } from "@/context/AuthContext";
@@ -97,8 +98,8 @@ export function ArtistProfileEditForm({
     const otherEntry = initial.specialties.find((s) => s.startsWith("Other:"));
     return otherEntry ? otherEntry.slice(7).trim() : "";
   });
-  const [responseTime, setResponseTime] = useState(initial.responseTime);
-  const [price, setPrice] = useState(initial.price);
+const [responseTime, setResponseTime] = useState(initial.responseTime);
+
   const [portfolio, setPortfolio] = useState<string[]>(initial.portfolio);
   const [uploading, setUploading] = useState(false);
   const [portfolioLinks, setPortfolioLinks] = useState(
@@ -273,7 +274,6 @@ export function ArtistProfileEditForm({
                   : []),
             ],
             responseTime,
-            price: Number(price) || 0,
             portfolio: allPortfolio,
             certifications: certifications.trim(),
             availability: availabilityValue,
@@ -322,7 +322,7 @@ export function ArtistProfileEditForm({
         ],
         portfolio: allPortfolio,
         responseTime,
-        price: Number(price) || 0,
+        price: initial.price,
         certifications: certifications.trim(),
         availability: availabilityValue,
         availabilityNotes,
@@ -499,39 +499,31 @@ export function ArtistProfileEditForm({
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Hourly Rate (MYR)
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={price}
-            onChange={(e) => setPrice(Number(e.target.value))}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Years of Experience
-          </label>
-          <input
-            type="number"
-            min="0"
-            max="80"
-            value={experience}
-            onChange={(e) => setExperience(Number(e.target.value))}
-            className={`w-full px-4 py-2.5 rounded-xl border ${
-              fieldErrors.experience
-                ? "border-red-400 dark:border-red-500"
-                : "border-gray-200 dark:border-neutral-700"
-            } bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none`}
-          />
-          {fieldErrors.experience && (
-            <p className="text-xs text-red-500 mt-1">{fieldErrors.experience}</p>
-          )}
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Years of Experience
+        </label>
+        <input
+          type="number"
+          min="0"
+          max="80"
+          value={experience}
+          onChange={(e) => setExperience(Number(e.target.value))}
+          className={`w-full px-4 py-2.5 rounded-xl border ${
+            fieldErrors.experience
+              ? "border-red-400 dark:border-red-500"
+              : "border-gray-200 dark:border-neutral-700"
+          } bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none`}
+        />
+        {fieldErrors.experience && (
+          <p className="text-xs text-red-500 mt-1">{fieldErrors.experience}</p>
+        )}
+        <p className="text-xs text-gray-400 mt-1.5">
+          Starting price is set automatically from your Services — manage it on the{" "}
+          <Link href="/dashboard/artist/services" className="underline hover:text-rose-500">
+            Services page
+          </Link>.
+        </p>
       </div>
 
       <div>

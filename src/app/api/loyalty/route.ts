@@ -9,6 +9,7 @@ import {
   awardPoints,
   redeemPoints,
 } from "@/lib/loyalty";
+import { awardPointsSchema, redeemPointsSchema } from "@/lib/validations/loyalty";
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +60,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "award") {
-      const { source, referenceId, description } = body;
+      const parsed = awardPointsSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
+      const { source, referenceId, description } = parsed.data;
       const result = await awardPoints(userId, source, referenceId, description);
       if (result === null) {
         return NextResponse.json({ error: "Unknown reward source" }, { status: 400 });
@@ -68,10 +77,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "redeem") {
-      const { amount, referenceId } = body;
-      if (!amount || amount <= 0) {
-        return NextResponse.json({ error: "Valid amount required" }, { status: 400 });
+      const parsed = redeemPointsSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
       }
+
+      const { amount, referenceId } = parsed.data;
       const result = await redeemPoints(userId, amount, referenceId);
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 400 });

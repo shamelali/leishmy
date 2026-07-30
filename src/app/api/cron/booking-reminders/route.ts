@@ -4,19 +4,10 @@ import { db } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { sendMessage } from "@/lib/notifications/whatsapp";
-
-const CRON_SECRET_HEADER = "x-cron-secret";
-
-function isValidRequest(request: Request): boolean {
-  const secret = request.headers.get(CRON_SECRET_HEADER);
-  if (secret && secret === process.env.CRON_SECRET) return true;
-  const url = new URL(request.url);
-  const querySecret = url.searchParams.get("secret");
-  return !!querySecret && querySecret === process.env.CRON_SECRET;
-}
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 export async function POST(request: Request) {
-  if (!isValidRequest(request)) {
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -47,13 +38,22 @@ export async function POST(request: Request) {
       )
       .limit(100);
 
-    for (const booking of upcomingBookings) {
-      const [user] = await db
-        .select({ name: users.name, phone: users.phone, email: users.email })
-        .from(users)
-        .where(eq(users.id, booking.userId))
-        .limit(1);
+    const userIds = [...new Set(upcomingBookings.map((b) => b.userId).filter(Boolean))] as string[];
+    const userMap = new Map<string, { name: string | null; phone: string | null; email: string | null }>();
 
+    if (userIds.length > 0) {
+      const usersResult = await db
+        .select({ id: users.id, name: users.name, phone: users.phone, email: users.email })
+        .from(users)
+        .where(inArray(users.id, userIds));
+
+      for (const user of usersResult) {
+        userMap.set(user.id, { name: user.name, phone: user.phone, email: user.email });
+      }
+    }
+
+    for (const booking of upcomingBookings) {
+      const user = booking.userId ? userMap.get(booking.userId) : null;
       if (!user) continue;
 
       if (user.phone) {

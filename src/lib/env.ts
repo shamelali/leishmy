@@ -16,13 +16,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   NEXT_PUBLIC_FB_PIXEL_ID: z.string().optional(),
-  CRON_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().min(1, "CRON_SECRET is required"),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_KEY: z.string().optional(),
-  NEON_AUTH_BASE_URL: z.string().min(1, "NEON_AUTH_BASE_URL is required").optional(),
-  NEON_AUTH_COOKIE_SECRET: z.string().min(32, "NEON_AUTH_COOKIE_SECRET must be at least 32 characters").optional(),
+  NEON_AUTH_BASE_URL: z.string().min(1, "NEON_AUTH_BASE_URL is required"),
+  NEON_AUTH_COOKIE_SECRET: z.string().min(32, "NEON_AUTH_COOKIE_SECRET must be at least 32 characters"),
   NEXT_PUBLIC_NEON_AUTH_BASE_URL: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -41,19 +41,22 @@ if (!parsed.success) {
 }
 
 if (parsed.success && parsed.data.NODE_ENV === "production") {
-  const required = [
+  const requiredInProduction = [
     "CLOUDINARY_CLOUD_NAME",
     "CLOUDINARY_API_KEY",
     "CLOUDINARY_API_SECRET",
     "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME",
+    "BILLPLZ_API_KEY",
+    "BILLPLZ_COLLECTION_ID",
+    "BILLPLZ_API_URL",
   ] as const;
-  const missing = required.filter(
+  const missing = requiredInProduction.filter(
     (k) => !parsed.data[k as keyof typeof parsed.data],
   );
   if (missing.length > 0) {
     console.warn(
-      `[env] Cloudinary env vars missing in production: ${missing.join(", ")}. ` +
-        "Uploads, delivery, and the sweep cron will fail until these are set.",
+      `[env] Missing required production env vars: ${missing.join(", ")}. ` +
+        "Related features will fail until these are set.",
     );
   }
 }

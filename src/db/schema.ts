@@ -162,7 +162,12 @@ export const services = pgTable("services", {
   }),
   popular: boolean("popular").default(false),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-});
+},
+(table) => [
+  index("services_artist_id_idx").on(table.artistId),
+  index("services_studio_id_idx").on(table.studioId),
+],
+);
 
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),
@@ -179,7 +184,12 @@ export const reviews = pgTable("reviews", {
     onDelete: "cascade",
   }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-});
+},
+(table) => [
+  index("reviews_artist_id_idx").on(table.artistId),
+  index("reviews_studio_id_idx").on(table.studioId),
+],
+);
 
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
@@ -213,7 +223,15 @@ export const bookings = pgTable("bookings", {
   remainingPaymentSent: boolean("remaining_payment_sent").default(false),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
-});
+},
+(table) => [
+  index("bookings_user_id_idx").on(table.userId),
+  index("bookings_artist_id_idx").on(table.artistId),
+  index("bookings_date_idx").on(table.date),
+  index("bookings_status_idx").on(table.status),
+  index("bookings_user_status_idx").on(table.userId, table.status),
+],
+);
 
 export const favorites = pgTable(
   "favorites",
@@ -265,7 +283,12 @@ export const payments = pgTable("payments", {
   releasedAt: timestamp("released_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
-});
+},
+(table) => [
+  index("payments_booking_id_idx").on(table.bookingId),
+  index("payments_status_idx").on(table.status),
+],
+);
 
 export const payouts = pgTable("payouts", {
   id: serial("id").primaryKey(),

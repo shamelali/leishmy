@@ -5,6 +5,8 @@ import { eq, and, desc } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/brevo";
 import { limit } from "@/lib/rate-limit";
 import { getSession } from "@/lib/auth/auth";
+import { escapeHtml } from "@/lib/html-escape";
+import { createInquirySchema } from "@/lib/validations/inquiries";
 import * as Sentry from "@sentry/nextjs";
 
 export async function POST(request: NextRequest) {
@@ -16,14 +18,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { artistId, name, email, phone, location, message } = body;
-
-    if (!artistId || !name || !email || !message) {
+    const parsed = createInquirySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+
+    const { artistId, name, email, phone, location, message } = parsed.data;
 
     if (phone && !/^(\+?6?0)\d{8,11}$/.test(phone.replace(/[\s-]/g, ""))) {
       return NextResponse.json(
@@ -58,13 +61,13 @@ export async function POST(request: NextRequest) {
     if (artist.email) {
       sendEmail({
         to: artist.email,
-        subject: `New Inquiry from ${name}`,
-        html: `<p><strong>Name:</strong> ${name}</p>
-<p><strong>Email:</strong> ${email}</p>
-${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-${location ? `<p><strong>Location:</strong> ${location}</p>` : ""}
+        subject: `New Inquiry from ${escapeHtml(name)}`,
+        html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p>
+<p><strong>Email:</strong> ${escapeHtml(email)}</p>
+${phone ? `<p><strong>Phone:</strong> ${escapeHtml(phone)}</p>` : ""}
+${location ? `<p><strong>Location:</strong> ${escapeHtml(location)}</p>` : ""}
 <p><strong>Message:</strong></p>
-<p>${message}</p>
+<p>${escapeHtml(message)}</p>
 <hr/>
 <p style="color:#666;font-size:12px;">This inquiry was sent via your Leish artist profile.</p>`,
         text: `New Inquiry from ${name}\n\nName: ${name}\nEmail: ${email}${phone ? `\nPhone: ${phone}` : ""}${location ? `\nLocation: ${location}` : ""}\nMessage:\n${message}\n\n---\nThis inquiry was sent via your Leish artist profile.`,

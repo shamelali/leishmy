@@ -4,6 +4,7 @@ import { payments, payouts, bookings, notifications } from "@/db/schema";
 import { awardPoints } from "@/lib/loyalty";
 import { eq, sql, and, lte } from "drizzle-orm";
 import { Redis } from "@upstash/redis";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,12 +12,7 @@ export const maxDuration = 300;
 
 const LOCK_KEY = "leish:auto-release:lock";
 const LOCK_TTL_SECONDS = 10 * 60;
-const CRON_SECRET_HEADER = "x-cron-secret";
 const COOLING_DAYS = 3;
-
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
 
 function getRedis() {
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
@@ -51,10 +47,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const headerSecret = request.headers.get(CRON_SECRET_HEADER);
-  const urlSecret = new URL(request.url).searchParams.get("secret");
-  const provided = headerSecret || urlSecret || "";
-  if (provided !== expected) return unauthorized();
+  if (!verifyCronSecret(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!(await acquireLock())) {
     return NextResponse.json(

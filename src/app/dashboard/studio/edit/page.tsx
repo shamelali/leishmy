@@ -21,7 +21,6 @@ export default function StudioEdit() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -35,7 +34,6 @@ export default function StudioEdit() {
           setPhone(data.studio.phone || "");
           setLocation(data.studio.location || "");
           setDescription(data.studio.description || "");
-          setPrice(String(data.studio.price || ""));
         }
       } catch {
         setFetchError("Failed to load studio profile");
@@ -51,7 +49,7 @@ export default function StudioEdit() {
       const res = await fetch("/api/user/studio-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, image, phone, location, description, price: price ? Number(price) : 0 }),
+        body: JSON.stringify({ name, image, phone, location, description }),
       });
       if (res.ok) {
         setSuccess(true);
@@ -128,26 +126,17 @@ export default function StudioEdit() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Starting Price (MYR)</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              min="0"
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+          <input
+            type="text"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white"
+          />
+          <p className="text-xs text-gray-400 mt-1.5">
+            Starting price is set automatically from your Services, not entered here.
+          </p>
         </div>
 
         <div>

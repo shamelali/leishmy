@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, profiles, notifications, referrals } from "@/db/schema";
+import { bookings, users, profiles, notifications, referrals, services } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
@@ -10,6 +10,7 @@ import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
+import { createBookingSchema, updateBookingSchema } from "@/lib/validations/bookings";
 
 export const runtime = "nodejs";
 
@@ -64,23 +65,50 @@ async function ensureCustomer(
   return { id: newId, name: body.clientName || body.name || "Guest", email, phone: body.phone || body.clientPhone || null };
 }
 
-async function resolveAmount(_body: any, artistId: string | null): Promise<string> {
-  if (artistId) {
-    const [artist] = await db
-      .select({ price: profiles.price })
-      .from(profiles)
-      .where(and(eq(profiles.userId, artistId), eq(profiles.role, "artist")))
-      .limit(1);
-    if (artist?.price) return String(artist.price);
+async function resolveAmount(
+  serviceId: number | string | null,
+  artistId: string | null,
+  studioId: string | null,
+): Promise<{ amount: string; serviceName: string } | { error: string }> {
+  if (!serviceId) {
+    return { error: "serviceId is required — price must be resolved from a specific service" };
   }
-  return "0";
+
+  const [service] = await db
+    .select({ id: services.id, name: services.name, price: services.price, artistId: services.artistId, studioId: services.studioId })
+    .from(services)
+    .where(eq(services.id, Number(serviceId)))
+    .limit(1);
+
+  if (!service) {
+    return { error: "Selected service not found" };
+  }
+
+  // Ensure the service actually belongs to the provider being booked
+  const belongsToArtist = artistId && service.artistId === artistId;
+  const belongsToStudio = studioId && service.studioId === studioId;
+  if (!belongsToArtist && !belongsToStudio) {
+    return { error: "Selected service does not belong to this provider" };
+  }
+
+  return { amount: String(service.price), serviceName: service.name };
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { artistId, studioId, serviceId, date, time } = body;
+    const parsed = createBookingSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const { artistId, studioId, serviceId, date, time } = parsed.data;
     const artistIdStr = artistId ? String(artistId) : null;
+    const serviceIdNum = serviceId ? Number(serviceId) : null;
+    const studioIdStr = studioId ? String(studioId) : null;
 
     const session = await getAuthSession();
     const customer = await ensureCustomer(body, session);
@@ -91,9 +119,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amount = await resolveAmount(body, artistIdStr);
-
-    const serviceName = body.service || (serviceId ? `Service #${serviceId}` : "Beauty Service");
+    const resolved = await resolveAmount(serviceIdNum, artistIdStr, studioIdStr);
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    const amount = resolved.amount;
+    const serviceName = resolved.serviceName;
 
     const normalizedService = serviceName.toLowerCase();
     let depositPercentage: number;
@@ -147,7 +178,7 @@ export async function POST(request: NextRequest) {
           and(
             eq(bookings.artistId, artistIdStr),
             eq(bookings.date, new Date(date)),
-            eq(bookings.time, time || null),
+            eq(bookings.time, time ?? null as unknown as string),
             inArray(bookings.status, ["pending", "confirmed"]),
           ),
         )
@@ -166,9 +197,9 @@ export async function POST(request: NextRequest) {
       .values({
         userId: customer.id,
         artistId: artistIdStr,
-        studioId: studioId || null,
+        studioId: studioId ? String(studioId) : null,
         serviceId: serviceId || null,
-        service: body.service || null,
+        service: serviceName,
         notes: body.notes || null,
         location: body.location || null,
         placeId: body.placeId || null,
@@ -506,10 +537,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, status } = body;
-    if (!id || !status) {
-      return NextResponse.json({ error: "id and status required" }, { status: 400 });
+    const parsed = updateBookingSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
+
+    const { id, status } = parsed.data;
 
     const allowedStatuses = ["cancelled"];
     if (!allowedStatuses.includes(status)) {

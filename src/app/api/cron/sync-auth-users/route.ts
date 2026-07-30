@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/db";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
-
-const CRON_SECRET_HEADER = "x-cron-secret";
 
 /**
  * POST /api/cron/sync-auth-users
@@ -23,10 +22,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const headerSecret = request.headers.get(CRON_SECRET_HEADER);
-  const urlSecret = new URL(request.url).searchParams.get("secret");
-  const provided = headerSecret || urlSecret || "";
-  if (provided !== expected) {
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

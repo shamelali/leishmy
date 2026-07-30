@@ -213,6 +213,7 @@ export function BookingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           artistId,
+          serviceId: selectedService?.id,
           clientName: name,
           clientEmail: email,
           service,

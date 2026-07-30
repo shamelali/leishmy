@@ -687,7 +687,9 @@ export async function POST(
 
       const updateData: Record<string, unknown> = {};
       if (body.description !== undefined) updateData.description = body.description;
-      if (body.price !== undefined) updateData.price = String(body.price);
+      // Note: price is deliberately not accepted here. profiles.price is derived
+      // solely from MIN(services.price) via syncProviderPrice() in /api/services —
+      // manage pricing by editing services, not this profile form.
 
       const userUpdateData: Record<string, unknown> = {};
       if (typeof body.name === "string" && body.name.trim()) {

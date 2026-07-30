@@ -3,6 +3,7 @@ import "@/instrumentation-client";
 import * as Sentry from "@sentry/nextjs";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -37,17 +38,19 @@ import AccessibilityMenu from "@/components/AccessibilityMenu";
 import { WhatsAppChatbot } from "@/components/WhatsAppChatbot";
 import Script from "next/script";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  const hdrs = await headers();
+  const nonce = hdrs.get("x-nonce") || undefined;
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <ThemeScript />
+        <ThemeScript nonce={nonce} />
         <link rel="manifest" href="/manifest.json" />
           {gaId && (
             <>
-              <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
-              <Script id="google-analytics" strategy="afterInteractive">
+              <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" nonce={nonce} />
+              <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
                 {`
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
@@ -59,7 +62,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           )}
           {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (
             <>
-              <Script id="meta-pixel" strategy="afterInteractive">
+              <Script id="meta-pixel" strategy="afterInteractive" nonce={nonce}>
                 {`
                   !function(f,b,e,v,n,t,s)
                   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?

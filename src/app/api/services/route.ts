@@ -5,16 +5,20 @@ import { eq, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getAuthSession } from "@/lib/auth/server";
 
-async function syncArtistPrice(artistId: string) {
+// Single source of truth for profiles.price: always derived from MIN(services.price)
+// for that provider. Nothing else should ever write to profiles.price directly —
+// see ArtistProfileEditForm / studio edit page, where the old manual price field
+// was removed for exactly this reason.
+async function syncProviderPrice(providerId: string) {
   const [result] = await db
     .select({ minPrice: sql<number>`COALESCE(MIN(${services.price}), 0)::numeric` })
     .from(services)
-    .where(eq(services.artistId, artistId));
+    .where(sql`${services.artistId} = ${providerId} OR ${services.studioId} = ${providerId}`);
 
   await db
     .update(profiles)
     .set({ price: String(result.minPrice), updatedAt: new Date() })
-    .where(eq(profiles.userId, artistId));
+    .where(eq(profiles.userId, providerId));
 }
 
 export async function GET(request: NextRequest) {
@@ -65,9 +69,10 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Sync artist's starting price to minimum service price
-    if (artistId) {
-      await syncArtistPrice(artistId);
+    // Sync provider's starting price to minimum service price
+    const providerId = artistId ? String(artistId) : studioId ? String(studioId) : null;
+    if (providerId) {
+      await syncProviderPrice(providerId);
     }
 
     return NextResponse.json({ success: true, service }, { status: 201 });
@@ -134,10 +139,13 @@ export async function PUT(request: NextRequest) {
       .returning();
 
     if (existing.artistId) {
-      await syncArtistPrice(existing.artistId);
+      await syncProviderPrice(existing.artistId);
+    } else if (existing.studioId) {
+      await syncProviderPrice(existing.studioId);
     }
 
     revalidatePath("/dashboard/artist/services");
+    revalidatePath("/dashboard/studio/services");
     return NextResponse.json({ success: true, service: updated });
   } catch (error) {
     console.error("Services PUT error:", error);
@@ -158,18 +166,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    // Get artistId before deleting to sync price
+    // Get provider id before deleting to sync price
     const [service] = await db
-      .select({ artistId: services.artistId })
+      .select({ artistId: services.artistId, studioId: services.studioId })
       .from(services)
       .where(eq(services.id, Number(id)))
       .limit(1);
 
     await db.delete(services).where(eq(services.id, Number(id)));
 
-    // Sync artist's starting price to minimum service price
+    // Sync provider's starting price to minimum service price
     if (service?.artistId) {
-      await syncArtistPrice(service.artistId);
+      await syncProviderPrice(service.artistId);
+    } else if (service?.studioId) {
+      await syncProviderPrice(service.studioId);
     }
 
     return NextResponse.json({ success: true });
