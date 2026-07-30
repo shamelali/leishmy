@@ -65,7 +65,7 @@ function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("x-nonce", nonce);
   res.headers.set(
     "Content-Security-Policy",
-    `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com; frame-src 'none'; object-src 'none'`,
+    `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com; frame-src 'none'; object-src 'none'`,
   );
   return res;
 }
