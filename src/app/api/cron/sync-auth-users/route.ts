@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/db";
 import { verifyCronSecret } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron-tracking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,10 +41,12 @@ export async function POST(request: NextRequest) {
     const orphans = orphanResult.rows;
 
     if (orphans.length === 0) {
+      await recordCronRun("sync-auth-users", "success", "No orphaned users found");
       return NextResponse.json({ success: true, orphansFound: 0, deleted: 0 });
     }
 
     if (dryRun) {
+      await recordCronRun("sync-auth-users", "success", `Dry run: found ${orphans.length} orphans`);
       return NextResponse.json({
         success: true,
         dryRun: true,
@@ -58,6 +61,8 @@ export async function POST(request: NextRequest) {
       deleted++;
     }
 
+    await recordCronRun("sync-auth-users", "success", `Found ${orphans.length} orphans, deleted ${deleted}`);
+
     return NextResponse.json({
       success: true,
       orphansFound: orphans.length,
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[cron/sync-auth-users] error:", err);
+    await recordCronRun("sync-auth-users", "error", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json(
       { error: "Sync failed", message: err instanceof Error ? err.message : "Unknown" },
       { status: 500 },

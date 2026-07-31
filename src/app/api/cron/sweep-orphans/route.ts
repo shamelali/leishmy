@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runSweep } from "@/lib/cloudinary-sweep";
 import { Redis } from "@upstash/redis";
 import { verifyCronSecret } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron-tracking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,9 +77,11 @@ export async function POST(request: NextRequest) {
     }
 
     const summary = await runSweep({ dryRun });
+    await recordCronRun("sweep-orphans", "success", `Scanned ${summary.scanned}, deleted ${summary.deleted}`);
     return NextResponse.json({ success: true, dryRun, ...summary });
   } catch (err) {
     console.error("[cron/sweep-orphans] error:", err);
+    await recordCronRun("sweep-orphans", "error", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json(
       { error: "Sweep failed", message: err instanceof Error ? err.message : "Unknown" },
       { status: 500 },

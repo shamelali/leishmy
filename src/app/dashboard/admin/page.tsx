@@ -8,7 +8,7 @@ import {
   BookOpen, CreditCard, RefreshCw, CheckCircle, XCircle,
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
   ChevronLeft, ChevronRight, Mail, MessageSquare, X, MoreHorizontal,
-  Webhook,
+  Webhook, Activity, Database, Clock, Server, Zap, Globe,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -37,7 +37,7 @@ interface ReceivedEmail {
   createdAt: string;
 }
 
-type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "payouts" | "events" | "inbox" | "webhooks";
+type Tab = "overview" | "artists" | "studios" | "users" | "bookings" | "payments" | "payouts" | "events" | "inbox" | "webhooks" | "monitoring";
 
 interface AdminStats {
   totalUsers: number;
@@ -70,10 +70,38 @@ const tabs: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "events", label: "Events", icon: Calendar },
   { key: "inbox", label: "Inbox", icon: Mail },
   { key: "webhooks", label: "Webhooks", icon: Webhook },
+  { key: "monitoring", label: "Monitoring", icon: Activity },
 ];
 
 interface WebhookEvent { id: number; event: string; status: string; createdAt: string; payload: any; }
 interface WebhookReconcile { paymentId: number; billplzId: string | null; billplzPaid: boolean | null; localStatus: string | null; }
+
+interface MonitoringData {
+  health: {
+    database: "ok" | "error";
+    uptime: string;
+    responseTimeMs: number;
+    memoryUsageMB: number;
+    nodeVersion: string;
+  };
+  services: {
+    name: string;
+    configured: boolean;
+    status: "ok" | "warning" | "error" | "disabled";
+    detail: string;
+    dashboardUrl?: string;
+  }[];
+  cronJobs: {
+    name: string;
+    path: string;
+    configured: boolean;
+    schedule: string;
+    lastRun: string | null;
+    lastStatus: "success" | "error" | "unknown" | null;
+  }[];
+  dbStats: { totalTables: number; totalRows: number };
+  timestamp: string;
+}
 
 function PaymentBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -130,13 +158,32 @@ export default function DashboardAdmin() {
   const [overviewDetail, setOverviewDetail] = useState<string | null>(null);
   const [overviewDetailData, setOverviewDetailData] = useState<any>(null);
   const [overviewDetailLoading, setOverviewDetailLoading] = useState(false);
+  const [monitoringData, setMonitoringData] = useState<MonitoringData | null>(null);
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
+  const [monitoringAutoRefresh, setMonitoringAutoRefresh] = useState(true);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
-    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, payouts: 1, events: 1, inbox: 1, webhooks: 1, overview: 1,
+    artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, payouts: 1, events: 1, inbox: 1, webhooks: 1, overview: 1, monitoring: 1,
   });
   const [total, setTotal] = useState<Record<Tab, number>>({
-    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, payouts: 0, events: 0, inbox: 0, webhooks: 0, overview: 0,
+    artists: 0, studios: 0, users: 0, bookings: 0, payments: 0, payouts: 0, events: 0, inbox: 0, webhooks: 0, overview: 0, monitoring: 0,
   });
+
+  const fetchMonitoring = async () => {
+    setMonitoringLoading(true);
+    try {
+      const res = await fetch("/api/admin/monitoring");
+      if (res.ok) {
+        const data = await res.json();
+        setMonitoringData(data);
+      } else {
+        setFetchError("Failed to load monitoring data");
+      }
+    } catch {
+      setFetchError("Network error loading monitoring data");
+    }
+    setMonitoringLoading(false);
+  };
 
   const fetchData = useCallback(async (t: Tab, p?: number) => {
     setLoading(true);
@@ -174,6 +221,10 @@ export default function DashboardAdmin() {
         } else {
           setFetchError("Failed to load webhook data");
         }
+      } else if (t === "monitoring") {
+        await fetchMonitoring();
+        setLoading(false);
+        return;
       } else if (t === "payouts") {
         const res = await fetch(`/api/admin?action=pending-payouts&page=${currentPage}&pageSize=${pageSize}`);
         if (res.ok) {
@@ -269,6 +320,12 @@ export default function DashboardAdmin() {
       setWebhookSyncing(null);
     }
   };
+
+  useEffect(() => {
+    if (tab !== "monitoring" || !monitoringAutoRefresh) return;
+    const interval = setInterval(fetchMonitoring, 30000);
+    return () => clearInterval(interval);
+  }, [tab, monitoringAutoRefresh]);
 
   const toggleVerify = async (artistId: string, verified: boolean) => {
     setActionLoading(artistId);
@@ -1336,6 +1393,223 @@ export default function DashboardAdmin() {
             </div>
             {total.webhooks > pageSize && (
               <Pagination page={page.webhooks} total={total.webhooks} pageSize={pageSize} onPage={(p) => goToPage("webhooks", p)} />
+            )}
+          </div>
+        )}
+
+        {tab === "monitoring" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={fetchMonitoring}
+                  disabled={monitoringLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${monitoringLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setMonitoringAutoRefresh(!monitoringAutoRefresh)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    monitoringAutoRefresh
+                      ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400"
+                      : "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400"
+                  }`}
+                >
+                  <Activity className={`w-4 h-4 ${monitoringAutoRefresh ? "animate-pulse" : ""}`} />
+                  {monitoringAutoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
+                </button>
+              </div>
+              {monitoringData && (
+                <span className="text-xs text-gray-400">
+                  Last updated: {new Date(monitoringData.timestamp).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+
+            {monitoringLoading && !monitoringData ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+              </div>
+            ) : monitoringData ? (
+              <>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 rounded-xl ${monitoringData.health.database === "ok" ? "bg-green-50 dark:bg-green-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+                        <Database className={`w-5 h-5 ${monitoringData.health.database === "ok" ? "text-green-500" : "text-red-500"}`} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Database</span>
+                    </div>
+                    <p className={`text-2xl font-bold ${monitoringData.health.database === "ok" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      {monitoringData.health.database === "ok" ? "Healthy" : "Error"}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{monitoringData.dbStats.totalTables} tables · {monitoringData.dbStats.totalRows.toLocaleString()} rows</p>
+                  </div>
+                  <div className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30">
+                        <Server className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Server</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{monitoringData.health.uptime}</p>
+                    <p className="text-xs text-gray-400 mt-1">Heap: {monitoringData.health.memoryUsageMB}MB · {monitoringData.health.nodeVersion}</p>
+                  </div>
+                  <div className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30">
+                        <Zap className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Response Time</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{monitoringData.health.responseTimeMs}ms</p>
+                    <p className="text-xs text-gray-400 mt-1">Health check latency</p>
+                  </div>
+                  <div className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/30">
+                        <Clock className="w-5 h-5 text-violet-500" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Cron Jobs</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {monitoringData.cronJobs.filter((j) => j.configured).length}/{monitoringData.cronJobs.length}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Configured jobs</p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-neutral-800">
+                    <h2 className="font-semibold text-gray-900 dark:text-white">External Services</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Status of integrated monitoring and analytics tools</p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-0">
+                    {monitoringData.services.map((service) => (
+                      <div key={service.name} className="p-5 border-b sm:border-r border-gray-100 dark:border-neutral-800 last:border-r-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{service.name}</span>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            service.status === "ok" ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400" :
+                            service.status === "warning" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400" :
+                            service.status === "error" ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400" :
+                            "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              service.status === "ok" ? "bg-green-500" :
+                              service.status === "warning" ? "bg-amber-500" :
+                              service.status === "error" ? "bg-red-500" :
+                              "bg-gray-400"
+                            }`} />
+                            {service.status === "ok" ? "Active" : service.status === "warning" ? "Warning" : service.status === "error" ? "Error" : "Disabled"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{service.detail}</p>
+                        {service.dashboardUrl && (
+                          <a
+                            href={service.dashboardUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Open Dashboard
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-neutral-800">
+                    <h2 className="font-semibold text-gray-900 dark:text-white">Scheduled Cron Jobs</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Automated background tasks and their configuration status</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 dark:bg-neutral-800">
+                        <tr>
+                          <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Job</th>
+                          <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Schedule</th>
+                          <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Config</th>
+                          <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Last Run</th>
+                          <th className="text-left p-3 font-semibold text-gray-600 dark:text-gray-300">Endpoint</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                        {monitoringData.cronJobs.map((job) => (
+                          <tr key={job.path} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
+                            <td className="p-3 font-medium text-gray-900 dark:text-white">{job.name}</td>
+                            <td className="p-3 text-gray-600 dark:text-gray-300">{job.schedule}</td>
+                            <td className="p-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                job.configured
+                                  ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400"
+                                  : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                              }`}>
+                                {job.configured ? "OK" : "Missing"}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {job.lastRun ? (
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    job.lastStatus === "success"
+                                      ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400"
+                                      : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                                  }`}>
+                                    {job.lastStatus === "success" ? "OK" : "Error"}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {new Date(job.lastRun).toLocaleString()}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">Never run</span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono text-xs text-gray-500">{job.path}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-neutral-800">
+                    <h2 className="font-semibold text-gray-900 dark:text-white">Quick Links</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Direct access to external monitoring dashboards</p>
+                  </div>
+                  <div className="p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {monitoringData.services
+                      .filter((s) => s.dashboardUrl)
+                      .map((service) => (
+                        <a
+                          key={service.name}
+                          href={service.dashboardUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors group"
+                        >
+                          <Globe className="w-5 h-5 text-gray-400 group-hover:text-rose-500 transition-colors" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{service.name}</p>
+                            <p className="text-xs text-gray-400">Open dashboard →</p>
+                          </div>
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center text-gray-400">
+                <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Click Refresh to load monitoring data</p>
+              </div>
             )}
           </div>
         )}

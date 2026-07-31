@@ -5,6 +5,7 @@ import { bookings, users } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { sendMessage } from "@/lib/notifications/whatsapp";
 import { verifyCronSecret } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron-tracking";
 
 export async function POST(request: Request) {
   if (!verifyCronSecret(request)) {
@@ -73,12 +74,15 @@ export async function POST(request: Request) {
       }
     }
 
+    await recordCronRun("booking-reminders", "success", `Sent ${upcomingBookings.length} reminders`);
+
     return NextResponse.json({
       success: true,
       remindersSent: upcomingBookings.length,
     });
   } catch (err: unknown) {
     console.error("[cron/booking-reminders] error:", err);
+    await recordCronRun("booking-reminders", "error", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

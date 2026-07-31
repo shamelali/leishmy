@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { reconcilePayment } from "@/lib/payment-reconcile";
 import { Redis } from "@upstash/redis";
 import { verifyCronSecret } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron-tracking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -124,6 +125,8 @@ export async function POST(request: NextRequest) {
       await sleep(BILLPLZ_RATE_LIMIT_MS);
     }
 
+    await recordCronRun("reconcile-payments", "success", `Checked ${checked}, updated ${updated}, failed ${failedLookups}`);
+
     return NextResponse.json({
       success: true,
       dryRun,
@@ -134,6 +137,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[cron/reconcile-payments] error:", err);
+    await recordCronRun("reconcile-payments", "error", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json(
       { error: "Reconcile failed", message: err instanceof Error ? err.message : "Unknown" },
       { status: 500 },
