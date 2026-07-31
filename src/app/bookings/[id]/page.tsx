@@ -5,11 +5,13 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 
 interface BookingDetail {
   id: string;
   userId: string;
-  artistId: number | null;
+  artistId: string | null;
+  studioId: string | null;
   artistName: string;
   clientName: string;
   clientEmail: string;
@@ -23,6 +25,7 @@ interface BookingDetail {
 
 export default function BookingDetailPage() {
   const params = useParams();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,9 +66,15 @@ export default function BookingDetailPage() {
     }
   };
 
+  const backHref = "/bookings";
+  const backLabel = "Back to Bookings";
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
+        <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
+          <ArrowLeft className="w-4 h-4" /> {backLabel}
+        </Link>
         <Skeleton className="h-6 w-32 mb-8" />
         <Skeleton className="h-64 rounded-2xl" />
       </div>
@@ -78,15 +87,22 @@ export default function BookingDetailPage() {
         <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Booking Not Found</h2>
         <p className="text-gray-500 mb-6">{error}</p>
-        <Link href="/bookings" className="text-sm font-medium text-rose-500 hover:text-rose-600">Back to Bookings</Link>
+        <Link href={backHref} className="text-sm font-medium text-rose-500 hover:text-rose-600">{backLabel}</Link>
       </div>
     );
   }
 
+  // Determine if current user is a provider (artist/studio) for this booking
+  const isProvider = user && (
+    booking.artistId === user.id || booking.studioId === user.id
+  );
+  const providerBackHref = isProvider ? "/dashboard/artist/bookings" : "/bookings";
+  const providerBackLabel = isProvider ? "Back to Dashboard" : "Back to Bookings";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <Link href="/bookings" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-        <ArrowLeft className="w-4 h-4" /> Back to Bookings
+      <Link href={providerBackHref} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
+        <ArrowLeft className="w-4 h-4" /> {providerBackLabel}
       </Link>
 
       <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
