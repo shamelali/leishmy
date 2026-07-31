@@ -568,6 +568,10 @@ export async function PATCH(request: NextRequest) {
       if (depositAmount !== undefined) updateData.depositAmount = String(depositAmount);
       if (travelSurcharge !== undefined) updateData.travelSurcharge = String(travelSurcharge);
       if (accommodationFee !== undefined) updateData.accommodationFee = String(accommodationFee);
+      if (amount !== undefined || travelSurcharge !== undefined || accommodationFee !== undefined) {
+        const svc = Number(amount ?? existing.amount) - Number(travelSurcharge ?? existing.travelSurcharge) - Number(accommodationFee ?? existing.accommodationFee);
+        updateData.servicePrice = String(Math.max(0, svc));
+      }
       updateData.updatedAt = new Date();
 
       const [updated] = await db
