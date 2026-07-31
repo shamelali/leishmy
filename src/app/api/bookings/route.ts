@@ -10,7 +10,7 @@ import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
-import { createBookingSchema, updateBookingSchema, addQuoteSchema, acceptQuoteSchema, rejectQuoteSchema } from "@/lib/validations/bookings";
+import { createBookingSchema, updateBookingSchema, addQuoteSchema, acceptQuoteSchema, rejectQuoteSchema, updateBookingPriceSchema } from "@/lib/validations/bookings";
 
 export const runtime = "nodejs";
 
@@ -534,6 +534,53 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Price breakdown update (artist/studio editing fees)
+    if (body.amount !== undefined || body.travelSurcharge !== undefined || body.accommodationFee !== undefined || body.depositAmount !== undefined) {
+      const parsed = updateBookingPriceSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
+      const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.data;
+
+      const [existing] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, Number(id)))
+        .limit(1);
+
+      if (!existing) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
+
+      // Only the assigned artist/studio or admin can update pricing
+      const isAssignedProvider = existing.artistId === session.id || existing.studioId === session.id;
+      if (!isAssignedProvider && !hasAdminAccess(session)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      const updateData: Record<string, any> = {};
+      if (amount !== undefined) updateData.amount = String(amount);
+      if (depositAmount !== undefined) updateData.depositAmount = String(depositAmount);
+      if (travelSurcharge !== undefined) updateData.travelSurcharge = String(travelSurcharge);
+      if (accommodationFee !== undefined) updateData.accommodationFee = String(accommodationFee);
+      updateData.updatedAt = new Date();
+
+      const [updated] = await db
+        .update(bookings)
+        .set(updateData)
+        .where(eq(bookings.id, Number(id)))
+        .returning();
+
+      revalidatePath("/bookings/" + id);
+      return NextResponse.json({ booking: updated });
+    }
+
+    // Status update (cancellation)
     const parsed = updateBookingSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

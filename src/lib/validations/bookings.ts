@@ -21,6 +21,14 @@ export const updateBookingSchema = z.object({
   status: z.enum(["cancelled"]),
 });
 
+export const updateBookingPriceSchema = z.object({
+  id: z.number().positive(),
+  amount: z.number().nonnegative().optional(),
+  depositAmount: z.number().nonnegative().optional(),
+  travelSurcharge: z.number().nonnegative().optional(),
+  accommodationFee: z.number().nonnegative().optional(),
+});
+
 export const addQuoteSchema = z.object({
   bookingId: z.number().positive(),
   servicePrice: z.number().nonnegative(),

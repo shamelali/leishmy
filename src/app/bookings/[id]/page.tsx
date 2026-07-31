@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,6 +20,9 @@ interface BookingDetail {
   time: string;
   status: string;
   amount: string;
+  depositAmount: string | null;
+  travelSurcharge: string | null;
+  accommodationFee: string | null;
   createdAt: string;
 }
 
@@ -29,6 +32,14 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Editable price fields (for providers)
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [serviceAmount, setServiceAmount] = useState("");
+  const [travelFee, setTravelFee] = useState("");
+  const [accommodationFee, setAccommodationFee] = useState("");
+  const [depositAmt, setDepositAmt] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -40,6 +51,14 @@ export default function BookingDetailPage() {
         }
         const data = await res.json();
         setBooking(data.booking);
+        // Initialize editable fields
+        const amt = Number(data.booking.amount) || 0;
+        const travel = Number(data.booking.travelSurcharge) || 0;
+        const accom = Number(data.booking.accommodationFee) || 0;
+        setServiceAmount(String(amt - travel - accom));
+        setTravelFee(String(travel));
+        setAccommodationFee(String(accom));
+        setDepositAmt(String(Number(data.booking.depositAmount) || 0));
       } catch {
         setError("Failed to load booking");
       }
@@ -47,6 +66,44 @@ export default function BookingDetailPage() {
     };
     fetchBooking();
   }, [params.id]);
+
+  const handleSavePrice = async () => {
+    if (!booking) return;
+    setSavingPrice(true);
+    try {
+      const svc = Number(serviceAmount) || 0;
+      const travel = Number(travelFee) || 0;
+      const accom = Number(accommodationFee) || 0;
+      const total = svc + travel + accom;
+      const deposit = Number(depositAmt) || 0;
+
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: Number(booking.id),
+          amount: total,
+          travelSurcharge: travel,
+          accommodationFee: accom,
+          depositAmount: deposit,
+        }),
+      });
+
+      if (res.ok) {
+        setBooking({
+          ...booking,
+          amount: String(total),
+          travelSurcharge: String(travel),
+          accommodationFee: String(accom),
+          depositAmount: String(deposit),
+        });
+        setEditingPrice(false);
+      }
+    } catch {
+      alert("Failed to save pricing");
+    }
+    setSavingPrice(false);
+  };
 
   const statusIcon = (status: string) => {
     switch (status) {
@@ -99,6 +156,8 @@ export default function BookingDetailPage() {
   const providerBackHref = isProvider ? "/dashboard/artist/bookings" : "/bookings";
   const providerBackLabel = isProvider ? "Back to Dashboard" : "Back to Bookings";
 
+  const totalAmount = (Number(serviceAmount) || 0) + (Number(travelFee) || 0) + (Number(accommodationFee) || 0);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <Link href={providerBackHref} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
@@ -134,9 +193,120 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
+          {/* Price Breakdown */}
           <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/50">
-            <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Amount</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">MYR {Number(booking.amount).toLocaleString()}</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">Price Breakdown</p>
+              {isProvider && !editingPrice && (
+                <button
+                  onClick={() => setEditingPrice(true)}
+                  className="text-xs font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+
+            {editingPrice ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-gray-400 shrink-0" />
+                  <label className="text-xs text-gray-500 w-28 shrink-0">Service</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={serviceAmount}
+                    onChange={(e) => setServiceAmount(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Car className="w-4 h-4 text-gray-400 shrink-0" />
+                  <label className="text-xs text-gray-500 w-28 shrink-0">Travel Fee</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={travelFee}
+                    onChange={(e) => setTravelFee(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-gray-400 shrink-0" />
+                  <label className="text-xs text-gray-500 w-28 shrink-0">Accommodation</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={accommodationFee}
+                    onChange={(e) => setAccommodationFee(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
+                  />
+                </div>
+                <div className="flex items-center gap-2 border-t border-amber-200 dark:border-amber-800 pt-2">
+                  <DollarSign className="w-4 h-4 text-gray-400 shrink-0" />
+                  <label className="text-xs text-gray-500 w-28 shrink-0">Deposit</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={depositAmt}
+                    onChange={(e) => setDepositAmt(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-amber-200 dark:border-amber-800">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total</span>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">MYR {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSavePrice}
+                    disabled={savingPrice}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" /> {savingPrice ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={() => setEditingPrice(false)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Service</span>
+                  <span className="font-medium text-gray-900 dark:text-white">MYR {Number(serviceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                {(Number(travelFee) || 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 flex items-center gap-1"><Car className="w-3 h-3" /> Travel</span>
+                    <span className="font-medium text-gray-900 dark:text-white">MYR {Number(travelFee).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                {(Number(accommodationFee) || 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 flex items-center gap-1"><Building className="w-3 h-3" /> Accommodation</span>
+                    <span className="font-medium text-gray-900 dark:text-white">MYR {Number(accommodationFee).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-amber-200 dark:border-amber-800">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total</span>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">MYR {Number(booking.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                {(Number(depositAmt) || 0) > 0 && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Deposit due</span>
+                    <span>MYR {Number(depositAmt).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {booking.service && (
