@@ -129,7 +129,7 @@ export async function GET(
         .limit(1);
 
       if (!profile) {
-        return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
+        return NextResponse.json({ artist: null });
       }
 
       const [userRow] = await db
