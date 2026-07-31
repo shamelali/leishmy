@@ -517,14 +517,46 @@ export async function POST(
     }
 
     if (action === "artist-profile") {
-      const [profile] = await db
+      let [profile] = await db
         .select()
         .from(profiles)
         .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
         .limit(1);
 
       if (!profile) {
-        return NextResponse.json({ error: "No artist profile" }, { status: 400 });
+        const [userRow] = await db
+          .select({ name: users.name, location: users.location })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        const name = userRow?.name || "";
+        const location = userRow?.location || "";
+        const slug =
+          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
+          "-" +
+          userId.slice(-5);
+        const [district, area] = location.split(", ");
+        await db
+          .insert(profiles)
+          .values({
+            userId,
+            role: "artist",
+            status: "draft",
+            slug,
+            available: true,
+            verified: false,
+            district: district || "",
+            area: area || location,
+          })
+          .onConflictDoUpdate({
+            target: profiles.userId,
+            set: { role: "artist", slug, status: "draft" },
+          });
+        [profile] = await db
+          .select()
+          .from(profiles)
+          .where(and(eq(profiles.userId, userId), eq(profiles.role, "artist")))
+          .limit(1);
       }
 
       const updateData: Record<string, unknown> = {};
