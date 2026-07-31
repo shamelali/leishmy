@@ -176,6 +176,8 @@ return NextResponse.json({
           tiktokUrl: profile.tiktokUrl || "",
           certifications: profile.certifications || "",
           availability: profile.availability || "",
+          defaultDepositPercent: profile.defaultDepositPercent ?? 30,
+          pricingRules: profile.pricingRules ?? {},
         },
       });
     }
@@ -211,6 +213,8 @@ return NextResponse.json({
           rating: profile.rating || "0",
           reviewCount: profile.reviewCount || 0,
           featured: profile.featured || false,
+          defaultDepositPercent: profile.defaultDepositPercent ?? 30,
+          pricingRules: profile.pricingRules ?? {},
         },
       });
     }
@@ -578,6 +582,8 @@ export async function POST(
         "certifications",
         "availability",
         "showPrices",
+        "defaultDepositPercent",
+        "pricingRules",
       ];
       for (const field of allowedFields) {
         if (body[field] !== undefined) updateData[field] = body[field];
