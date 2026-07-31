@@ -8,6 +8,13 @@ import {
   X,
   Clock,
   MapPin,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Sparkles,
+  Tag,
+  MessageSquare,
 } from "lucide-react";
 
 interface Booking {
@@ -26,6 +33,10 @@ interface Booking {
   location?: string;
   status: string;
   createdAt?: string;
+  notes?: string;
+  travelSurcharge?: number;
+  accommodationFee?: number;
+  servicePrice?: number;
 }
 
 interface BookingsTabProps {
@@ -254,54 +265,199 @@ function BookingCard({
   onConfirm: (id: string) => void;
   onReject: (id: string) => void;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  const travelFee = Number(booking.travelSurcharge) || 0;
+  const accomFee = Number(booking.accommodationFee) || 0;
+  const serviceFee = Number(booking.servicePrice) || 0;
+  const totalAmount = Number(booking.price || booking.amount) || 0;
+
   return (
-    <div className="p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div>
-          <p className="font-medium text-gray-900 dark:text-white text-sm">
-            {booking.client || booking.userName || "Anonymous"}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{booking.service}</p>
+    <>
+      <div
+        onClick={() => setShowDetails(true)}
+        className="p-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <p className="font-medium text-gray-900 dark:text-white text-sm">
+              {booking.client || booking.userName || "Anonymous"}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{booking.service}</p>
+          </div>
+          <span className={`shrink-0 px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusColor(booking.status)}`}>
+            {getStatusLabel(booking.status)}
+          </span>
         </div>
-        <span className={`shrink-0 px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusColor(booking.status)}`}>
-          {getStatusLabel(booking.status)}
-        </span>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          {booking.date && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {booking.date} {booking.time || ""}
+            </span>
+          )}
+          {booking.location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {booking.location}
+            </span>
+          )}
+          {totalAmount > 0 && (
+            <span className="font-semibold text-gray-900 dark:text-white">
+              RM {totalAmount.toLocaleString()}
+            </span>
+          )}
+        </div>
+        {(booking.status === "pending" || booking.status === "quote_pending") && (
+          <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => onConfirm(booking.id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" /> Confirm
+            </button>
+            <button
+              onClick={() => onReject(booking.id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" /> Reject
+            </button>
+          </div>
+        )}
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        {booking.date && (
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {booking.date} {booking.time || ""}
-          </span>
-        )}
-        {booking.location && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {booking.location}
-          </span>
-        )}
-        {(booking.price || booking.amount) && (
-          <span className="font-semibold text-gray-900 dark:text-white">
-            RM {booking.price || booking.amount}
-          </span>
-        )}
-      </div>
-      {(booking.status === "pending" || booking.status === "quote_pending") && (
-        <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => onConfirm(booking.id)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-          >
-            <Check className="w-3.5 h-3.5" /> Confirm
-          </button>
-          <button
-            onClick={() => onReject(booking.id)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-          >
-            <X className="w-3.5 h-3.5" /> Reject
-          </button>
+
+      {/* Booking Details Modal */}
+      {showDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDetails(false)}>
+          <div className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Booking Details</h2>
+              <button onClick={() => setShowDetails(false)} className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">Booking #{booking.id}</p>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                  {getStatusLabel(booking.status)}
+                </span>
+              </div>
+
+              {/* Client Info */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-rose-500" /> Client
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                    <p className="text-[10px] text-gray-400 mb-0.5">Name</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.client || booking.userName || "—"}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                    <p className="text-[10px] text-gray-400 mb-0.5">Email</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white break-all">{booking.clientEmail || "—"}</p>
+                  </div>
+                  {booking.clientPhone && (
+                    <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Phone</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.clientPhone}</p>
+                    </div>
+                  )}
+                  {booking.location && (
+                    <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Location</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.location}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Booking Info */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-rose-500" /> Booking
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {booking.date && (
+                    <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Date</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {new Date(booking.date).toLocaleDateString("en-MY", { weekday: "short", month: "short", day: "numeric" })}
+                      </p>
+                    </div>
+                  )}
+                  {booking.time && (
+                    <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Time</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.time}</p>
+                    </div>
+                  )}
+                  {booking.service && (
+                    <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl col-span-2">
+                      <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Service
+                      </p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.service}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-rose-500" /> Price Breakdown
+                </h3>
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl space-y-2">
+                  {serviceFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Service fee</span>
+                      <span className="font-medium text-gray-900 dark:text-white">RM {serviceFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {travelFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Travel surcharge</span>
+                      <span className="font-medium text-gray-900 dark:text-white">+ RM {travelFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {accomFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Accommodation fee</span>
+                      <span className="font-medium text-gray-900 dark:text-white">+ RM {accomFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm pt-2 border-t border-amber-200 dark:border-amber-900/50">
+                    <span className="font-semibold text-gray-900 dark:text-white">Total</span>
+                    <span className="font-bold text-gray-900 dark:text-white">RM {totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {booking.notes && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-rose-500" /> Notes
+                  </h3>
+                  <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{booking.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {booking.createdAt && (
+                <div className="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-neutral-800">
+                  <Tag className="w-3 h-3" />
+                  <span>Created: {new Date(booking.createdAt).toLocaleDateString("en-MY", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
