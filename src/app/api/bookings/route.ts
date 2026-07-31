@@ -151,6 +151,25 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
+    } else if (studioIdStr) {
+      const [conflict] = await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.studioId, studioIdStr),
+            eq(bookings.date, new Date(date)),
+            eq(bookings.time, time ?? null as unknown as string),
+            inArray(bookings.status, ["pending", "confirmed", "quote_pending", "quote_sent"]),
+          ),
+        )
+        .limit(1);
+      if (conflict) {
+        return NextResponse.json(
+          { error: "Studio is already booked for this date and time" },
+          { status: 409 },
+        );
+      }
     }
 
     // Create booking with quote_pending status
@@ -178,9 +197,15 @@ export async function POST(request: NextRequest) {
       ? await db.select().from(profiles).where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist"))).limit(1).then((r) => r[0])
       : undefined;
 
+    const studio = studioIdStr
+      ? await db.select().from(profiles).where(and(eq(profiles.userId, studioIdStr), eq(profiles.role, "studio"))).limit(1).then((r) => r[0])
+      : undefined;
+
     const providerUser = artist?.userId
       ? await db.select().from(users).where(eq(users.id, artist.userId)).limit(1).then((r) => r[0])
-      : undefined;
+      : studio?.userId
+        ? await db.select().from(users).where(eq(users.id, studio.userId)).limit(1).then((r) => r[0])
+        : undefined;
 
     const formattedDate = new Date(date).toLocaleDateString("en-MY", {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -197,6 +222,17 @@ export async function POST(request: NextRequest) {
       }).catch(() => {});
     }
 
+    // Notify studio of new quote request
+    if (studio?.userId) {
+      await db.insert(notifications).values({
+        userId: studio.userId,
+        type: "quote_request",
+        title: "New Quote Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
+        data: { link: "/dashboard/studio/quotes", bookingId: String(booking.id) },
+      }).catch(() => {});
+    }
+
     // Email customer confirmation
     sendBookingReceivedEmail({
       email: customer.email,
@@ -210,7 +246,7 @@ export async function POST(request: NextRequest) {
       paymentType: "deposit",
     }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
 
-    // Email MUA
+    // Email provider (artist or studio)
     if (providerUser?.email) {
       sendProviderNewBookingEmail({
         email: providerUser.email,

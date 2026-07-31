@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CloudUpload, Loader2, X, Image as ImageIcon, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { CloudUpload, Loader2, X, Image as ImageIcon, AlertCircle, Plus, Trash2, ZoomIn } from "lucide-react";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import ImageLightbox from "@/components/ImageLightbox";
 import { validateImageFile } from "@/lib/utils/magic-bytes";
 import { isAllowedImageUrl, sanitizeImageUrl } from "@/lib/utils/upload-url";
 
@@ -113,6 +114,7 @@ export function PortfolioUploader({
   const [dragOver, setDragOver] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const dropzone = labels?.dropzone ?? "Drag and drop, or click to browse";
   const dropzoneHint = (labels?.dropzoneHint ?? "Up to {max} images, 10 MB each").replace(
@@ -411,10 +413,11 @@ export function PortfolioUploader({
                 )}
               </li>
             ))}
-          {value.map((item) => (
+          {value.map((item, idx) => (
             <li
               key={item.publicId}
-              className="relative group rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-800 aspect-square bg-gray-50 dark:bg-neutral-900"
+              className="relative group rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-800 aspect-square bg-gray-50 dark:bg-neutral-900 cursor-pointer"
+              onClick={() => setLightboxIndex(idx)}
             >
               <ImageWithFallback
                 src={item.url}
@@ -423,10 +426,13 @@ export function PortfolioUploader({
                 aspectRatio={aspectRatio}
                 sizes={sizes}
               />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+              </div>
               {allowRemove && (
                 <button
                   type="button"
-                  onClick={() => removeItem(item.publicId)}
+                  onClick={(e) => { e.stopPropagation(); removeItem(item.publicId); }}
                   className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Remove image"
                 >
@@ -439,6 +445,14 @@ export function PortfolioUploader({
       )}
 
       <p className="text-xs text-gray-500 dark:text-gray-400">{counter}</p>
+
+      {lightboxIndex !== null && value[lightboxIndex] && (
+        <ImageLightbox
+          images={value.map((v) => v.url)}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }

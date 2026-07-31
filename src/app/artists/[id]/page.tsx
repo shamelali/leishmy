@@ -16,6 +16,7 @@ import {
   Clock as ClockIcon,
 } from "lucide-react";
 import SaveToBoard from "@/components/SaveToBoard";
+import PortfolioGrid from "@/components/PortfolioGrid";
 import { db } from "@/db";
 import {
   profiles,
@@ -386,23 +387,11 @@ export default async function ArtistDetailPage({ params }: Props) {
             {artist.portfolio.length > 0 && (
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Portfolio</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {artist.portfolio.map((img, i) => (
-                    <div
-                      key={i}
-                      className="rounded-2xl overflow-hidden aspect-square group relative"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img}
-                        alt={`${artist.name} portfolio ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      <SaveToBoard imageUrl={img} artistId={artist.id} artistName={artist.name} />
-                    </div>
-                  ))}
-                </div>
+                <PortfolioGrid
+                  images={artist.portfolio}
+                  artistId={artist.id}
+                  artistName={artist.name}
+                />
               </div>
             )}
 

@@ -9,6 +9,7 @@ import { hasAdminAccess } from "@/lib/auth/admin";
 import { rateLimitApi } from "@/lib/rate-limit-api";
 import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
 import { createBillSchema, registerBankSchema, qrPaymentSchema, releasePaymentSchema, refundPaymentSchema } from "@/lib/validations/payments";
+import { createBillForBooking } from "@/lib/billplz-bill";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -181,157 +182,41 @@ export async function POST(request: NextRequest) {
       }
 
       const session = await getAuthSession();
-
       const { bookingId, description, name, email, phone, idempotencyKey } = parsed.data;
 
-      // Idempotency: prevent duplicate bill creation on retry
-      if (idempotencyKey) {
-        const [existing] = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.idempotencyKey, idempotencyKey))
-          .limit(1);
+      // Auth check: verify ownership or admin
+      const [authBooking] = await db
+        .select({ userId: bookings.userId })
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .limit(1);
 
-        if (existing && existing.status !== "pending") {
-          // Already completed (paid/refunded) — return it as-is
-          return NextResponse.json(
-            { bill: { id: existing.billplzId }, payment: existing, cached: true },
-            { status: 200 }
-          );
-        }
-
-        if (existing && existing.status === "pending") {
-          // Check if the booking was cancelled since the payment was created
-          const [linkedBooking] = await db
-            .select({ status: bookings.status })
-            .from(bookings)
-            .where(eq(bookings.id, Number(bookingId)))
-            .limit(1);
-
-          if (linkedBooking && linkedBooking.status === "cancelled") {
-            // Stale payment for cancelled booking — mark it failed and allow new payment
-            await db
-              .update(payments)
-              .set({ status: "failed", updatedAt: new Date() })
-              .where(eq(payments.id, existing.id));
-          } else {
-            // Still valid pending payment — return cached
-            return NextResponse.json(
-              { bill: { id: existing.billplzId }, payment: existing, cached: true },
-              { status: 200 }
-            );
+      if (authBooking) {
+        const isGuestBooking = authBooking.userId?.startsWith("guest_") ?? false;
+        if (!isGuestBooking) {
+          if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+          }
+          if (!hasAdminAccess(session) && authBooking.userId !== session.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
           }
         }
       }
 
-      const [booking] = await db
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, Number(bookingId)))
-        .limit(1);
-
-      if (!booking) {
-        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-      }
-
-      const isGuestBooking = booking.userId?.startsWith("guest_") ?? false;
-      if (!isGuestBooking) {
-        if (!session) {
-          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-        if (!hasAdminAccess(session) && booking.userId !== session.id) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-      }
-
-      // Prevent duplicate pending payments for same booking (skip cancelled bookings)
-      const [existingPending] = await db
-        .select()
-        .from(payments)
-        .where(
-          and(
-            eq(payments.bookingId, Number(bookingId)),
-            eq(payments.status, "pending")
-          )
-        )
-        .limit(1);
-
-      if (existingPending && booking.status !== "cancelled") {
-        return NextResponse.json(
-          { 
-            error: "A pending payment already exists for this booking",
-            payment: existingPending 
-          },
-          { status: 409 }
-        );
-      }
-
-      // Clean up stale pending payment if booking was cancelled
-      if (existingPending && booking.status === "cancelled") {
-        await db
-          .update(payments)
-          .set({ status: "failed", updatedAt: new Date() })
-          .where(eq(payments.id, existingPending.id));
-      }
-
-      const depositAmount = booking.depositAmount
-        ? Number(booking.depositAmount)
-        : Number(booking.amount);
-      const realAmount = depositAmount;
-      if (!realAmount || realAmount < 1 || isNaN(realAmount)) {
-        return NextResponse.json(
-          { error: "Booking amount is invalid" },
-          { status: 400 },
-        );
-      }
-
-      const milestoneLabel = booking.milestone
-        ? booking.milestone === "deposit_50"
-          ? " (50% deposit)"
-          : booking.milestone === "deposit_30"
-            ? " (30% deposit)"
-            : " (full payment)"
-        : "";
-
-      const billplzBody = new URLSearchParams({
-        collection_id: billplz.require("COLLECTION_ID"),
-        description: `${description || "Beauty booking payment"}${milestoneLabel}`,
-        amount: String(Math.round(realAmount * 100)),
-        name: name || "Customer",
-        email: email || "",
-        phone: phone || "",
-        callback_url: `${BASE_URL}/api/webhook`,
-        redirect_url: `${BASE_URL}/bookings/${bookingId}/success`,
+      const result = await createBillForBooking({
+        bookingId,
+        description,
+        name,
+        email,
+        phone,
+        idempotencyKey,
       });
 
-      const billplzResponse = await fetch(`${BILLPLZ_API}/bills`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: billplzAuth(),
-        },
-        body: billplzBody,
-      });
-
-      const billplzData = await billplzResponse.json();
-
-      if (!billplzResponse.ok) {
-        return NextResponse.json({ error: billplzData }, { status: billplzResponse.status });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: result.status });
       }
 
-      const [payment] = await db
-        .insert(payments)
-        .values({
-          bookingId: Number(bookingId),
-          amount: Math.round(realAmount * 100),
-          status: "pending",
-          billplzId: billplzData.id,
-          method: "billplz",
-          idempotencyKey: idempotencyKey || null,
-        })
-        .returning();
-
-      return NextResponse.json({ bill: billplzData, payment }, { status: 201 });
+      return NextResponse.json(result.data, { status: result.data.cached ? 200 : 201 });
     }
 
     if (action === "register-bank") {

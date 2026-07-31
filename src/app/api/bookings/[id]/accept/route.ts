@@ -6,6 +6,7 @@ import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
 import { acceptQuoteSchema } from "@/lib/validations/bookings";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { createBillForBooking } from "@/lib/billplz-bill";
 
 export const runtime = "nodejs";
 
@@ -124,11 +125,43 @@ export async function POST(
     revalidatePath("/bookings");
     revalidatePath("/dashboard/artist");
 
-    return NextResponse.json({ 
-      success: true, 
+    // Create deposit bill via Billplz
+    const [customerUser] = await db
+      .select({ name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, session.id))
+      .limit(1);
+
+    const idempotencyKey = `accept_${bookingId}_${Date.now()}`;
+    const billResult = await createBillForBooking({
+      bookingId,
+      description: `Booking deposit — ${booking.service || "service"}`,
+      name: customerUser?.name || undefined,
+      email: customerUser?.email || session.email || undefined,
+      idempotencyKey,
+    });
+
+    if (!billResult.ok) {
+      console.error("Bill creation failed after quote acceptance:", billResult.error);
+      // Booking was already accepted — still return success for the acceptance
+      // but surface the bill error so the client can retry payment separately
+      return NextResponse.json({
+        success: true,
+        booking: updated,
+        depositAmount,
+        totalPrice,
+        billError: billResult.error,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
       booking: updated,
       depositAmount,
       totalPrice,
+      bill: billResult.data.bill,
+      payment: billResult.data.payment,
+      cached: billResult.data.cached,
     });
   } catch (error) {
     console.error("Accept quote error:", error);

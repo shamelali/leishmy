@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   BarChart3, Users, DollarSign, Star, TrendingUp,
   Calendar, Clock, Wallet, Store, Package, Briefcase,
-  Share2, Settings,
+  Share2, Settings, Send,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -94,6 +94,7 @@ export default function DashboardStudio() {
         <div className="flex gap-1.5 mb-8 overflow-x-auto pb-1">
           {[
             { href: "/dashboard/studio", label: "Overview", icon: BarChart3 },
+            { href: "/dashboard/studio/quotes", label: "Quotes", icon: Send },
             { href: "/dashboard/studio/calendar", label: "Calendar", icon: Calendar },
             { href: "/dashboard/studio/staff", label: "Staff", icon: Users },
             { href: "/dashboard/studio/finance", label: "Finance", icon: DollarSign },

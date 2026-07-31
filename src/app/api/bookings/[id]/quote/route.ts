@@ -110,12 +110,29 @@ export async function PUT(
 
     // Email customer
     if (user?.email) {
+      let providerName = "Your Provider";
+      if (booking.artistId) {
+        const [artistUser] = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, booking.artistId))
+          .limit(1);
+        providerName = artistUser?.name || providerName;
+      } else if (booking.studioId) {
+        const [studioUser] = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, booking.studioId))
+          .limit(1);
+        providerName = studioUser?.name || providerName;
+      }
+
       sendQuoteReadyEmail({
         email: user.email,
         customerName: user.name || "Valued Customer",
         bookingId: String(booking.id),
         serviceName: booking.service || "Service",
-        providerName: "", // Will be filled by email template
+        providerName,
         date: new Date(booking.date).toLocaleDateString("en-MY", {
           weekday: "long", year: "numeric", month: "long", day: "numeric",
         }),
