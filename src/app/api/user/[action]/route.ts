@@ -524,7 +524,7 @@ export async function POST(
         .limit(1);
 
       if (!profile) {
-        return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
+        return NextResponse.json({ error: "No artist profile" }, { status: 400 });
       }
 
       const updateData: Record<string, unknown> = {};

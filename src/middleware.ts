@@ -60,7 +60,7 @@ function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    "camera=(), microphone=(), geolocation=()",
   );
   res.headers.set("x-nonce", nonce);
   res.headers.set(
