@@ -13,6 +13,8 @@ interface ServiceStatus {
   status: "ok" | "warning" | "error" | "disabled";
   detail: string;
   dashboardUrl?: string;
+  criticalValue?: string;
+  criticalLabel?: string;
 }
 
 interface CronJobStatus {
@@ -30,6 +32,15 @@ interface HealthCheck {
   responseTimeMs: number;
   memoryUsageMB: number;
   nodeVersion: string;
+}
+
+interface Alarm {
+  id: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+  action?: string;
+  actionUrl?: string;
 }
 
 export async function GET() {
@@ -70,6 +81,8 @@ export async function GET() {
         dashboardUrl: process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
           ? `https://sentry.io/organizations/${process.env.SENTRY_ORG}/projects/${process.env.SENTRY_PROJECT}/`
           : undefined,
+        criticalValue: process.env.SENTRY_DSN ? "Monitoring" : "Offline",
+        criticalLabel: "Error Tracking",
       },
       {
         name: "Google Analytics",
@@ -81,6 +94,8 @@ export async function GET() {
         dashboardUrl: process.env.NEXT_PUBLIC_GA_ID
           ? "https://analytics.google.com/"
           : undefined,
+        criticalValue: process.env.NEXT_PUBLIC_GA_ID ? "Active" : "No Data",
+        criticalLabel: "Web Analytics",
       },
       {
         name: "Meta Pixel",
@@ -92,6 +107,8 @@ export async function GET() {
         dashboardUrl: process.env.NEXT_PUBLIC_FB_PIXEL_ID
           ? `https://business.facebook.com/events_manager/pixel/${process.env.NEXT_PUBLIC_FB_PIXEL_ID}/overview`
           : undefined,
+        criticalValue: process.env.NEXT_PUBLIC_FB_PIXEL_ID ? "Tracking" : "No Tracking",
+        criticalLabel: "Conversion Tracking",
       },
       {
         name: "Brevo Email",
@@ -101,6 +118,8 @@ export async function GET() {
           ? `From: ${process.env.FROM_EMAIL || "hello@leish.my"}`
           : "BREVO_API_KEY is required for transactional email",
         dashboardUrl: "https://app.brevo.com/",
+        criticalValue: process.env.BREVO_API_KEY ? "Sending" : "Blocked",
+        criticalLabel: "Transactional Email",
       },
       {
         name: "Cloudinary",
@@ -112,6 +131,8 @@ export async function GET() {
         dashboardUrl: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
           ? `https://console.cloudinary.com/console/media_library/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}`
           : undefined,
+        criticalValue: process.env.CLOUDINARY_API_KEY ? "Uploads OK" : "Degraded",
+        criticalLabel: "Image Uploads",
       },
       {
         name: "Upstash Redis",
@@ -121,6 +142,8 @@ export async function GET() {
           ? "Connected — rate limiting active"
           : "Set UPSTASH_REDIS_REST_URL for rate limiting & cron locks",
         dashboardUrl: "https://console.upstash.com/",
+        criticalValue: process.env.UPSTASH_REDIS_REST_URL ? "Connected" : "No Cache",
+        criticalLabel: "Rate Limiting",
       },
       {
         name: "Billplz Payments",
@@ -130,6 +153,8 @@ export async function GET() {
           ? `API: ${process.env.BILLPLZ_API_URL || "https://www.billplz.com/api/v3"}`
           : "BILLPLZ_API_KEY is required for payments",
         dashboardUrl: "https://www.billplz.com/",
+        criticalValue: process.env.BILLPLZ_API_KEY ? "Processing" : "Payments Down",
+        criticalLabel: "Payment Gateway",
       },
       {
         name: "Cron Jobs",
@@ -138,6 +163,8 @@ export async function GET() {
         detail: process.env.CRON_SECRET
           ? "CRON_SECRET configured — 6 jobs scheduled"
           : "Set CRON_SECRET to enable scheduled tasks",
+        criticalValue: process.env.CRON_SECRET ? "6 Jobs" : "Disabled",
+        criticalLabel: "Scheduled Tasks",
       },
     ];
 
@@ -194,6 +221,112 @@ export async function GET() {
       },
     ];
 
+    // --- Alarms ---
+    const alarms: Alarm[] = [];
+
+    // Critical: Database down
+    if (dbStatus === "error") {
+      alarms.push({
+        id: "db-down",
+        severity: "critical",
+        title: "Database Connection Failed",
+        message: "Cannot connect to PostgreSQL database. All data operations are failing.",
+        action: "Check DATABASE_URL and Neon status",
+        actionUrl: "https://console.neon.tech/",
+      });
+    }
+
+    // Critical: Payment gateway down
+    if (!process.env.BILLPLZ_API_KEY) {
+      alarms.push({
+        id: "payment-down",
+        severity: "critical",
+        title: "Payment Gateway Offline",
+        message: "BILLPLZ_API_KEY is not configured. Users cannot make payments.",
+        action: "Configure BILLPLZ_API_KEY",
+      });
+    }
+
+    // Critical: Email service down
+    if (!process.env.BREVO_API_KEY) {
+      alarms.push({
+        id: "email-down",
+        severity: "critical",
+        title: "Email Service Blocked",
+        message: "BREVO_API_KEY is not configured. Transactional emails are not being sent.",
+        action: "Configure BREVO_API_KEY",
+        actionUrl: "https://app.brevo.com/",
+      });
+    }
+
+    // Warning: Error monitoring disabled
+    if (!process.env.SENTRY_DSN) {
+      alarms.push({
+        id: "sentry-disabled",
+        severity: "warning",
+        title: "Error Monitoring Disabled",
+        message: "Sentry is not configured. Production errors are not being tracked.",
+        action: "Set SENTRY_DSN env var",
+      });
+    }
+
+    // Warning: Cron jobs not configured
+    if (!process.env.CRON_SECRET) {
+      alarms.push({
+        id: "cron-disabled",
+        severity: "warning",
+        title: "Scheduled Tasks Disabled",
+        message: "CRON_SECRET is not configured. Automated jobs (payment release, reminders) are not running.",
+        action: "Set CRON_SECRET env var",
+      });
+    }
+
+    // Warning: Rate limiting disabled
+    if (!process.env.UPSTASH_REDIS_REST_URL) {
+      alarms.push({
+        id: "redis-disabled",
+        severity: "warning",
+        title: "Rate Limiting Disabled",
+        message: "Upstash Redis is not configured. API rate limiting and cron locks are inactive.",
+        action: "Set UPSTASH_REDIS_REST_URL env var",
+      });
+    }
+
+    // Warning: Cron job failures
+    for (const job of cronJobs) {
+      if (job.lastStatus === "error") {
+        alarms.push({
+          id: `cron-fail-${job.path}`,
+          severity: "critical",
+          title: `Cron Job Failed: ${job.name}`,
+          message: `Last execution failed. Check logs for /api/cron/${job.path.split("/").pop()}`,
+          action: "View cron endpoint",
+          actionUrl: job.path,
+        });
+      }
+    }
+
+    // Warning: High memory usage
+    if (health.memoryUsageMB > 400) {
+      alarms.push({
+        id: "high-memory",
+        severity: "warning",
+        title: "High Memory Usage",
+        message: `Server heap is at ${health.memoryUsageMB}MB. Consider investigating memory leaks.`,
+      });
+    }
+
+    // Warning: Meta Pixel not configured
+    if (!process.env.NEXT_PUBLIC_FB_PIXEL_ID) {
+      alarms.push({
+        id: "fb-pixel-disabled",
+        severity: "info",
+        title: "Conversion Tracking Not Active",
+        message: "Meta Pixel is not configured. Facebook/Instagram ad conversions are not being tracked.",
+        action: "Set NEXT_PUBLIC_FB_PIXEL_ID",
+      });
+    }
+
     // --- Database Stats ---
     let dbStats = { totalTables: 0, totalRows: 0 };
     try {
@@ -220,6 +353,7 @@ export async function GET() {
       services,
       cronJobs,
       dbStats,
+      alarms,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

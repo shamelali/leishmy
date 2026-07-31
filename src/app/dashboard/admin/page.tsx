@@ -9,6 +9,7 @@ import {
   Search, Trash2, ExternalLink, Settings, Flag, FileText,
   ChevronLeft, ChevronRight, Mail, MessageSquare, X, MoreHorizontal,
   Webhook, Activity, Database, Clock, Server, Zap, Globe,
+  AlertTriangle, Bell, CheckCircle2,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
@@ -90,6 +91,8 @@ interface MonitoringData {
     status: "ok" | "warning" | "error" | "disabled";
     detail: string;
     dashboardUrl?: string;
+    criticalValue?: string;
+    criticalLabel?: string;
   }[];
   cronJobs: {
     name: string;
@@ -100,6 +103,14 @@ interface MonitoringData {
     lastStatus: "success" | "error" | "unknown" | null;
   }[];
   dbStats: { totalTables: number; totalRows: number };
+  alarms: {
+    id: string;
+    severity: "critical" | "warning" | "info";
+    title: string;
+    message: string;
+    action?: string;
+    actionUrl?: string;
+  }[];
   timestamp: string;
 }
 
@@ -1434,6 +1445,69 @@ export default function DashboardAdmin() {
               </div>
             ) : monitoringData ? (
               <>
+                {monitoringData.alarms && monitoringData.alarms.length > 0 && (
+                  <div className="space-y-3">
+                    {monitoringData.alarms
+                      .filter((a) => a.severity === "critical")
+                      .map((alarm) => (
+                        <div key={alarm.id} className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl">
+                          <div className="p-1.5 bg-red-100 dark:bg-red-900/40 rounded-lg flex-shrink-0">
+                            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-red-800 dark:text-red-300">{alarm.title}</p>
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{alarm.message}</p>
+                          </div>
+                          {alarm.actionUrl ? (
+                            <a href={alarm.actionUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex-shrink-0">
+                              {alarm.action || "Fix"}
+                            </a>
+                          ) : alarm.action ? (
+                            <span className="px-3 py-1.5 text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg flex-shrink-0">
+                              {alarm.action}
+                            </span>
+                          ) : null}
+                        </div>
+                      ))}
+                    {monitoringData.alarms
+                      .filter((a) => a.severity === "warning")
+                      .map((alarm) => (
+                        <div key={alarm.id} className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                          <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg flex-shrink-0">
+                            <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{alarm.title}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">{alarm.message}</p>
+                          </div>
+                          {alarm.action && (
+                            <span className="px-3 py-1.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-lg flex-shrink-0">
+                              {alarm.action}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    {monitoringData.alarms
+                      .filter((a) => a.severity === "info")
+                      .map((alarm) => (
+                        <div key={alarm.id} className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl">
+                          <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex-shrink-0">
+                            <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">{alarm.title}</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{alarm.message}</p>
+                          </div>
+                          {alarm.action && (
+                            <span className="px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg flex-shrink-0">
+                              {alarm.action}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-5 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
                     <div className="flex items-center gap-3 mb-3">
@@ -1507,6 +1581,18 @@ export default function DashboardAdmin() {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{service.detail}</p>
+                        {service.criticalValue && (
+                          <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 dark:bg-neutral-800 rounded-lg">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{service.criticalLabel || "Value"}:</span>
+                            <span className={`text-sm font-bold ${
+                              service.status === "error" ? "text-red-600 dark:text-red-400" :
+                              service.status === "warning" ? "text-amber-600 dark:text-amber-400" :
+                              "text-green-600 dark:text-green-400"
+                            }`}>
+                              {service.criticalValue}
+                            </span>
+                          </div>
+                        )}
                         {service.dashboardUrl && (
                           <a
                             href={service.dashboardUrl}
