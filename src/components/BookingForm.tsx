@@ -21,21 +21,12 @@ interface BookingFormProps {
 
 type BookingStep = "service" | "details" | "submit" | "awaiting_quote" | "checkout";
 
-const BRIDAL_SERVICES = [
-  { id: "engagement", name: "Engagement", category: "bridal" },
-  { id: "solemnization", name: "Solemnization", category: "bridal" },
-  { id: "reception", name: "Reception", category: "bridal" },
-  { id: "package", name: "Package (Select two or all)", category: "bridal" },
-  { id: "bridal_other", name: "Other", category: "bridal", isCustom: true },
-];
-
-const EVENT_GLAM_SERVICES = [
-  { id: "event_makeup", name: "Event Makeup", category: "event" },
-  { id: "personal_glam", name: "Personal Glam", category: "event" },
-  { id: "photoshoot", name: "Photoshoot Makeup", category: "event" },
-  { id: "workshop", name: "Workshop/Class", category: "event" },
-  { id: "event_other", name: "Other", category: "event", isCustom: true },
-];
+const CATEGORY_COLORS: Record<string, { ring: string; active: string; hover: string; icon: string; bg: string }> = {
+  bridal:  { ring: "bg-rose-100 dark:bg-rose-900/30", active: "border-rose-500 bg-rose-50 dark:bg-rose-950/30", hover: "hover:border-rose-200 dark:hover:border-rose-800", icon: "text-rose-500", bg: "bg-rose-100 dark:bg-rose-900/30" },
+  event:   { ring: "bg-purple-100 dark:bg-purple-900/30", active: "border-purple-500 bg-purple-50 dark:bg-purple-950/30", hover: "hover:border-purple-200 dark:hover:border-purple-800", icon: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-900/30" },
+  glamour: { ring: "bg-amber-100 dark:bg-amber-900/30", active: "border-amber-500 bg-amber-50 dark:bg-amber-950/30", hover: "hover:border-amber-200 dark:hover:border-amber-800", icon: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-900/30" },
+};
+const DEFAULT_CATEGORY_COLOR = { ring: "bg-gray-100 dark:bg-gray-900/30", active: "border-gray-500 bg-gray-50 dark:bg-gray-950/30", hover: "hover:border-gray-200 dark:hover:border-gray-800", icon: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-900/30" };
 
 export function BookingForm({ 
   artistId, 
@@ -47,7 +38,6 @@ export function BookingForm({
   const [email, setEmail] = useState("");
   const [service, setService] = useState("");
   const [customService, setCustomService] = useState("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
@@ -75,15 +65,20 @@ export function BookingForm({
     "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
   ];
 
-  const allServices = [...BRIDAL_SERVICES, ...EVENT_GLAM_SERVICES];
-  const selectedServiceData = allServices.find(s => s.id === service);
+  const allServices = services;
+  const selectedServiceData = allServices.find(s => String(s.id) === String(service));
   
-  const isBridal = selectedServiceData?.category === "bridal";
-  const isCustomService = selectedServiceData?.isCustom;
-  const isPackage = service === "package";
+  const isCustomService = service === "other";
+
+  const serviceCategories = allServices.reduce<Record<string, typeof allServices>>((acc, s) => {
+    const cat = s.category || "other";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(s);
+    return acc;
+  }, {});
 
   function getServiceLabel(id: string): string {
-    const s = allServices.find(x => x.id === id);
+    const s = allServices.find(x => String(x.id) === id);
     return s?.name || id;
   }
 
@@ -95,10 +90,6 @@ export function BookingForm({
       }
       if (isCustomService && !customService.trim()) {
         setError("Please specify the service");
-        return;
-      }
-      if (isPackage && selectedServices.length < 2) {
-        setError("Please select at least 2 services for the package");
         return;
       }
       setError("");
@@ -129,9 +120,7 @@ export function BookingForm({
 
     try {
       let serviceDesc = "";
-      if (isPackage) {
-        serviceDesc = `Package: ${selectedServices.map(getServiceLabel).join(", ")}`;
-      } else if (isCustomService) {
+      if (isCustomService) {
         serviceDesc = `Custom: ${customService}`;
       } else {
         serviceDesc = getServiceLabel(service);
@@ -370,122 +359,78 @@ export function BookingForm({
             Prices will be shared privately after the MUA reviews your venue location.
           </p>
 
-          {/* Bridal Category */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                <CreditCard className="w-4 h-4 text-rose-500" />
-              </span>
-              Bridal
-            </h4>
-            <div className="space-y-2">
-              {BRIDAL_SERVICES.map(s => (
-                <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  service === s.id
-                    ? "border-rose-500 bg-rose-50 dark:bg-rose-950/30"
-                    : "border-gray-200 dark:border-neutral-700 hover:border-rose-200 dark:hover:border-rose-800"
-                }`}>
-                  <input
-                    type="radio"
-                    name="service"
-                    value={s.id}
-                    checked={service === s.id}
-                    onChange={() => {
-                      setService(s.id);
-                      setCustomService("");
-                      setSelectedServices([]);
-                    }}
-                    className="w-4 h-4 text-rose-500 border-gray-300 focus:ring-rose-500"
-                  />
-                  <span className="font-medium text-gray-900 dark:text-white">{s.name}</span>
-                  {s.isCustom && service === s.id && (
-                    <input
-                      type="text"
-                      placeholder="Specify service..."
-                      value={customService}
-                      onChange={(e) => setCustomService(e.target.value)}
-                      className="ml-auto w-48 px-3 py-1.5 text-sm border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
-                    />
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Event & Glam Category */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <CreditCard className="w-4 h-4 text-purple-500" />
-              </span>
-              Event & Glam
-            </h4>
-            <div className="space-y-2">
-              {EVENT_GLAM_SERVICES.map(s => (
-                <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  service === s.id
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
-                    : "border-gray-200 dark:border-neutral-700 hover:border-purple-200 dark:hover:border-purple-800"
-                }`}>
-                  <input
-                    type="radio"
-                    name="service"
-                    value={s.id}
-                    checked={service === s.id}
-                    onChange={() => {
-                      setService(s.id);
-                      setCustomService("");
-                      setSelectedServices([]);
-                    }}
-                    className="w-4 h-4 text-purple-500 border-gray-300 focus:ring-purple-500"
-                  />
-                  <span className="font-medium text-gray-900 dark:text-white">{s.name}</span>
-                  {s.isCustom && service === s.id && (
-                    <input
-                      type="text"
-                      placeholder="Specify service..."
-                      value={customService}
-                      onChange={(e) => setCustomService(e.target.value)}
-                      className="ml-auto w-48 px-3 py-1.5 text-sm border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
-                    />
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Package Selection - only show if "Package" is selected */}
-          {isPackage && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Select services for your package (choose 2 or more):</h4>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {["engagement", "solemnization", "reception"].map(id => (
-                  <label key={id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
-                    selectedServices.includes(id)
-                      ? "bg-rose-500/10 border-rose-500"
-                      : "border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800"
-                  }`}>
-                    <input
-                      type="checkbox"
-                      value={id}
-                      checked={selectedServices.includes(id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedServices([...selectedServices, id]);
-                        } else {
-                          setSelectedServices(selectedServices.filter(s => s !== id));
-                        }
-                      }}
-                      className="w-4 h-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{getServiceLabel(id)}</span>
-                  </label>
-                ))}
+          {Object.entries(serviceCategories).map(([category, catServices]) => {
+            const colors = CATEGORY_COLORS[category] || DEFAULT_CATEGORY_COLOR;
+            const label = category.charAt(0).toUpperCase() + category.slice(1);
+            return (
+              <div key={category}>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-full ${colors.ring} flex items-center justify-center`}>
+                    <CreditCard className={`w-4 h-4 ${colors.icon}`} />
+                  </span>
+                  {label}
+                </h4>
+                <div className="space-y-2">
+                  {catServices.map(s => (
+                    <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      String(service) === String(s.id)
+                        ? colors.active
+                        : `border-gray-200 dark:border-neutral-700 ${colors.hover}`
+                    }`}>
+                      <input
+                        type="radio"
+                        name="service"
+                        value={s.id}
+                        checked={String(service) === String(s.id)}
+                        onChange={() => {
+                          setService(String(s.id));
+                          setCustomService("");
+                        }}
+                        className={`w-4 h-4 ${colors.icon} border-gray-300 focus:ring-rose-500`}
+                      />
+                      <span className="font-medium text-gray-900 dark:text-white">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              {selectedServices.length < 2 && (
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">Please select at least 2 services</p>
+            );
+          })}
+
+          {/* Other / Custom option */}
+          <div>
+            <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+              service === "other"
+                ? "border-gray-500 bg-gray-50 dark:bg-gray-950/30"
+                : "border-gray-200 dark:border-neutral-700 hover:border-gray-200 dark:hover:border-gray-800"
+            }`}>
+              <input
+                type="radio"
+                name="service"
+                value="other"
+                checked={service === "other"}
+                onChange={() => {
+                  setService("other");
+                  setCustomService("");
+                }}
+                className="w-4 h-4 text-gray-500 border-gray-300 focus:ring-gray-500"
+              />
+              <span className="font-medium text-gray-900 dark:text-white">Other</span>
+              {service === "other" && (
+                <input
+                  type="text"
+                  placeholder="Specify service..."
+                  value={customService}
+                  onChange={(e) => setCustomService(e.target.value)}
+                  className="ml-auto w-48 px-3 py-1.5 text-sm border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                />
               )}
-            </div>
+            </label>
+          </div>
+
+          {allServices.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+              This artist has not added any services yet. You can still send an inquiry.
+            </p>
           )}
         </div>
       )}
@@ -589,9 +534,7 @@ export function BookingForm({
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Service</h4>
             <p className="text-gray-900 dark:text-white">
-              {isPackage 
-                ? `Package: ${selectedServices.map(getServiceLabel).join(", ")}`
-                : isCustomService
+              {isCustomService
                 ? `Custom: ${customService}`
                 : getServiceLabel(service)
               }
@@ -692,9 +635,7 @@ export function BookingForm({
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Service</h4>
             <p className="text-gray-900 dark:text-white">
-              {isPackage 
-                ? `Package: ${selectedServices.map(getServiceLabel).join(", ")}`
-                : isCustomService
+              {isCustomService
                 ? `Custom: ${customService}`
                 : getServiceLabel(service)
               }
