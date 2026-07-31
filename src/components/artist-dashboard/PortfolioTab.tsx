@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, Loader2, GripVertical, Plus, ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, GripVertical, Plus, ImageIcon, ZoomIn } from "lucide-react";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface PortfolioTabProps {
   portfolio: string[];
@@ -14,6 +15,7 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
   const [uploading, setUploading] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -170,7 +172,8 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
           {portfolio.map((url, i) => (
             <div
               key={`${url}-${i}`}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700"
+              onClick={() => isImageUrl(url) && setLightboxIndex(i)}
+              className={`group relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 ${isImageUrl(url) ? "cursor-pointer" : ""}`}
             >
               {isImageUrl(url) ? (
                 <img
@@ -189,9 +192,18 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
 
               {/* Overlay controls */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                {isImageUrl(url) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                    className="p-1.5 bg-white/90 rounded-lg hover:bg-white transition-colors"
+                    title="View full size"
+                  >
+                    <ZoomIn className="w-4 h-4 text-gray-700" />
+                  </button>
+                )}
                 {i > 0 && (
                   <button
-                    onClick={() => moveItem(i, "up")}
+                    onClick={(e) => { e.stopPropagation(); moveItem(i, "up"); }}
                     className="p-1.5 bg-white/90 rounded-lg hover:bg-white transition-colors"
                     title="Move left"
                   >
@@ -200,7 +212,7 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
                 )}
                 {i < portfolio.length - 1 && (
                   <button
-                    onClick={() => moveItem(i, "down")}
+                    onClick={(e) => { e.stopPropagation(); moveItem(i, "down"); }}
                     className="p-1.5 bg-white/90 rounded-lg hover:bg-white transition-colors"
                     title="Move right"
                   >
@@ -208,7 +220,7 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
                   </button>
                 )}
                 <button
-                  onClick={() => removeItem(i)}
+                  onClick={(e) => { e.stopPropagation(); removeItem(i); }}
                   className="p-1.5 bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
                   title="Remove"
                 >
@@ -223,7 +235,16 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
             </div>
           ))}
         </div>
-      )}
-    </div>
-  );
-}
+       )}
+
+       {lightboxIndex !== null && (
+         <ImageLightbox
+           images={portfolio.filter(isImageUrl)}
+           initialIndex={lightboxIndex}
+           alt="Portfolio"
+           onClose={() => setLightboxIndex(null)}
+         />
+       )}
+     </div>
+   );
+ }

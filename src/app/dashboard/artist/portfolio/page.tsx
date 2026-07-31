@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { PortfolioUploader, type PortfolioItem } from "@/components/upload";
 import { isAllowedImageUrl } from "@/lib/utils/upload-url";
 import { deleteCloudinaryAssets, isSyntheticPublicId } from "@/lib/cloudinary-delete-client";
+import ImageLightbox from "@/components/ImageLightbox";
 
 const MAX_PORTFOLIO_ITEMS = 12;
 
@@ -18,6 +19,7 @@ export default function ArtistPortfolio() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const previousRef = useRef<PortfolioItem[]>([]);
 
   function isCloudinaryPublicId(pid: string): boolean {
@@ -155,7 +157,7 @@ export default function ArtistPortfolio() {
               Live on your profile
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {items.map((item) => (
+              {items.map((item, i) => (
                 <div
                   key={item.publicId}
                   className="relative group rounded-xl overflow-hidden aspect-square bg-gray-100 dark:bg-neutral-800"
@@ -168,12 +170,16 @@ export default function ArtistPortfolio() {
                     className="w-full h-full object-cover"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <div
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => setLightboxIndex(i)}
+                  >
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 rounded-lg bg-white/90 text-gray-700 hover:bg-white"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>
@@ -181,8 +187,17 @@ export default function ArtistPortfolio() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-    </div>
-  );
-}
+           </div>
+         )}
+
+         {lightboxIndex !== null && (
+           <ImageLightbox
+             images={items.map((item) => item.url)}
+             initialIndex={lightboxIndex}
+             alt="Portfolio"
+             onClose={() => setLightboxIndex(null)}
+           />
+         )}
+       </div>
+     );
+   }
