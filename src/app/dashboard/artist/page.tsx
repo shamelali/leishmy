@@ -12,6 +12,8 @@ import {
   PortfolioTab,
   BookingsTab,
   PricesTab,
+  PackagesTab,
+  PricingRulesTab,
   PayoutsTab,
 } from "@/components/artist-dashboard";
 
@@ -238,6 +240,15 @@ export default function DashboardArtist() {
             onToggleShowPrices={(show) => setProfile((prev) => ({ ...prev, showPrices: show }))}
           />
         )}
+
+        {activeTab === "packages" && (
+          <PackagesTab
+            artistId={user?.id || ""}
+            services={services}
+          />
+        )}
+
+        {activeTab === "pricing" && <PricingRulesTab />}
 
         {activeTab === "payouts" && (
           <PayoutsTab

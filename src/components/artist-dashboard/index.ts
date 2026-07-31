@@ -3,6 +3,8 @@ export { default as ProfileTab } from "./ProfileTab";
 export { default as PortfolioTab } from "./PortfolioTab";
 export { default as BookingsTab } from "./BookingsTab";
 export { default as PricesTab } from "./PricesTab";
+export { default as PackagesTab } from "./PackagesTab";
+export { default as PricingRulesTab } from "./PricingRulesTab";
 export { default as PayoutsTab } from "./PayoutsTab";
 export { default as AutoSaveField } from "./AutoSaveField";
 export { default as AvailabilityToggle } from "./AvailabilityToggle";

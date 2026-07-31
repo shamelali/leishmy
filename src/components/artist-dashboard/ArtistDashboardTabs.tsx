@@ -7,9 +7,11 @@ import {
   Calendar,
   Tag,
   Wallet,
+  Package,
+  Percent,
 } from "lucide-react";
 
-export type TabId = "profile" | "portfolio" | "bookings" | "prices" | "payouts";
+export type TabId = "profile" | "portfolio" | "bookings" | "prices" | "packages" | "pricing" | "payouts";
 
 interface Tab {
   id: TabId;
@@ -22,6 +24,8 @@ export const tabs: Tab[] = [
   { id: "portfolio", label: "Portfolio", icon: Image },
   { id: "bookings", label: "Bookings", icon: Calendar },
   { id: "prices", label: "Prices", icon: Tag },
+  { id: "packages", label: "Packages", icon: Package },
+  { id: "pricing", label: "Pricing Rules", icon: Percent },
   { id: "payouts", label: "Payouts", icon: Wallet },
 ];
 
