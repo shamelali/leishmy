@@ -24,6 +24,7 @@ export default function AvailabilityToggle({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAvailable(initialAvailable);
   }, [initialAvailable]);
 

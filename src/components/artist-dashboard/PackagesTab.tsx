@@ -42,10 +42,6 @@ export default function PackagesTab({ artistId, services }: PackagesTabProps) {
     popular: false,
   });
 
-  useEffect(() => {
-    fetchPackages();
-  }, []);
-
   async function fetchPackages() {
     try {
       const res = await fetch(`/api/services/packages?artistId=${artistId}`);
@@ -56,6 +52,12 @@ export default function PackagesTab({ artistId, services }: PackagesTabProps) {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPackages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleAddPackage() {
     if (!selectedService || !newPackage.name || !newPackage.price) return;

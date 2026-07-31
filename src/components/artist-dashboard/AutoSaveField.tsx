@@ -41,6 +41,7 @@ export default function AutoSaveField({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setValue(initialValue);
   }, [initialValue]);
 
