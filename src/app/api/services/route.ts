@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { artistId, studioId, name, description, duration, price, popular, category } = body;
 
-    if (!name || !price || (!artistId && !studioId)) {
-      return NextResponse.json({ error: "name, price, and artistId or studioId required" }, { status: 400 });
+    if (!name || (!artistId && !studioId)) {
+      return NextResponse.json({ error: "name and artistId or studioId required" }, { status: 400 });
     }
 
     const [service] = await db
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description || null,
         duration: duration || null,
-        price,
+        price: price ?? "0",
         artistId: artistId ? String(artistId) : null,
         studioId: studioId ? String(studioId) : null,
         popular: popular || false,

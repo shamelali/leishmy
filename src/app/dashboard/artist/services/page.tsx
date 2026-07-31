@@ -135,8 +135,8 @@ export default function ArtistServices() {
           </h3>
           <input placeholder="Service name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" required />
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Duration (e.g. 2 hrs)" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" required />
-            <input type="number" placeholder="Price (MYR)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" required />
+            <input placeholder="Duration (e.g. 2 hrs)" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" />
+            <input type="number" placeholder="Price (MYR)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm" min="0" step="0.01" />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.popular} onChange={(e) => setForm({ ...form, popular: e.target.checked })} className="w-4 h-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500" />
@@ -218,7 +218,7 @@ export default function ArtistServices() {
                     {s.name}
                     {s.popular && <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded-full">Popular</span>}
                   </p>
-                  <p className="text-xs text-gray-400">{s.duration} &middot; MYR {Number(s.price)}</p>
+                  <p className="text-xs text-gray-400">{s.duration ? `${s.duration} · ` : ""}{Number(s.price) > 0 ? `MYR ${Number(s.price)}` : "Negotiable"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
