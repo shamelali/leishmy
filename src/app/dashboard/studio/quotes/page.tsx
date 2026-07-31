@@ -16,12 +16,21 @@ interface Booking {
   userName?: string;
   clientEmail?: string;
   service?: string;
+  serviceId?: number;
   date?: string;
   time?: string;
   location?: string;
   status: string;
   amount?: number;
   createdAt?: string;
+}
+
+interface PricingRules {
+  weekendSurcharge?: number;
+  holidaySurcharge?: number;
+  lastMinuteSurcharge?: number;
+  earlyBirdDiscount?: number;
+  peakMonths?: number[];
 }
 
 export default function StudioQuotes() {
@@ -31,15 +40,28 @@ export default function StudioQuotes() {
   const [error, setError] = useState<string | null>(null);
   const [quoteModal, setQuoteModal] = useState<Booking | null>(null);
   const [filter, setFilter] = useState<"pending" | "sent">("pending");
+  const [defaultDepositPercent, setDefaultDepositPercent] = useState(30);
+  const [pricingRules, setPricingRules] = useState<PricingRules | undefined>(undefined);
 
   useEffect(() => {
     if (!user?.id) return;
-    fetch("/api/user/bookings")
+    const loadBookings = fetch("/api/user/bookings")
       .then((r) => r.json())
       .then((data) => {
         if (data?.bookings) setBookings(data.bookings);
-      })
-      .catch(() => setError("Failed to load bookings"))
+      });
+
+    const loadPricingRules = fetch("/api/user/pricing-rules")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.profile) {
+          setDefaultDepositPercent(data.profile.defaultDepositPercent ?? 30);
+          setPricingRules(data.profile.pricingRules || undefined);
+        }
+      });
+
+    Promise.all([loadBookings, loadPricingRules])
+      .catch(() => setError("Failed to load data"))
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -203,6 +225,10 @@ export default function StudioQuotes() {
           bookingId={quoteModal.id}
           serviceName={quoteModal.service || "Beauty Service"}
           clientName={quoteModal.client || quoteModal.userName || "Customer"}
+          serviceId={quoteModal.serviceId}
+          bookingDate={quoteModal.date}
+          defaultDepositPercent={defaultDepositPercent}
+          pricingRules={pricingRules}
           onClose={() => setQuoteModal(null)}
           onSuccess={handleQuoteSent}
         />
