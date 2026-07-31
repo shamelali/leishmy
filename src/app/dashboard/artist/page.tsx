@@ -28,6 +28,7 @@ import {
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
+import { QuoteModal } from "@/components/QuoteModal";
 import { useAuth } from "@/context/AuthContext";
 import { ArtistProfileEditForm, type ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 
@@ -109,6 +110,7 @@ export default function DashboardArtist() {
     type: "booking" | "inquiry";
     data: any;
   }>({ isOpen: false, type: "booking", data: null });
+  const [quoteModal, setQuoteModal] = useState<Booking | null>(null);
   const [profile, setProfile] = useState<ArtistProfileEditValues>({
     name: "",
     email: "",
@@ -234,8 +236,8 @@ export default function DashboardArtist() {
   };
 
   const statusMap: Record<string, string[]> = {
-    all: ["pending", "confirmed", "completed", "cancelled"],
-    upcoming: ["pending", "confirmed"],
+    all: ["quote_pending", "pending", "confirmed", "completed", "cancelled"],
+    upcoming: ["quote_pending", "pending", "confirmed"],
     completed: ["completed"],
     cancelled: ["cancelled"],
   };

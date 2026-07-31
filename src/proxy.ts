@@ -51,7 +51,7 @@ function generateNonce(): string {
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-// --- Middleware ---
+// --- Proxy (formerly Middleware) ---
 
 function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -74,7 +74,7 @@ const authMiddleware = auth.middleware({
   loginUrl: "/login",
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const nonce = generateNonce();
 
