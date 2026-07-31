@@ -46,6 +46,8 @@ export function BookingForm({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [quoteData, setQuoteData] = useState<{
     servicePrice: number;
     accommodationFee: number;
@@ -148,7 +150,7 @@ export function BookingForm({
       const bid = data?.booking?.id;
       if (!bid) throw new Error("Booking created without an id");
 
-      setBookingId(bid);
+      setBookingId(String(bid));
       setStep("awaiting_quote");
     } catch (err) {
       setError(
@@ -163,12 +165,19 @@ export function BookingForm({
 
   const checkQuoteStatus = useCallback(async () => {
     if (!bookingId) return;
+    const id = String(bookingId);
     try {
-      const res = await fetch(`/api/bookings?id=${bookingId}`);
-      if (!res.ok) return;
+      const res = await fetch(`/api/bookings?id=${id}`);
+      if (!res.ok) {
+        setStatusMessage("Could not check status. Please try again.");
+        return;
+      }
       const data = await res.json();
       const booking = data?.booking;
-      if (!booking) return;
+      if (!booking) {
+        setStatusMessage("Booking not found.");
+        return;
+      }
 
       if (booking.status === "quote_sent" && booking.servicePrice) {
         if (pollingRef.current) {
@@ -186,11 +195,20 @@ export function BookingForm({
           quoteId: String(booking.quoteId || booking.id),
         });
         setStep("checkout");
+      } else {
+        setStatusMessage("Quote not ready yet. The MUA hasn't sent a quote — you will also be notified by email.");
       }
     } catch {
-      // silently ignore polling errors
+      setStatusMessage("Could not check status. Please try again.");
     }
   }, [bookingId]);
+
+  const handleCheckStatus = useCallback(async () => {
+    setCheckingStatus(true);
+    setStatusMessage(null);
+    await checkQuoteStatus();
+    setCheckingStatus(false);
+  }, [checkQuoteStatus]);
 
   useEffect(() => {
     if (step === "awaiting_quote" && bookingId) {
@@ -610,11 +628,22 @@ export function BookingForm({
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={checkQuoteStatus}
-                className="px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                onClick={handleCheckStatus}
+                disabled={checkingStatus}
+                className="px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Check Status
+                {checkingStatus ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                    Checking...
+                  </span>
+                ) : (
+                  "Check Status"
+                )}
               </button>
+              {statusMessage && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">{statusMessage}</p>
+              )}
               <div className="text-xs text-gray-400">
                 Booking ID: {bookingId}
               </div>
