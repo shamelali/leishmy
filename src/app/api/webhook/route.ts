@@ -65,9 +65,11 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (payment) {
+        const alreadyPaid = payment.status === "paid";
+
         await db
           .update(payments)
-          .set({ status: "paid", updatedAt: new Date() })
+          .set({ status: "paid", paidAt: new Date(body.paid_at), updatedAt: new Date() })
           .where(eq(payments.billplzId, body.id));
 
         if (payment.bookingId) {
@@ -75,6 +77,11 @@ export async function POST(request: NextRequest) {
             .update(bookings)
             .set({ status: "confirmed", updatedAt: new Date() })
             .where(eq(bookings.id, payment.bookingId));
+        }
+
+        if (alreadyPaid) {
+          console.log(`[webhook] payment ${payment.id} already paid — skipping duplicate side effects`);
+          return NextResponse.json({ success: true, duplicate: true });
         }
       }
 
