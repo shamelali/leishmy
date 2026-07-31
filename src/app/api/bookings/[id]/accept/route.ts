@@ -62,13 +62,14 @@ export async function POST(
     const totalPrice = quoteTotal || Number(booking.amount) || 0;
     const depositAmount = Math.round(totalPrice * 0.3 * 100) / 100;
 
-    // Update booking: set amount to quote total, status to pending
+    // Update booking: set amount to quote total, status to pending, milestone to deposit_30
     const [updated] = await db
       .update(bookings)
       .set({
         status: "pending",
         amount: String(totalPrice),
         depositAmount: String(depositAmount),
+        milestone: "deposit_30",
       })
       .where(eq(bookings.id, bookingId))
       .returning();

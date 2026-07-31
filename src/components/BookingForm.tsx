@@ -233,7 +233,10 @@ export function BookingForm({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to accept quote");
+      if (!res.ok) {
+        const msg = typeof data?.error === "string" ? data.error : (data?.error?.message ?? JSON.stringify(data?.error)) || "Failed to accept quote";
+        throw new Error(msg);
+      }
 
       const billRes = await fetch("/api/payments?action=create-bill", {
         method: "POST",
@@ -249,7 +252,10 @@ export function BookingForm({
       });
 
       const billData = await billRes.json();
-      if (!billRes.ok) throw new Error(billData?.error || "Failed to start payment");
+      if (!billRes.ok) {
+        const msg = typeof billData?.error === "string" ? billData.error : (billData?.error?.message ?? JSON.stringify(billData?.error)) || "Failed to start payment";
+        throw new Error(msg);
+      }
 
       if (billData?.bill?.url) {
         setSuccess(true);

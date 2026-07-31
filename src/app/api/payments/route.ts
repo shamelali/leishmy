@@ -192,11 +192,35 @@ export async function POST(request: NextRequest) {
           .where(eq(payments.idempotencyKey, idempotencyKey))
           .limit(1);
 
-        if (existing) {
+        if (existing && existing.status !== "pending") {
+          // Already completed (paid/refunded) — return it as-is
           return NextResponse.json(
             { bill: { id: existing.billplzId }, payment: existing, cached: true },
             { status: 200 }
           );
+        }
+
+        if (existing && existing.status === "pending") {
+          // Check if the booking was cancelled since the payment was created
+          const [linkedBooking] = await db
+            .select({ status: bookings.status })
+            .from(bookings)
+            .where(eq(bookings.id, Number(bookingId)))
+            .limit(1);
+
+          if (linkedBooking && linkedBooking.status === "cancelled") {
+            // Stale payment for cancelled booking — mark it failed and allow new payment
+            await db
+              .update(payments)
+              .set({ status: "failed", updatedAt: new Date() })
+              .where(eq(payments.id, existing.id));
+          } else {
+            // Still valid pending payment — return cached
+            return NextResponse.json(
+              { bill: { id: existing.billplzId }, payment: existing, cached: true },
+              { status: 200 }
+            );
+          }
         }
       }
 
@@ -220,7 +244,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Prevent duplicate pending payments for same booking
+      // Prevent duplicate pending payments for same booking (skip cancelled bookings)
       const [existingPending] = await db
         .select()
         .from(payments)
@@ -232,7 +256,7 @@ export async function POST(request: NextRequest) {
         )
         .limit(1);
 
-      if (existingPending) {
+      if (existingPending && booking.status !== "cancelled") {
         return NextResponse.json(
           { 
             error: "A pending payment already exists for this booking",
@@ -240,6 +264,14 @@ export async function POST(request: NextRequest) {
           },
           { status: 409 }
         );
+      }
+
+      // Clean up stale pending payment if booking was cancelled
+      if (existingPending && booking.status === "cancelled") {
+        await db
+          .update(payments)
+          .set({ status: "failed", updatedAt: new Date() })
+          .where(eq(payments.id, existingPending.id));
       }
 
       const depositAmount = booking.depositAmount
@@ -591,9 +623,16 @@ export async function POST(request: NextRequest) {
         );
 
         const billplzData = await billplzResponse.json();
-        if (!billplzResponse.ok) {
-          return NextResponse.json({ error: billplzData }, { status: billplzResponse.status });
-        }
+      if (!billplzResponse.ok) {
+        const msg =
+          typeof billplzData === "string"
+            ? billplzData
+            : billplzData?.error?.message
+              ?? billplzData?.message
+              ?? billplzData?.error
+              ?? JSON.stringify(billplzData);
+        return NextResponse.json({ error: msg }, { status: billplzResponse.status });
+      }
       }
 
       await db
