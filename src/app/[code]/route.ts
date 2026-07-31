@@ -37,22 +37,22 @@ export async function GET(
       return NextResponse.json({ error: "Short URL not found" }, { status: 404 });
     }
 
-    // Increment click count and record analytics
-    await db
-      .update(urls)
-      .set({ 
-        clicks: sql`${urls.clicks} + 1`,
-        updatedAt: new Date()
-      })
-      .where(eq(urls.code, code));
-
-    // Record analytics
-    await db.insert(urlAnalytics).values({
-      code,
-      referer: request.headers.get("referer") || null,
-      userAgent: request.headers.get("user-agent") || null,
-      country: request.headers.get("x-vercel-ip-country") || "unknown",
-    });
+    // Fire analytics writes without blocking the redirect
+    Promise.all([
+      db
+        .update(urls)
+        .set({ 
+          clicks: sql`${urls.clicks} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(urls.code, code)),
+      db.insert(urlAnalytics).values({
+        code,
+        referer: request.headers.get("referer") || null,
+        userAgent: request.headers.get("user-agent") || null,
+        country: request.headers.get("x-vercel-ip-country") || "unknown",
+      }),
+    ]).catch((err) => console.error("[url-shortener] analytics write failed:", err));
 
     return NextResponse.redirect(urlRecord[0].url, 302);
   } catch (err) {

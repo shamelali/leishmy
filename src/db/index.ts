@@ -10,7 +10,13 @@ function getConnection() {
   if (!globalForDb.__db) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is required");
-    const pool = new Pool({ connectionString: url });
+    const pool = new Pool({
+      connectionString: url,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true,
+    });
 
     // Neon (and most serverless Postgres proxies) close idle connections
     // server-side. Without this handler, that shows up as an *uncaught*
