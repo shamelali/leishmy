@@ -54,33 +54,24 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Calculate deposit (30% of total)
-    const totalPrice = Number(booking.amount);
+    // Calculate total from quote columns (service_price + fees)
+    const quoteTotal =
+      (Number(booking.servicePrice) || 0) +
+      (Number(booking.accommodationFee) || 0) +
+      (Number(booking.travelSurcharge) || 0);
+    const totalPrice = quoteTotal || Number(booking.amount) || 0;
     const depositAmount = Math.round(totalPrice * 0.3 * 100) / 100;
 
-    // Update booking status to pending (awaiting payment)
+    // Update booking: set amount to quote total, status to pending
     const [updated] = await db
       .update(bookings)
       .set({
         status: "pending",
+        amount: String(totalPrice),
         depositAmount: String(depositAmount),
       })
       .where(eq(bookings.id, bookingId))
       .returning();
-
-    // Create payment bill
-    const billRes = await fetch("/api/payments?action=create-bill", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bookingId,
-        name: "", // Will be filled by API
-        email: "", // Will be filled by API
-        description: `${booking.service} with provider`,
-        idempotencyKey: `booking_${bookingId}`,
-        amount: totalPrice * 100, // convert to cents
-      }),
-    });
 
     // Notify provider
     if (booking.artistId) {
@@ -135,7 +126,8 @@ export async function POST(
     return NextResponse.json({ 
       success: true, 
       booking: updated,
-      paymentUrl: billRes.ok ? (await billRes.json())?.bill?.url : null 
+      depositAmount,
+      totalPrice,
     });
   } catch (error) {
     console.error("Accept quote error:", error);
