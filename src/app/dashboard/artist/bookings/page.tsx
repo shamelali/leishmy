@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Clock, ArrowLeft, AlertCircle, Check, X } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ArtistBookings() {
+  const router = useRouter();
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,14 @@ export default function ArtistBookings() {
         ) : (
           <div className="space-y-3">
             {filtered.map((b: any) => (
-              <div key={b.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+              <div
+                key={b.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/bookings/${b.id}`)}
+                onKeyDown={(e) => { if (e.key === "Enter") router.push(`/bookings/${b.id}`); }}
+                className="cursor-pointer p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-gray-900 dark:text-white">{b.client || b.userName || "Anonymous"}</span>
                   {statusBadge(b.status)}
@@ -101,8 +110,8 @@ export default function ArtistBookings() {
                 <p className="text-xs text-gray-400 mt-1">{b.service || "Beauty Service"}</p>
                 {b.status === "pending" && (
                   <div className="flex gap-2 mt-3">
-                    <button onClick={() => handleConfirm(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> Confirm</button>
-                    <button onClick={() => handleReject(b.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> Reject</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleConfirm(b.id); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50"><Check className="w-3.5 h-3.5" /> Confirm</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleReject(b.id); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50"><X className="w-3.5 h-3.5" /> Reject</button>
                   </div>
                 )}
               </div>

@@ -333,7 +333,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Booking not found" }, { status: 404 });
       }
 
-      if (session && !hasAdminAccess(session) && booking.userId !== session.id) {
+      const isOwner = booking.userId === session?.id;
+      const isAssignedArtist = !!booking.artistId && booking.artistId === session?.id;
+      const isAssignedStudio = !!booking.studioId && booking.studioId === session?.id;
+      if (session && !hasAdminAccess(session) && !isOwner && !isAssignedArtist && !isAssignedStudio) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Clock, MapPin, User, ArrowRight, Sparkles, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +20,7 @@ interface BookingItem {
 }
 
 export default function BookingsPage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,11 @@ export default function BookingsPage() {
             {filtered.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6"
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/bookings/${booking.id}`)}
+                onKeyDown={(e) => { if (e.key === "Enter") router.push(`/bookings/${booking.id}`); }}
+                className="cursor-pointer bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-2.5">
@@ -171,6 +177,7 @@ export default function BookingsPage() {
                 <div className="flex items-center gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-gray-100 dark:border-neutral-800 self-end md:self-center shrink-0">
                   <Link
                     href={`/artists/${booking.artistId}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-xs font-semibold text-gray-700 dark:text-gray-300 transition-colors"
                   >
                     View Artist
@@ -178,7 +185,7 @@ export default function BookingsPage() {
 
                   {booking.status === "confirmed" && (
                     <button
-                      onClick={() => handleCancel(booking.id)}
+                      onClick={(e) => { e.stopPropagation(); handleCancel(booking.id); }}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-xs font-semibold text-red-600 dark:text-red-400 transition-colors"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Cancel

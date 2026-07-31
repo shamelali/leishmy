@@ -128,7 +128,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       /* eslint-disable react-hooks/set-state-in-effect */
       fetchFromServer(controller.signal);
       /* eslint-enable react-hooks/set-state-in-effect */
-      return () => controller.abort();
+
+      // Poll for new notifications so the bell updates live instead of
+      // only on next page load/navigation.
+      const intervalId = setInterval(() => {
+        fetchFromServer(controller.signal);
+      }, 20000);
+
+      return () => {
+        controller.abort();
+        clearInterval(intervalId);
+      };
     }
   }, [mounted, user?.id, fetchFromServer]);
 
