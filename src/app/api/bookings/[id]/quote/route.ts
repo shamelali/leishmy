@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, profiles, notifications } from "@/db/schema";
+import { bookings, users, profiles, servicePackages, notifications } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
@@ -31,7 +31,18 @@ export async function PUT(
       );
     }
 
-    const { servicePrice, accommodationFee, travelFee, notes } = parsed.data;
+    const {
+      servicePrice,
+      accommodationFee,
+      travelFee,
+      discount,
+      discountReason,
+      extras,
+      packageId,
+      packageName,
+      depositPercent,
+      notes,
+    } = parsed.data;
 
     // Verify booking exists and is in quote_pending status
     const [booking] = await db
@@ -72,8 +83,22 @@ export async function PUT(
       }
     }
 
-    const totalPrice = servicePrice + (accommodationFee || 0) + (travelFee || 0);
-    const depositAmount = Math.round(totalPrice * 0.3 * 100) / 100; // 30% deposit
+    // Resolve package name from packageId if not provided
+    let resolvedPackageName = packageName || null;
+    if (packageId && !packageName) {
+      const [pkg] = await db
+        .select({ name: servicePackages.name })
+        .from(servicePackages)
+        .where(eq(servicePackages.id, packageId))
+        .limit(1);
+      resolvedPackageName = pkg?.name || null;
+    }
+
+    const extrasTotal = extras?.reduce((sum, e) => sum + e.price, 0) || 0;
+    const discountAmount = Math.min(discount || 0, (servicePrice + (accommodationFee || 0) + (travelFee || 0) + extrasTotal) * 0.5);
+    const totalPrice = servicePrice + (accommodationFee || 0) + (travelFee || 0) + extrasTotal - discountAmount;
+    const depositPercentNum = Math.min(100, Math.max(10, depositPercent || 30));
+    const depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
 
     // Update booking with quote
     const [updated] = await db
@@ -84,9 +109,15 @@ export async function PUT(
         servicePrice: String(servicePrice),
         accommodationFee: String(accommodationFee || 0),
         travelSurcharge: String(travelFee || 0),
+        discount: String(discountAmount),
+        discountReason: discountReason || null,
+        extras: extras && extras.length > 0 ? extras : undefined,
+        packageName: resolvedPackageName,
+        depositPercent: depositPercentNum,
+        selectedQuoteOptionId: packageId || null,
         notes: notes || null,
         status: "quote_sent",
-        milestone: "deposit_30",
+        milestone: `deposit_${depositPercentNum}`,
       })
       .where(eq(bookings.id, bookingId))
       .returning();
@@ -142,6 +173,11 @@ export async function PUT(
         travelFee: travelFee || 0,
         totalPrice,
         depositAmount,
+        discountAmount: discountAmount,
+        discountReason: discountReason || undefined,
+        extras: extras && extras.length > 0 ? extras : undefined,
+        packageName: resolvedPackageName || undefined,
+        depositPercent: depositPercentNum,
       }).catch((err) => console.error("sendQuoteReadyEmail failed:", err));
     }
 

@@ -75,6 +75,14 @@ export const profiles = pgTable(
     district: varchar("district", { length: 100 }),
     featured: boolean("featured").default(false),
     showPrices: boolean("show_prices").default(false),
+    defaultDepositPercent: integer("default_deposit_percent").default(30),
+    pricingRules: jsonb("pricing_rules").$type<{
+      weekendSurcharge?: number;
+      holidaySurcharge?: number;
+      lastMinuteSurcharge?: number;
+      earlyBirdDiscount?: number;
+      peakMonths?: number[];
+    }>().default({}),
     bankName: varchar("bank_name", { length: 255 }),
     accountNumber: varchar("account_number", { length: 100 }),
     accountHolder: varchar("account_holder", { length: 255 }),
@@ -171,6 +179,29 @@ export const services = pgTable("services", {
 ],
 );
 
+export const servicePackages = pgTable("service_packages", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("service_id").references(() => services.id, { onDelete: "cascade" }),
+  artistId: text("artist_id").references(() => users.id, { onDelete: "cascade" }),
+  studioId: text("studio_id").references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  includes: jsonb("includes").$type<string[]>().default([]),
+  duration: varchar("duration", { length: 50 }),
+  popular: boolean("popular").default(false),
+  active: boolean("active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+},
+(table) => [
+  index("service_packages_service_idx").on(table.serviceId),
+  index("service_packages_artist_idx").on(table.artistId),
+  index("service_packages_studio_idx").on(table.studioId),
+],
+);
+
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),
   rating: integer("rating").notNull(),
@@ -224,6 +255,12 @@ export const bookings = pgTable("bookings", {
   accommodationFee: decimal("accommodation_fee", { precision: 10, scale: 2 }).default("0"),
   remainingPaymentSent: boolean("remaining_payment_sent").default(false),
   servicePrice: decimal("service_price", { precision: 10, scale: 2 }).default("0"),
+  selectedQuoteOptionId: integer("selected_quote_option_id"),
+  discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
+  discountReason: varchar("discount_reason", { length: 255 }),
+  extras: jsonb("extras").$type<Array<{ name: string; price: number }>>().default([]),
+  packageName: varchar("package_name", { length: 255 }),
+  depositPercent: integer("deposit_percent").default(30),
   quoteId: text("quote_id"),
   quoteSentAt: timestamp("quote_sent_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -292,6 +329,26 @@ export const payments = pgTable("payments", {
 (table) => [
   index("payments_booking_id_idx").on(table.bookingId),
   index("payments_status_idx").on(table.status),
+],
+);
+
+export const quoteOptions = pgTable("quote_options", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  servicePrice: decimal("service_price", { precision: 10, scale: 2 }).notNull(),
+  travelFee: decimal("travel_fee", { precision: 10, scale: 2 }).default("0"),
+  accommodationFee: decimal("accommodation_fee", { precision: 10, scale: 2 }).default("0"),
+  discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
+  discountReason: varchar("discount_reason", { length: 255 }),
+  extras: jsonb("extras").$type<Array<{ name: string; price: number }>>().default([]),
+  selected: boolean("selected").default(false),
+  selectedAt: timestamp("selected_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+},
+(table) => [
+  index("quote_options_booking_idx").on(table.bookingId),
 ],
 );
 

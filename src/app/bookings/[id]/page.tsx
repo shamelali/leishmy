@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save } from "lucide-react";
+import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save, Tag } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,6 +23,12 @@ interface BookingDetail {
   depositAmount: string | null;
   travelSurcharge: string | null;
   accommodationFee: string | null;
+  servicePrice: string | null;
+  discount: string | null;
+  discountReason: string | null;
+  extras: Array<{ name: string; price: number }> | null;
+  packageName: string | null;
+  depositPercent: number | null;
   createdAt: string;
 }
 
@@ -40,6 +46,12 @@ export default function BookingDetailPage() {
   const [accommodationFee, setAccommodationFee] = useState("");
   const [depositAmt, setDepositAmt] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
+  // Quote breakdown fields
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [discountReason, setDiscountReason] = useState("");
+  const [extras, setExtras] = useState<Array<{ name: string; price: number }>>([]);
+  const [packageName, setPackageName] = useState("");
+  const [depositPercent, setDepositPercent] = useState(30);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -59,6 +71,12 @@ export default function BookingDetailPage() {
         setTravelFee(String(travel));
         setAccommodationFee(String(accom));
         setDepositAmt(String(Number(data.booking.depositAmount) || 0));
+        // Initialize price breakdown fields
+        setDiscountAmount(String(Number(data.booking.discount) || 0));
+        setDiscountReason(data.booking.discountReason || "");
+        setExtras(data.booking.extras || []);
+        setPackageName(data.booking.packageName || "");
+        setDepositPercent(data.booking.depositPercent || 30);
       } catch {
         setError("Failed to load booking");
       }
@@ -86,6 +104,11 @@ export default function BookingDetailPage() {
           travelSurcharge: travel,
           accommodationFee: accom,
           depositAmount: deposit,
+          discount: Number(discountAmount) || 0,
+          discountReason: discountReason || undefined,
+          extras: extras.length > 0 ? extras : undefined,
+          packageName: packageName || undefined,
+          depositPercent,
         }),
       });
 
@@ -96,6 +119,11 @@ export default function BookingDetailPage() {
           travelSurcharge: String(travel),
           accommodationFee: String(accom),
           depositAmount: String(deposit),
+          discount: String(Number(discountAmount) || 0),
+          discountReason: discountReason || null,
+          extras: extras.length > 0 ? extras : null,
+          packageName: packageName || null,
+          depositPercent,
         });
         setEditingPrice(false);
       }
@@ -156,7 +184,8 @@ export default function BookingDetailPage() {
   const providerBackHref = isProvider ? "/dashboard/artist/bookings" : "/bookings";
   const providerBackLabel = isProvider ? "Back to Dashboard" : "Back to Bookings";
 
-  const totalAmount = (Number(serviceAmount) || 0) + (Number(travelFee) || 0) + (Number(accommodationFee) || 0);
+  const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0);
+  const totalAmount = (Number(serviceAmount) || 0) + (Number(travelFee) || 0) + (Number(accommodationFee) || 0) + extrasTotal - (Number(discountAmount) || 0);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -245,15 +274,35 @@ export default function BookingDetailPage() {
                     className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
                   />
                 </div>
-                <div className="flex items-center gap-2 border-t border-amber-200 dark:border-amber-800 pt-2">
-                  <DollarSign className="w-4 h-4 text-gray-400 shrink-0" />
-                  <label className="text-xs text-gray-500 w-28 shrink-0">Deposit</label>
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-gray-400 shrink-0" />
+                  <label className="text-xs text-gray-500 w-28 shrink-0">Discount (max 50%)</label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={depositAmt}
-                    onChange={(e) => setDepositAmt(e.target.value)}
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
+                  />
+                </div>
+                {discountAmount && Number(discountAmount) > 0 && (
+                  <input
+                    type="text"
+                    placeholder="Reason"
+                    value={discountReason}
+                    onChange={(e) => setDiscountReason(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm"
+                  />
+                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 w-28 shrink-0">Deposit %</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={depositPercent}
+                    onChange={(e) => setDepositPercent(Number(e.target.value))}
                     className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-right"
                   />
                 </div>
@@ -295,14 +344,37 @@ export default function BookingDetailPage() {
                     <span className="font-medium text-gray-900 dark:text-white">MYR {Number(accommodationFee).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
+                {extras.length > 0 && (
+                  <>
+                    <p className="text-xs text-gray-400 mt-2">Extras</p>
+                    {extras.map((extra, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-gray-500">{extra.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">MYR {extra.price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {(Number(discountAmount) || 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-600 dark:text-green-400">Discount {discountReason ? `(${discountReason})` : ""}</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">-MYR {Number(discountAmount).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-amber-200 dark:border-amber-800">
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total</span>
                   <span className="text-lg font-bold text-gray-900 dark:text-white">MYR {Number(booking.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                {(Number(depositAmt) || 0) > 0 && (
+                {(Number(booking.depositAmount) || 0) > 0 && (
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>Deposit due</span>
-                    <span>MYR {Number(depositAmt).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span>{depositPercent || 30}% Deposit</span>
+                    <span>MYR {Number(booking.depositAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                {packageName && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Package</span>
+                    <span>{packageName}</span>
                   </div>
                 )}
               </div>

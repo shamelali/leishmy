@@ -79,8 +79,19 @@ export async function sendQuoteReadyEmail(params: {
   travelFee: number;
   totalPrice: number;
   depositAmount?: number;
+  discountAmount?: number;
+  discountReason?: string;
+  extras?: Array<{ name: string; price: number }>;
+  packageName?: string;
+  depositPercent?: number;
 }) {
   const subject = `Your quote is ready for booking #${params.bookingId}`;
+  const extrasHtml = params.extras && params.extras.length > 0
+    ? params.extras.map((e) => `<tr><td style="padding:4px 0;">${e.name}</td><td style="padding:4px 0;text-align:right;">MYR ${e.price.toFixed(2)}</td></tr>`).join("")
+    : "";
+  const discountHtml = params.discountAmount && params.discountAmount > 0
+    ? `<tr><td style="padding:4px 0;color:#2e7d32;">Discount${params.discountReason ? ` (${params.discountReason})` : ""}</td><td style="padding:4px 0;text-align:right;color:#2e7d32;">-MYR ${params.discountAmount.toFixed(2)}</td></tr>`
+    : "";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>Your Quote is Ready</h2>
@@ -95,11 +106,15 @@ export async function sendQuoteReadyEmail(params: {
       </div>
       <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3>Quote Summary</h3>
-        <p><strong>Service Price:</strong> MYR ${params.servicePrice}</p>
-        <p><strong>Accommodation Fee:</strong> MYR ${params.accommodationFee}</p>
-        <p><strong>Travel Fee:</strong> MYR ${params.travelFee}</p>
+        ${params.packageName ? `<p><strong>Package:</strong> ${params.packageName}</p>` : ""}
+        <p><strong>Service Price:</strong> MYR ${params.servicePrice.toFixed(2)}</p>
+        <p><strong>Accommodation Fee:</strong> MYR ${params.accommodationFee.toFixed(2)}</p>
+        <p><strong>Travel Fee:</strong> MYR ${params.travelFee.toFixed(2)}</p>
+        ${extrasHtml ? `<hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;"><p><strong>Extras:</strong></p><table style="width:100%;"><tbody>${extrasHtml}</tbody></table>` : ""}
+        ${discountHtml}
         <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
-        <p style="font-size: 1.2em; font-weight: bold;"><strong>Total: MYR ${params.totalPrice}</strong></p>
+        <p style="font-size: 1.2em; font-weight: bold;"><strong>Total: MYR ${params.totalPrice.toFixed(2)}</strong></p>
+        <p><strong>Deposit (${params.depositPercent || 30}%):</strong> MYR ${(params.depositAmount || 0).toFixed(2)}</p>
       </div>
       <p>Log in to your account to <strong>Accept</strong> or <strong>Reject</strong> this quote.</p>
       <p><a href="${process.env.NEXT_PUBLIC_URL || 'https://leish.my'}/bookings/${params.bookingId}" style="display: inline-block; background: #e91e63; color: white; padding: 12px 24px; border-radius: 4px; text-decoration: none;">View Quote</a></p>

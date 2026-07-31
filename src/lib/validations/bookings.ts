@@ -34,6 +34,12 @@ export const addQuoteSchema = z.object({
   servicePrice: z.number().nonnegative(),
   accommodationFee: z.number().nonnegative().optional().default(0),
   travelFee: z.number().nonnegative().optional().default(0),
+  discount: z.number().nonnegative().optional().default(0),
+  discountReason: z.string().max(255).optional(),
+  extras: z.array(z.object({ name: z.string(), price: z.number().nonnegative() })).optional().default([]),
+  packageId: z.number().positive().optional(),
+  packageName: z.string().max(255).optional(),
+  depositPercent: z.number().min(10).max(100).optional().default(30),
   notes: z.string().max(2000).optional(),
 });
 
