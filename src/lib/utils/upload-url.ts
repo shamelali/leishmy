@@ -9,15 +9,11 @@
  *  - open-redirect chains via `target="_blank"`
  */
 
-const ALLOWED_HOST_SUFFIXES = [
-  "res.cloudinary.com",
-  "cloudinary.com",
-  "images.unsplash.com",
-  "plus.unsplash.com",
-];
-
 /**
- * Returns true if the URL is a safe https:// image URL on an allowlisted host.
+ * Returns true if the URL is a safe https:// image URL.
+ * Blocks javascript:, data:, and blob: schemes to prevent XSS/SSRF.
+ * All other HTTPS URLs are accepted so users can paste portfolio images
+ * from any host (Google Drive, Imgur, personal sites, etc.).
  */
 export function isAllowedImageUrl(value: string): boolean {
   if (typeof value !== "string") return false;
@@ -34,9 +30,9 @@ export function isAllowedImageUrl(value: string): boolean {
   if (parsed.protocol !== "https:") return false;
 
   const host = parsed.hostname.toLowerCase();
-  return ALLOWED_HOST_SUFFIXES.some(
-    (suffix) => host === suffix || host.endsWith(`.${suffix}`),
-  );
+  if (host === "localhost" || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
+
+  return true;
 }
 
 /**

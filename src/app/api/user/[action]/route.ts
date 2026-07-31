@@ -631,7 +631,7 @@ export async function POST(
             !isAllowedImageUrl(body[urlField])
           ) {
             return NextResponse.json(
-              { error: `${urlField} must be a valid HTTPS URL on an allowlisted host` },
+              { error: `${urlField} must be a valid HTTPS URL` },
               { status: 400 },
             );
           }

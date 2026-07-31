@@ -87,8 +87,8 @@ const DEFAULT_LABELS = {
   dropzone: "Drag and drop, or click to browse",
   dropzoneHint: "Up to {max} images, 10 MB each",
   addUrl: "Or paste an image URL",
-  addUrlPlaceholder: "https://res.cloudinary.com/...",
-  addUrlInvalid: "URL must be HTTPS and on an allowlisted host (e.g. res.cloudinary.com).",
+  addUrlPlaceholder: "https://example.com/photo.jpg",
+  addUrlInvalid: "Please enter a valid HTTPS image URL.",
 };
 
 export function PortfolioUploader({
