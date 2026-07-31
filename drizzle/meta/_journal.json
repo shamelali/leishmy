@@ -162,6 +162,41 @@
       "when": 1785000000000,
       "tag": "0023_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785000000001,
+      "tag": "0024_add_service_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785000000002,
+      "tag": "0025_price_sync_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785000000003,
+      "tag": "0026_booking_quote_flow",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1785000000004,
+      "tag": "0027_show_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1785000000005,
+      "tag": "0028_enhanced_quoting_system",
+      "breakpoints": true
     }
   ]
 }
