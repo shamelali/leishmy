@@ -56,12 +56,12 @@ export function StepReview({ summary, prevHref, status }: StepReviewProps) {
           Thank you! We will review your profile and get back to you soon.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <a
+          <Link
             href="/dashboard/artist"
             className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-200/50"
           >
             Go to dashboard
-          </a>
+          </Link>
           <Link
             href="/"
             className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-200"

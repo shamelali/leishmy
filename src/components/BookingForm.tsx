@@ -579,7 +579,7 @@ export function BookingForm({
 
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              <strong>Important:</strong> No payment is required yet. The MUA will review your request and send you a quote with the service price and any applicable travel/accommodation fees. You'll then be able to accept or reject the quote.
+              <strong>Important:</strong> No payment is required yet. The MUA will review your request and send you a quote with the service price and any applicable travel/accommodation fees. You&apos;ll then be able to accept or reject the quote.
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { users, profiles, bookings, categories as categoriesTable, testimonials } from "@/db/schema";
-import { count, avg, sql, eq, desc, inArray, and } from "drizzle-orm";
+import { count, avg, sql, eq, desc, inArray } from "drizzle-orm";
 import { HeroSection } from "@/components/home/HeroSection";
 import { RoleRedirect } from "@/components/home/RoleRedirect";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
@@ -21,18 +21,14 @@ async function getCategoryCounts() {
       })
       .from(categoriesTable)
       .orderBy(categoriesTable.name);
-    const counts = await Promise.all(
-      rows.map((c) =>
-        db
-          .select({ count: count() })
-          .from(profiles)
-          .where(and(eq(profiles.role, "artist"), sql`${profiles.categories} @> ARRAY[${c.slug}]::text[]`))
-          .then((r) => Number(r[0]?.count || 0)),
-      ),
+    const artistCounts = await db.execute<{ slug: string; count: string }>(
+      sql`SELECT unnest(categories) AS slug, count(*)::int AS count FROM ${profiles} WHERE role = 'artist' GROUP BY 1`,
     );
-    return rows.map((r, i) => ({ ...r, artistCount: counts[i] }));
-  } catch (e) {
-    console.error("Failed to load category counts:", e);
+    const countMap = new Map(artistCounts.rows.map((r) => [r.slug, Number(r.count)]));
+
+    return rows.map((r) => ({ ...r, artistCount: countMap.get(r.slug) ?? 0 }));
+  } catch {
+    console.error("Failed to load category counts");
     return [];
   }
 }

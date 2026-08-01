@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAuthSession } from "@/lib/auth/server";
 import { getArtistProfileForEdit } from "../actions";
 import {
@@ -105,12 +106,12 @@ export default async function WizardCreatePage({
     <main className="min-h-screen bg-gradient-to-b from-rose-50/50 to-white dark:from-neutral-950 dark:to-neutral-900 px-4 py-8 sm:py-12">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <a
+          <Link
             href="/dashboard/artist"
             className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors mb-4"
           >
             ← Back to dashboard
-          </a>
+          </Link>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
             Create Your Artist Profile
           </h1>
