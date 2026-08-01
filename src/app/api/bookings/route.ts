@@ -11,6 +11,7 @@ import { awardPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { createBookingSchema, updateBookingSchema, addQuoteSchema, acceptQuoteSchema, rejectQuoteSchema, updateBookingPriceSchema } from "@/lib/validations/bookings";
+import { MIN_BOOKING_AMOUNT, MAX_BOOKING_AMOUNT } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -560,9 +561,19 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.data;
+const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.data;
 
-      const [existing] = await db
+  if (amount !== undefined) {
+    const num = Number(amount);
+    if (num < MIN_BOOKING_AMOUNT || num > MAX_BOOKING_AMOUNT) {
+      return NextResponse.json(
+        { error: `Amount must be between ${MIN_BOOKING_AMOUNT} and ${MAX_BOOKING_AMOUNT}` },
+        { status: 400 },
+      );
+    }
+  }
+
+  const [existing] = await db
         .select()
         .from(bookings)
         .where(eq(bookings.id, Number(id)))

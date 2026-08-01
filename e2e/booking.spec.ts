@@ -33,14 +33,13 @@ test.describe("Booking Flow", () => {
     const bookingId = String(body.booking.id);
     console.log(`Created booking ID: ${bookingId}`);
 
-    // 2. Navigate to the booking detail page (guest-friendly)
-    await page.goto(`/bookings/${bookingId}`, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1")).toContainText(`Booking #${bookingId}`, { timeout: 20000 });
+    // 2. GET-by-id now requires auth — unauthenticated callers get 401
+    const getRes = await request.get(`/api/bookings?id=${bookingId}`);
+    expect(getRes.status()).toBe(401);
 
-    // 3. Verify our booking details appear
-    await expect(page.getByText("Bridal Makeup")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("9:00 AM")).toBeVisible();
-    await expect(page.getByText("Pending", { exact: false })).toBeVisible();
+    // 3. Booking detail page URL still reachable (auth handled client-side)
+    await page.goto(`/bookings/${bookingId}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Log In")).toBeVisible({ timeout: 10000 });
   });
 
   test("POST /api/bookings creates a booking and returns it from GET /api/bookings/:id", async ({
@@ -68,14 +67,10 @@ test.describe("Booking Flow", () => {
     expect(postBody.success).toBe(true);
     expect(postBody.booking.artistId).toBe(ARTIST_ID);
 
-    // Fetch the specific booking (guest-friendly) to verify it appears
+    // Fetch the specific booking now requires auth — verify 401 for unauthenticated access
     const bookingId = String(postBody.booking.id);
     const getRes = await request.get(`/api/bookings?id=${bookingId}`);
-    expect(getRes.status()).toBe(200);
-    const getBody = await getRes.json();
-    expect(getBody.booking).toBeDefined();
-    expect(getBody.booking.clientName).toBe("API Test User");
-    expect(getBody.booking.artistName).toBe("Amiera");
+    expect(getRes.status()).toBe(401);
   });
 
   test("booking form renders correctly on artist detail page", async ({ page }) => {
