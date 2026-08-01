@@ -1,0 +1,7 @@
+# Exclude workers and test artifacts from Vercel builds
+workers/
+**/tests/
+**/test/
+*.test.*
+*.spec.*
+.artifacts/
