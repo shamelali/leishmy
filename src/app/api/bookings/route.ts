@@ -30,7 +30,13 @@ async function ensureCustomer(
       .limit(1)
       .then((r) => r[0]);
 
-    if (existing) return existing;
+    if (existing) {
+      // Neon Auth is the source of truth for the logged-in user's email.
+      // public."user" can drift (registration may have started outside Neon Auth,
+      // or the email changed there), and every transactional emailer reads it.
+      // Prefer session.email here so booking confirmations land at the real address.
+      return { ...existing, email: session.email ?? existing.email };
+    }
 
     await db.insert(users).values({
       id: session.id,
