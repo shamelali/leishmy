@@ -1,0 +1,121 @@
+# AGENTS.md — Leish! (leish.my)
+
+## Quick Commands
+
+| Task | Command |
+|------|---------|
+| Dev server | `pnpm dev` |
+| Build | `pnpm build` |
+| Typecheck | `pnpm typecheck` (tsc --noEmit) |
+| Lint | `pnpm lint` |
+| Lint fix | `pnpm lint:fix` |
+| Full check | `pnpm check` (typecheck + lint) |
+| E2E tests | `pnpm test:e2e` |
+| Fresh dev (reset DB) | `pnpm dev:fresh` |
+| DB migration | `pnpm db:generate` then `pnpm db:migrate` |
+| Seed DB | `pnpm db:seed` |
+| Verify Cloudinary sign | `npx tsx scripts/verify-sign.ts` |
+
+**Always run `pnpm check` before committing.** TypeScript and ESLint must pass.
+
+## No i18n — Browser Translation Only
+
+This project does NOT use `next-intl` or any server-side i18n framework. The `next-intl` multi-language module was intentionally removed (commit `b2edee0` "Remove next-intl multi-language module, use browser translation instead"). Do NOT add `next-intl`, `i18n/`, or any locale files back. There is no `src/i18n/`, no `src/locales/`, no `LanguageSwitcher.tsx`, no `useTranslations`, no `NextIntlClientProvider`. If you need multi-language support, use browser-based translation (Google Translate widget etc.).
+
+## Architecture
+
+### Stack
+- **Framework**: Next.js 16.2.6 (App Router, Turbopack)
+- **Language**: TypeScript 5.9.3 (strict mode)
+- **Package manager**: pnpm 11.15.1
+- **Database**: Neon (serverless Postgres) + Drizzle ORM 0.45.2
+- **Auth**: `@neondatabase/auth` (Neon Auth / Better Auth)
+- **Payments**: Billplz (Malaysian payment gateway)
+- **Email**: Brevo (`@getbrevo/brevo`)
+- **Storage**: Cloudinary (images)
+- **Styling**: Tailwind CSS 4.1.7
+- **Monitoring**: Sentry (`@sentry/nextjs`)
+- **Testing**: Playwright 1.61.1 (e2e only)
+- **Deploy**: Vercel (auto-deploys from `main`)
+
+### Key Directories
+
+| Path | Purpose |
+|------|---------|
+| `src/app/` | Next.js App Router pages and API routes |
+| `src/app/api/` | REST API endpoints (~30 routes) |
+| `src/app/dashboard/` | 3 dashboards: `admin/`, `artist/`, `studio/` |
+| `src/app/api/auth/[...path]/` | Neon Auth handler (catch-all) |
+| `src/app/api/cron/` | Vercel cron jobs (6 daily jobs) |
+| `src/components/` | Shared React components |
+| `src/components/home/` | Homepage section components |
+| `src/lib/` | Business logic, utilities, integrations |
+| `src/lib/auth/` | Neon Auth setup (`auth.ts`) |
+| `src/lib/email/` | Brevo email templates/sending |
+| `src/db/` | Drizzle schema (`schema.ts`), DB client (`index.ts`) |
+| `src/context/` | React contexts: Auth, Favorites, Notifications, Toast |
+| `drizzle/` | Drizzle migration SQL files (20+ migrations) |
+| `scripts/` | One-off scripts (seed, sweep, backfill, verify) |
+| `e2e/` | Playwright end-to-end tests (11 spec files) |
+| `workers/` | Cloudflare Workers (email, url-shortener) |
+
+### Route Structure
+
+- `/` — Homepage (Hero, Categories, Featured, Testimonials)
+- `/artists` / `/studios` — Listing pages
+- `/artists/[id]` / `/studios/[id]` — Detail pages with booking
+- `/dashboard/admin` — Admin panel (overview, people, moderation, reports, settings)
+- `/dashboard/artist` — Artist dashboard (profile, bookings, services, portfolio, analytics)
+- `/dashboard/studio` — Studio dashboard (calendar, staff, inventory, finance)
+- `/bookings` — User's active bookings
+- `/login`, `/register`, `/profile`, `/favorites`, `/rewards`, `/events` — Standard pages
+- `/admin` — Rewrites to `/dashboard/admin`
+
+### Middleware (`src/proxy.ts` — not `middleware.ts`)
+
+Next.js 16 deprecates `middleware.ts`. The file is named `src/proxy.ts` and exports `proxy` + `config`. It handles:
+- Dashboard auth (Neon Auth session check)
+- Public page cookie-based redirect to `/login`
+- API rate limiting (Upstash Redis)
+- CSP headers with nonce support (Cloudflare Insights, Cloudinary)
+
+### Auth Flow
+
+Uses `@neondatabase/auth/next/server`. Auth routes are at `/api/auth/[...path]`. Session can be checked server-side via `getSession()` from `src/lib/auth/auth.ts`. The session cookie name is `__Secure-neon-auth.session_token` or `neon-auth.session_token`.
+
+### Database
+
+- **Schema**: Single file `src/db/schema.ts`
+- **Migrations**: In `drizzle/` (numbered SQL files)
+- **Client**: `import { db } from "@/db"` gives you a Drizzle client
+- **Env**: `DATABASE_URL` must be set (Neon connection string)
+- **Migration order**: `pnpm db:generate` → `pnpm db:migrate`
+
+### CSP / Nonce Pattern
+
+The root layout reads `x-nonce` from response headers (set by `src/proxy.ts`) and passes it to `<ThemeScript>` and `<Script>` tags. New inline scripts must follow this pattern:
+
+```tsx
+const hdrs = await headers();
+const nonce = hdrs.get("x-nonce") || undefined;
+```
+
+### Env Validation
+
+`src/lib/env.ts` validates required env vars at startup using Zod. Required vars: `DATABASE_URL`, `NEXT_PUBLIC_URL`, `CRON_SECRET`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`. In production, Cloudinary and Billplz vars are also required.
+
+### Vercel Cron Eras
+
+Defined in `vercel.json` — 6 daily cron jobs. Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`.
+
+## Current Known Issues
+
+- ESLint has pending errors (6 errors, 12 warnings): `react-hooks/set-state-in-effect` in artist/studio dashboards + BookingForm, `react-hooks/preserve-manual-memoization` in artist page + ProfilePictureUploader. Run `pnpm lint` to see current state.
+
+## Notes
+
+- **No GitHub Copilot autofix PRs** — Sentry generated some auto-PRs (PR ##6, ##7, ##8), but the codebase has moved since. Review manually before merging.
+- **The `feat/multi-language` remote branch is stale** — 208 commits behind main, never merged. Do not use.
+- **`src/middleware.ts` does not exist** — middleware is `src/proxy.ts`. Do not create `middleware.ts` unless specifically needed for the build system.
+- **Outbound email** uses Brevo. **Inbound email** uses Cloudflare Email Routing (MX records) — not Brevo Inbound Parse.
+- **`workers/`** contains standalone Cloudflare Workers (`email`, `url-shortener`) with their own `package.json` and `wrangler.jsonc` deployments.
