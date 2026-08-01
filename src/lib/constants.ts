@@ -13,7 +13,6 @@ export function getEmailAlias(key: keyof typeof EMAIL_ALIASES): string {
   return process.env[EMAIL_ALIASES[key]] || `${key}@leish.my`;
 }
 
-export const PLATFORM_FEE_PERCENT = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENT ?? 30);
 export const MIN_BOOKING_AMOUNT = Number(process.env.NEXT_PUBLIC_MIN_BOOKING_AMOUNT ?? 50);
 export const MAX_BOOKING_AMOUNT = Number(process.env.NEXT_PUBLIC_MAX_BOOKING_AMOUNT ?? 50_000);
 
