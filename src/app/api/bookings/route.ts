@@ -336,7 +336,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, booking });
+    return NextResponse.json({
+      success: true,
+      booking: {
+        ...booking,
+        id: String(booking.id),
+        clientName: customer.name || "",
+        clientEmail: customer.email || "",
+        artistName: providerUser?.name || "",
+      },
+    });
   } catch (error) {
     console.error("Booking error:", error);
     return NextResponse.json(
@@ -372,7 +381,13 @@ export async function GET(request: NextRequest) {
       const isOwner = booking.userId === session?.id;
       const isAssignedArtist = !!booking.artistId && booking.artistId === session?.id;
       const isAssignedStudio = !!booking.studioId && booking.studioId === session?.id;
-      if (session && !hasAdminAccess(session) && !isOwner && !isAssignedArtist && !isAssignedStudio) {
+      const isGuestBooking = booking.userId?.startsWith("guest_") ?? false;
+
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      if (!hasAdminAccess(session) && !isOwner && !isAssignedArtist && !isAssignedStudio) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 

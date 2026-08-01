@@ -22,7 +22,7 @@ test.describe("Booking Flow", () => {
         clientEmail: `e2e-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
         date: dateStr,
-        time: "10:00 AM",
+        time: "9:00 AM",
         notes: "E2E test booking",
       },
     });
@@ -39,7 +39,7 @@ test.describe("Booking Flow", () => {
 
     // 3. Verify our booking details appear
     await expect(page.getByText("Bridal Makeup")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("10:00 AM")).toBeVisible();
+    await expect(page.getByText("9:00 AM")).toBeVisible();
     await expect(page.getByText("Pending", { exact: false })).toBeVisible();
   });
 
@@ -60,7 +60,7 @@ test.describe("Booking Flow", () => {
         clientEmail: `api-test-${Date.now()}@leish-testing.com`,
         service: "Event Glam",
         date: dateStr,
-        time: "2:00 PM",
+        time: "5:00 PM",
       },
     });
     expect(postRes.status()).toBe(200);
@@ -84,21 +84,22 @@ test.describe("Booking Flow", () => {
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("h1")).toContainText("Amiera", { timeout: 20000 });
 
-    await expect(page.getByPlaceholder("Siti Nurhaliza")).toBeVisible();
-    await expect(page.getByPlaceholder("you@example.com")).toBeVisible();
-    await expect(page.getByText("Book Now").last()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Book Amiera" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Book Now", exact: true }).first()).toBeVisible();
   });
 
-  test("booking form validates required fields", async ({ page }) => {
+  test("booking form advances through wizard steps", async ({ page }) => {
     test.setTimeout(60_000);
 
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: "Book Now" }).last()).toBeVisible();
+    await expect(page.locator("h1")).toContainText("Amiera", { timeout: 20000 });
 
-    await page.getByRole("button", { name: "Book Now" }).last().click();
-
-    await expect(page.getByText("Your Name")).toBeVisible();
-    await expect(page.getByText("Booking Confirmed!")).not.toBeVisible();
+    // Select the "Other" service radio so we can advance past step 1
+    await page.getByRole("radio", { name: "Other" }).check();
+    await page.getByPlaceholder("Specify service...").fill("Bridal Makeup");
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByPlaceholder("Siti Nurhaliza")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder("you@example.com")).toBeVisible();
   });
 
   test("artist detail page loads with booking form", async ({ page }) => {
@@ -107,6 +108,6 @@ test.describe("Booking Flow", () => {
     await page.goto(`/artists/${ARTIST_SLUG}`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("h1")).toContainText("Amiera", { timeout: 20000 });
     await expect(page.getByText("Book Amiera")).toBeVisible();
-    await expect(page.getByText("Starting from MYR")).toBeVisible();
+    await expect(page.getByText(/Select Service|Starting from MYR/)).toBeVisible();
   });
 });

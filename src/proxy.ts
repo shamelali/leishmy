@@ -17,6 +17,7 @@ const PROTECTED_ROUTES = [
   "/payments",
   "/beauty-profile",
   "/onboarding",
+  "/bookings",
 ];
 
 const PROTECTED_API_PREFIXES = [
@@ -34,7 +35,13 @@ function hasSessionCookie(request: NextRequest): boolean {
 }
 
 function isProtectedRoute(pathname: string): boolean {
-  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+  return PROTECTED_ROUTES.some((route) => {
+    if (pathname === route) return true;
+    if (!pathname.startsWith(route + "/")) return false;
+    // /bookings/:id is guest-accessible (booking detail page)
+    if (route === "/bookings" && /^\/bookings\/[^/]+$/.test(pathname)) return false;
+    return true;
+  });
 }
 
 function isProtectedApi(pathname: string): boolean {
