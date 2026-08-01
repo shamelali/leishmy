@@ -23,7 +23,7 @@ export const updateBookingSchema = z.object({
 
 export const updateBookingPriceSchema = z.object({
   id: z.number().positive(),
-  amount: z.number().nonnegative().optional(),
+  amount: z.number().positive().optional(),
   depositAmount: z.number().nonnegative().optional(),
   travelSurcharge: z.number().nonnegative().optional(),
   accommodationFee: z.number().nonnegative().optional(),
@@ -31,7 +31,7 @@ export const updateBookingPriceSchema = z.object({
 
 export const addQuoteSchema = z.object({
   bookingId: z.number().positive(),
-  servicePrice: z.number().nonnegative(),
+  servicePrice: z.number().positive(),
   accommodationFee: z.number().nonnegative().optional().default(0),
   travelFee: z.number().nonnegative().optional().default(0),
   discount: z.number().nonnegative().optional().default(0),
