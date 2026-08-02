@@ -3,6 +3,21 @@ import { test, expect } from "@playwright/test";
 const ARTIST_SLUG = "amiera-38385";
 const ARTIST_ID = "7f06fdbd-804e-46b6-8e74-c5d221638385";
 
+let _counter = 0;
+function uniqueTime(): string {
+  const slot = _counter++;
+  const h = 8 + (slot % 10);
+  const m = (slot % 4) * 15;
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+function uniqueDate(): string {
+  const d = new Date(Date.now() + (100 + Math.floor(Math.random() * 900)) * 86_400_000);
+  return d.toISOString().split("T")[0];
+}
+
 test.describe("Booking Flow", () => {
   test("create booking via API and verify it appears on the booking detail page", async ({
     page,
@@ -10,10 +25,7 @@ test.describe("Booking Flow", () => {
   }) => {
     test.setTimeout(60_000);
 
-    // 1. Create a booking via the API
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split("T")[0];
+    const dateStr = uniqueDate();
 
     const res = await request.post("/api/bookings", {
     data: {
@@ -22,7 +34,7 @@ test.describe("Booking Flow", () => {
         clientEmail: `e2e-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
         date: dateStr,
-        time: "9:00 AM",
+        time: uniqueTime(),
         notes: "E2E test booking",
       },
     });
@@ -47,9 +59,7 @@ test.describe("Booking Flow", () => {
   }) => {
     test.setTimeout(30_000);
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split("T")[0];
+    const dateStr = uniqueDate();
 
     // Create booking
     const postRes = await request.post("/api/bookings", {
@@ -59,7 +69,7 @@ test.describe("Booking Flow", () => {
         clientEmail: `api-test-${Date.now()}@leish-testing.com`,
         service: "Event Glam",
         date: dateStr,
-        time: "5:00 PM",
+        time: uniqueTime(),
       },
     });
     expect(postRes.status()).toBe(200);

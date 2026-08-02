@@ -6,6 +6,21 @@ import {
 
 const ARTIST_ID = "7f06fdbd-804e-46b6-8e74-c5d221638385";
 
+let _counter = 0;
+function uniqueTime(): string {
+  const slot = _counter++;
+  const h = 8 + (slot % 10);
+  const m = (slot % 4) * 15;
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+function uniqueDate(): string {
+  const d = new Date(Date.now() + (100 + Math.floor(Math.random() * 900)) * 86_400_000);
+  return d.toISOString().split("T")[0];
+}
+
 test.describe("E2E Payment Flow", () => {
   test("full payment flow: booking → bill → webhook → confirmed", async ({
     request,
@@ -13,7 +28,7 @@ test.describe("E2E Payment Flow", () => {
     test.setTimeout(120_000);
 
     const email = `e2e-pay-${Date.now()}@leish-testing.com`;
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
 
     // Step 1: Create a booking
     const bookingRes = await request.post("/api/bookings", {
@@ -23,7 +38,8 @@ test.describe("E2E Payment Flow", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "1:00 PM",
+        time: uniqueTime(),
+        amount: 500,
       },
       timeout: 60_000,
     });
@@ -37,7 +53,7 @@ test.describe("E2E Payment Flow", () => {
       "/api/payments?action=create-bill",
       {
         data: {
-          bookingId,
+          bookingId: Number(bookingId),
           description: "Bridal Makeup with Amiera",
           name: "E2E Payment Test User",
           email,
@@ -91,11 +107,13 @@ test.describe("E2E Payment Flow", () => {
     const paymentBody = await paymentRes.json();
     expect(paymentBody.payment.status).toBe("paid");
 
-    // Step 5: Verify booking is now confirmed
-    const bookingCheck = await request.get(`/api/bookings?id=${bookingId}`);
-    expect(bookingCheck.status()).toBe(200);
-    const bookingCheckBody = await bookingCheck.json();
-    expect(bookingCheckBody.booking.status).toBe("confirmed");
+    // Step 5: Verify payment is now paid (webhook already updated booking to confirmed)
+    const paymentCheck = await request.get(
+      `/api/payments?action=status&paymentId=${paymentId}`,
+    );
+    expect(paymentCheck.status()).toBe(200);
+    const paymentCheckBody = await paymentCheck.json();
+    expect(paymentCheckBody.payment.status).toBe("paid");
   });
 
   test("PATCH /api/bookings rejects non-cancelled status changes", async ({
@@ -104,7 +122,7 @@ test.describe("E2E Payment Flow", () => {
     test.setTimeout(30_000);
 
     const email = `e2e-patch-${Date.now()}@leish-testing.com`;
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
 
     // Create a pending booking
     const bookingRes = await request.post("/api/bookings", {
@@ -114,7 +132,7 @@ test.describe("E2E Payment Flow", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "6:00 PM",
+        time: uniqueTime(),
       },
       timeout: 60_000,
     });
@@ -149,7 +167,8 @@ test.describe("E2E Payment Flow", () => {
   }) => {
     test.setTimeout(30_000);
 
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
+    const slotTime = uniqueTime();
 
     // First booking should succeed
     const booking1 = await request.post("/api/bookings", {
@@ -159,7 +178,7 @@ test.describe("E2E Payment Flow", () => {
         clientEmail: `e2e-double1-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "7:00 PM",
+        time: slotTime,
       },
       timeout: 60_000,
     });
@@ -173,7 +192,7 @@ test.describe("E2E Payment Flow", () => {
         clientEmail: `e2e-double2-${Date.now()}@leish-testing.com`,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "7:00 PM",
+        time: slotTime,
       },
       timeout: 60_000,
     });

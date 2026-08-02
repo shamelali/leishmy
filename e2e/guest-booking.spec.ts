@@ -6,13 +6,28 @@ import {
 
 const ARTIST_ID = "7f06fdbd-804e-46b6-8e74-c5d221638385";
 
+let _counter = 0;
+function uniqueTime(): string {
+  const slot = _counter++;
+  const h = 8 + (slot % 10);
+  const m = (slot % 4) * 15;
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+function uniqueDate(): string {
+  const d = new Date(Date.now() + (100 + Math.floor(Math.random() * 900)) * 86_400_000);
+  return d.toISOString().split("T")[0];
+}
+
 test.describe("Guest Booking Flow (no auth)", () => {
   test("POST /api/bookings creates a booking with clientEmail as guest", async ({
     request,
   }) => {
     test.setTimeout(30_000);
 
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
     const email = `guest-${Date.now()}@leish-testing.com`;
 
     const res = await request.post("/api/bookings", {
@@ -22,7 +37,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "10:00 AM",
+        time: uniqueTime(),
         notes: "E2E guest booking test",
       },
       timeout: 30_000,
@@ -41,7 +56,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
     test.setTimeout(30_000);
 
     const email = `event-glam-guest-${Date.now()}@leish-testing.com`;
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
 
     const bookingRes = await request.post("/api/bookings", {
       data: {
@@ -50,7 +65,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
         clientEmail: email,
         service: "Event Glam",
         date: tomorrow,
-        time: "3:00 PM",
+        time: uniqueTime(),
         travelSurcharge: false,
       },
       timeout: 30_000,
@@ -84,7 +99,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
     test.setTimeout(30_000);
 
     const email = `bridal-guest-${Date.now()}@leish-testing.com`;
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
 
     const res = await request.post("/api/bookings", {
       data: {
@@ -93,7 +108,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "11:00 AM",
+        time: uniqueTime(),
       },
       timeout: 30_000,
     });
@@ -108,8 +123,9 @@ test.describe("Guest Booking Flow (no auth)", () => {
   }) => {
     test.setTimeout(30_000);
 
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
     const email = `dupe-guest-${Date.now()}@leish-testing.com`;
+    const slotTime = uniqueTime();
 
     const first = await request.post("/api/bookings", {
       data: {
@@ -118,7 +134,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "2:00 PM",
+        time: slotTime,
       },
       timeout: 30_000,
     });
@@ -131,7 +147,7 @@ test.describe("Guest Booking Flow (no auth)", () => {
         clientEmail: email,
         service: "Bridal Makeup",
         date: tomorrow,
-        time: "2:00 PM",
+        time: slotTime,
       },
       timeout: 30_000,
     });
@@ -146,7 +162,7 @@ test.describe("QR Payment for Event Glam (on-site collection)", () => {
     test.setTimeout(30_000);
 
     const email = `qr-guest-${Date.now()}@leish-testing.com`;
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const tomorrow = uniqueDate();
 
     const bookingRes = await request.post("/api/bookings", {
       data: {
@@ -155,7 +171,7 @@ test.describe("QR Payment for Event Glam (on-site collection)", () => {
         clientEmail: email,
         service: "Event Glam",
         date: tomorrow,
-        time: "4:00 PM",
+        time: uniqueTime(),
       },
       timeout: 30_000,
     });

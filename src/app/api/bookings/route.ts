@@ -193,8 +193,8 @@ export async function POST(request: NextRequest) {
         placeId: body.placeId || null,
         date: new Date(date),
         time: time || null,
-        amount: "0", // Will be set when quote is added
-        depositAmount: "0",
+        amount: body.amount ? String(body.amount) : "0",
+        depositAmount: body.amount ? String(Math.round(Number(body.amount) * 0.3)) : "0",
         milestone: "quote_pending",
         status: "quote_pending",
       })
