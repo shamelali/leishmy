@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { db } from "@/db";
-import { webhookEvents } from "@/db/schema";
-import { deleteAssets } from "@/lib/cloudinary-server";
+import { profiles, webhookEvents } from "@/db/schema";
+import { eq, and, isNotNull } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -74,6 +74,49 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleDeleteEvent(body: Record<string, any>) {
+  const publicId = body.public_id;
+  if (!publicId) {
+    console.warn("Cloudinary delete event missing public_id");
+    return;
+  }
+
+  // Find profiles whose portfolio array contains a URL referencing this public_id.
+  // Portfolio URLs look like: https://res.cloudinary.com/<cloud>/image/upload/.../<public_id>.jpg
+  // We match by checking if the URL path ends with the public_id (with or without extension).
+  const profilesResult = await db
+    .select({ userId: profiles.userId, portfolio: profiles.portfolio })
+    .from(profiles)
+    .where(and(isNotNull(profiles.portfolio), eq(profiles.role, "artist")));
+
+  let cleanedCount = 0;
+  for (const row of profilesResult) {
+    const portfolio = row.portfolio;
+    if (!portfolio || portfolio.length === 0) continue;
+
+    const filtered = portfolio.filter((url) => {
+      // Match URLs that contain the deleted public_id as a path segment
+      // e.g. ".../leish/users/xxx/artist/portfolio/p1.jpg" contains "leish/users/xxx/artist/portfolio/p1.jpg"
+      return !url.includes(publicId);
+    });
+
+    if (filtered.length === portfolio.length) continue; // no match
+
+    await db
+      .update(profiles)
+      .set({ portfolio: filtered, updatedAt: new Date() })
+      .where(eq(profiles.userId, row.userId));
+
+    cleanedCount++;
+    console.log(
+      `[cloudinary:webhook] removed deleted asset ${publicId} from profile ${row.userId} (${portfolio.length} → ${filtered.length} images)`,
+    );
+  }
+
+  if (cleanedCount === 0) {
+    console.log(
+      `[cloudinary:webhook] delete event for ${publicId} — no referencing profiles found (already cleaned or external asset)`,
+    );
+  }
 }
 
 async function handleUploadEvent(body: Record<string, any>) {

@@ -135,6 +135,16 @@ export async function GET() {
         criticalLabel: "Image Uploads",
       },
       {
+        name: "Cloudinary Webhook",
+        configured: !!process.env.CLOUDINARY_WEBHOOK_SECRET,
+        status: process.env.CLOUDINARY_WEBHOOK_SECRET ? "ok" : "error",
+        detail: process.env.CLOUDINARY_WEBHOOK_SECRET
+          ? "Signature verification active"
+          : "CLOUDINARY_WEBHOOK_SECRET not set — delete/upload events are silently dropped",
+        criticalValue: process.env.CLOUDINARY_WEBHOOK_SECRET ? "Receiving" : "No-Op",
+        criticalLabel: "Webhook Events",
+      },
+      {
         name: "Upstash Redis",
         configured: !!process.env.UPSTASH_REDIS_REST_URL,
         status: process.env.UPSTASH_REDIS_REST_URL ? "ok" : "warning",
@@ -256,6 +266,21 @@ export async function GET() {
         message: "BREVO_API_KEY is not configured. Transactional emails are not being sent.",
         action: "Configure BREVO_API_KEY",
         actionUrl: "https://app.brevo.com/",
+      });
+    }
+
+    // Critical: Cloudinary webhook not configured
+    if (!process.env.CLOUDINARY_WEBHOOK_SECRET) {
+      alarms.push({
+        id: "cloudinary-webhook-disabled",
+        severity: "critical",
+        title: "Cloudinary Webhook Not Configured",
+        message:
+          "CLOUDINARY_WEBHOOK_SECRET is not set. Portfolio image delete/upload events from Cloudinary are silently ignored — orphaned DB rows may accumulate.",
+        action: "Set CLOUDINARY_WEBHOOK_SECRET env var and configure the webhook in Cloudinary Dashboard",
+        actionUrl: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+          ? `https://console.cloudinary.com/console/media_library/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/webhooks`
+          : undefined,
       });
     }
 
