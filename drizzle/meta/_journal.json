@@ -5,197 +5,218 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1782521004741,
+      "when": 1784331327000,
       "tag": "0000_powerful_boom_boom",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1782521004742,
+      "when": 1784331328000,
       "tag": "0001_beauty_wallet",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1782521004743,
+      "when": 1784331329000,
       "tag": "0002_leishplus_subscriptions",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1782521004744,
+      "when": 1784331330000,
       "tag": "0003_loyalty_rewards",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1782521004745,
+      "when": 1784331331000,
       "tag": "0004_artist_profile_fields",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "7",
-      "when": 1782521004746,
+      "when": 1784331332000,
       "tag": "0005_artist_onboarding",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
-      "when": 1782521004747,
+      "when": 1784331333000,
       "tag": "0006_community_applications",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1782521004748,
+      "when": 1784331334000,
       "tag": "0007_artist_extra_fields",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1782521004749,
+      "when": 1784331335000,
       "tag": "0008_events",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "7",
-      "when": 1752278400000,
+      "when": 1784331336000,
       "tag": "0009_add_received_emails",
       "breakpoints": true
     },
     {
       "idx": 10,
       "version": "7",
-      "when": 1751900000000,
+      "when": 1784331337000,
       "tag": "0010_add_contacts_location_and_inquiries",
       "breakpoints": true
     },
     {
       "idx": 11,
       "version": "7",
-      "when": 1751900000001,
+      "when": 1784331338000,
       "tag": "0011_add_referral_tracking",
       "breakpoints": true
     },
     {
       "idx": 12,
       "version": "7",
-      "when": 1784475600000,
-      "tag": "0014_profiles_collapse",
+      "when": 1784331339000,
+      "tag": "0012_add_studio_amenities",
       "breakpoints": true
     },
     {
       "idx": 13,
       "version": "7",
-      "when": 1784475900000,
-      "tag": "0015_payments_idempotency_key",
+      "when": 1784331340000,
+      "tag": "0013_add_studio_slug_unique",
       "breakpoints": true
     },
     {
       "idx": 14,
       "version": "7",
-      "when": 1785964800000,
-      "tag": "0016_auto_release_payments",
+      "when": 1784331341000,
+      "tag": "0014_profiles_collapse",
       "breakpoints": true
     },
     {
       "idx": 15,
       "version": "7",
-      "when": 1785964900000,
-      "tag": "0017_payment_milestones",
+      "when": 1784331342000,
+      "tag": "0015_payments_idempotency_key",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
-      "when": 1785964950000,
-      "tag": "0018_booking_missing_columns",
+      "when": 1784331343000,
+      "tag": "0016_auto_release_payments",
       "breakpoints": true
     },
     {
       "idx": 17,
       "version": "7",
-      "when": 1785965000000,
-      "tag": "0019_fix_booking_column_casing",
+      "when": 1784331344000,
+      "tag": "0017_payment_milestones",
       "breakpoints": true
     },
     {
       "idx": 18,
       "version": "7",
-      "when": 1785320594908,
-      "tag": "0018_add_url_shortener",
+      "when": 1784331345000,
+      "tag": "0018_booking_missing_columns",
       "breakpoints": true
     },
     {
       "idx": 19,
       "version": "7",
-      "when": 1785320594909,
-      "tag": "0020_add_accommodation_fee",
+      "when": 1784331346000,
+      "tag": "0019_fix_booking_column_casing",
       "breakpoints": true
     },
     {
       "idx": 20,
       "version": "7",
-      "when": 1785320594910,
-      "tag": "0021_add_place_id",
+      "when": 1784331347000,
+      "tag": "0020_add_accommodation_fee",
       "breakpoints": true
     },
     {
       "idx": 21,
       "version": "7",
-      "when": 1758000000000,
-      "tag": "0022_add_travel_surcharge",
+      "when": 1784331348000,
+      "tag": "0021_add_place_id",
       "breakpoints": true
     },
     {
       "idx": 22,
       "version": "7",
-      "when": 1785000000000,
-      "tag": "0023_add_performance_indexes",
+      "when": 1784331349000,
+      "tag": "0022_add_travel_surcharge",
       "breakpoints": true
     },
     {
       "idx": 23,
       "version": "7",
-      "when": 1785000000001,
-      "tag": "0024_add_service_category",
+      "when": 1784331350000,
+      "tag": "0023_add_performance_indexes",
       "breakpoints": true
     },
     {
       "idx": 24,
       "version": "7",
-      "when": 1785000000002,
-      "tag": "0025_price_sync_trigger",
+      "when": 1784331351000,
+      "tag": "0024_add_service_category",
       "breakpoints": true
     },
     {
       "idx": 25,
       "version": "7",
-      "when": 1785000000003,
-      "tag": "0026_booking_quote_flow",
+      "when": 1784331352000,
+      "tag": "0025_price_sync_trigger",
       "breakpoints": true
     },
     {
       "idx": 26,
       "version": "7",
-      "when": 1785000000004,
-      "tag": "0027_show_prices",
+      "when": 1784331353000,
+      "tag": "0026_booking_quote_flow",
       "breakpoints": true
     },
     {
       "idx": 27,
       "version": "7",
-      "when": 1785000000005,
+      "when": 1784331354000,
+      "tag": "0027_show_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1784331355000,
       "tag": "0028_enhanced_quoting_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1784331356000,
+      "tag": "0029_amount_bounds_and_commission",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1784331357000,
+      "tag": "0030_add_url_shortener",
       "breakpoints": true
     }
   ]
