@@ -46,14 +46,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Log webhook event
+  const eventType = body.notification_type || body.event || "unknown";
   await db.insert(webhookEvents).values({
-    event: "cloudinary." + (body.event || "unknown"),
+    event: "cloudinary." + eventType,
     payload: body,
     status: "received",
   });
 
-  // Handle specific events
-  switch (body.event) {
+  // Handle specific events (Cloudinary uses notification_type in the payload)
+  switch (eventType) {
     case "delete":
       await handleDeleteEvent(body);
       break;
@@ -74,15 +75,23 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleDeleteEvent(body: Record<string, any>) {
-  const publicId = body.public_id;
-  if (!publicId) {
-    console.warn("Cloudinary delete event missing public_id");
+  // Cloudinary delete payload: { notification_type: "delete", resources: [{ public_id, ... }] }
+  const resources = body.resources;
+  if (!Array.isArray(resources) || resources.length === 0) {
+    console.warn("Cloudinary delete event missing resources array");
     return;
   }
 
-  // Find profiles whose portfolio array contains a URL referencing this public_id.
-  // Portfolio URLs look like: https://res.cloudinary.com/<cloud>/image/upload/.../<public_id>.jpg
-  // We match by checking if the URL path ends with the public_id (with or without extension).
+  const publicIds = resources
+    .map((r: Record<string, any>) => r.public_id)
+    .filter(Boolean);
+
+  if (publicIds.length === 0) {
+    console.warn("Cloudinary delete event resources have no public_ids");
+    return;
+  }
+
+  // Find profiles whose portfolio array contains a URL referencing any deleted public_id.
   const profilesResult = await db
     .select({ userId: profiles.userId, portfolio: profiles.portfolio })
     .from(profiles)
@@ -93,11 +102,9 @@ async function handleDeleteEvent(body: Record<string, any>) {
     const portfolio = row.portfolio;
     if (!portfolio || portfolio.length === 0) continue;
 
-    const filtered = portfolio.filter((url) => {
-      // Match URLs that contain the deleted public_id as a path segment
-      // e.g. ".../leish/users/xxx/artist/portfolio/p1.jpg" contains "leish/users/xxx/artist/portfolio/p1.jpg"
-      return !url.includes(publicId);
-    });
+    const filtered = portfolio.filter(
+      (url) => !publicIds.some((pid) => url.includes(pid)),
+    );
 
     if (filtered.length === portfolio.length) continue; // no match
 
@@ -107,14 +114,15 @@ async function handleDeleteEvent(body: Record<string, any>) {
       .where(eq(profiles.userId, row.userId));
 
     cleanedCount++;
+    const removed = portfolio.length - filtered.length;
     console.log(
-      `[cloudinary:webhook] removed deleted asset ${publicId} from profile ${row.userId} (${portfolio.length} → ${filtered.length} images)`,
+      `[cloudinary:webhook] cleaned ${removed} deleted asset(s) from profile ${row.userId} (${portfolio.length} → ${filtered.length} images)`,
     );
   }
 
   if (cleanedCount === 0) {
     console.log(
-      `[cloudinary:webhook] delete event for ${publicId} — no referencing profiles found (already cleaned or external asset)`,
+      `[cloudinary:webhook] delete event for ${publicIds.length} asset(s) — no referencing profiles found`,
     );
   }
 }
