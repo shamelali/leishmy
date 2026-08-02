@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2, X, User } from "lucide-react";
 import { validateImageFile } from "@/lib/utils/magic-bytes";
@@ -67,7 +67,7 @@ export function ProfilePictureUploader({
     setPreview(null);
   }
 
-  const processFile = useCallback(async (file: File) => {
+  const processFile = async (file: File) => {
     if (disabled || uploading) return;
 
     const validationError = await validateImageFile(file);
@@ -129,7 +129,7 @@ export function ProfilePictureUploader({
       setUploading(false);
       if (localPreview) URL.revokeObjectURL(localPreview);
     }
-  }, [disabled, uploading, folder, onChange, onError]);
+  };
 
   function handleDragEnter(e: React.DragEvent) {
     e.preventDefault();

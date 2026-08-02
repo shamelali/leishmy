@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Users, ArrowLeft, BadgeCheck, X, Plus } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
@@ -14,7 +14,7 @@ export default function StudioStaff() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
-  const loadStaff = async () => {
+  const loadStaff = useCallback(async () => {
     if (!user?.id) return;
     try {
       const profileRes = await fetch("/api/user/studio-profile");
@@ -23,16 +23,17 @@ export default function StudioStaff() {
       const res = await fetch(`/api/user/studio-staff?studioId=${profile.studio.id}`);
       const data = await res.json();
       if (data?.staff) setStaff(data.staff);
-      } catch {
-        setError("Failed to load staff");
-      }
-      setLoading(false);
-  };
+    } catch {
+      setError("Failed to load staff");
+    }
+    setLoading(false);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStaff();
-  }, [user?.id]);
+  }, [user?.id, loadStaff]);
 
   const handleAdd = async () => {
     if (!addEmail.trim()) return;

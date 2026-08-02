@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { CalendarDays, Clock, CheckCircle, CreditCard, MapPin, ArrowRight, ArrowLeft, X, Send } from "lucide-react";
 
 interface ArtistService {
@@ -56,6 +56,7 @@ export function BookingForm({
     quoteId: string;
   } | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, startTransition] = useTransition();
 
   const today = new Date().toISOString().split("T")[0];
   const maxDate = new Date();
@@ -184,17 +185,19 @@ export function BookingForm({
           clearInterval(pollingRef.current);
           pollingRef.current = null;
         }
-        setQuoteData({
-          servicePrice: Number(booking.servicePrice) || 0,
-          accommodationFee: Number(booking.accommodationFee) || 0,
-          travelFee: Number(booking.travelSurcharge) || 0,
-          totalPrice:
-            (Number(booking.servicePrice) || 0) +
-            (Number(booking.accommodationFee) || 0) +
-            (Number(booking.travelSurcharge) || 0),
-          quoteId: String(booking.quoteId || booking.id),
+        startTransition(() => {
+          setQuoteData({
+            servicePrice: Number(booking.servicePrice) || 0,
+            accommodationFee: Number(booking.accommodationFee) || 0,
+            travelFee: Number(booking.travelSurcharge) || 0,
+            totalPrice:
+              (Number(booking.servicePrice) || 0) +
+              (Number(booking.accommodationFee) || 0) +
+              (Number(booking.travelSurcharge) || 0),
+            quoteId: String(booking.quoteId || booking.id),
+          });
+          setStep("checkout");
         });
-        setStep("checkout");
       } else {
         setStatusMessage("Quote not ready yet. The MUA hasn't sent a quote — you will also be notified by email.");
       }
@@ -212,6 +215,7 @@ export function BookingForm({
 
   useEffect(() => {
     if (step === "awaiting_quote" && bookingId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       checkQuoteStatus();
       pollingRef.current = setInterval(checkQuoteStatus, 12000);
     }

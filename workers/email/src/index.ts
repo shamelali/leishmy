@@ -6,7 +6,7 @@ export interface Env {
   DATABASE_URL: string;
 }
 
-export default {
+const worker = {
   async email(message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext) {
     const recipient = (Array.isArray(message.to) ? message.to[0] : message.to) ?? "";
     const destination = getDestination(recipient);
@@ -43,3 +43,5 @@ export default {
     await message.forward(destination);
   },
 };
+
+export default worker;

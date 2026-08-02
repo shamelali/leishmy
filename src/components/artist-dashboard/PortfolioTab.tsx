@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Upload, X, Loader2, GripVertical, Plus, ImageIcon, ZoomIn } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
 
@@ -176,9 +177,11 @@ export default function PortfolioTab({ portfolio: initialPortfolio, userId, onUp
               className={`group relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 ${isImageUrl(url) ? "cursor-pointer" : ""}`}
             >
               {isImageUrl(url) ? (
-                <img
+                <Image
                   src={url}
                   alt={`Portfolio ${i + 1}`}
+                  width={400}
+                  height={400}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />

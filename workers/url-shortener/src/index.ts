@@ -261,7 +261,7 @@ async function handleStats(code: string, env: Env): Promise<Response> {
   );
 }
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -292,3 +292,5 @@ export default {
     });
   },
 };
+
+export default worker;

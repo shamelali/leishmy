@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Users, ChevronLeft, Search, MapPin, Star, BadgeCheck, Building2,
   Palette, Shield, User as UserIcon,
@@ -207,7 +208,7 @@ export default function PeoplePage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-9 h-9 rounded-full object-cover" />
+                              <Image src={p.image} alt={p.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                             ) : (
                               <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
                                 <UserIcon className="w-4 h-4 text-gray-400" />

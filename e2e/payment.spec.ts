@@ -7,7 +7,7 @@ import {
 const ARTIST_ID = "7f06fdbd-804e-46b6-8e74-c5d221638385";
 
 test.describe("E2E Payment Flow", () => {
-  test.skip("full payment flow: booking → bill → webhook → confirmed", async ({
+  test("full payment flow: booking → bill → webhook → confirmed", async ({
     request,
   }) => {
     test.setTimeout(120_000);

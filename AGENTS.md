@@ -6,14 +6,19 @@
 |------|---------|
 | Dev server | `pnpm dev` |
 | Build | `pnpm build` |
+| Preview (build + start) | `pnpm preview` |
+| Setup (install + DB push + seed) | `pnpm setup` |
 | Typecheck | `pnpm typecheck` (tsc --noEmit) |
 | Lint | `pnpm lint` |
 | Lint fix | `pnpm lint:fix` |
 | Full check | `pnpm check` (typecheck + lint) |
 | E2E tests | `pnpm test:e2e` |
 | Fresh dev (reset DB) | `pnpm dev:fresh` |
-| DB migration | `pnpm db:generate` then `pnpm db:migrate` |
-| Seed DB | `pnpm db:seed` |
+| DB generate | `pnpm db:generate` |
+| DB push | `pnpm db:push` |
+| DB migrate | `pnpm db:migrate` |
+| DB seed | `pnpm db:seed` |
+| DB studio | `pnpm db:studio` |
 | Verify Cloudinary sign | `npx tsx scripts/verify-sign.ts` |
 
 **Always run `pnpm check` before committing.** TypeScript and ESLint must pass.
@@ -52,12 +57,16 @@ This project does NOT use `next-intl` or any server-side i18n framework. The `ne
 | `src/lib/` | Business logic, utilities, integrations |
 | `src/lib/auth/` | Neon Auth setup (`auth.ts`) |
 | `src/lib/email/` | Brevo email templates/sending |
+| `src/lib/env.ts` | Env validation with Zod (required + optional vars) |
+| `src/lib/env-prefix.ts` | Prefixed env reader for Neon Auth config |
 | `src/db/` | Drizzle schema (`schema.ts`), DB client (`index.ts`) |
 | `src/context/` | React contexts: Auth, Favorites, Notifications, Toast |
+| `src/instrumentation-client.ts` | Client-side Sentry init |
+| `src/instrumentation.ts` | Server-side Sentry init |
 | `drizzle/` | Drizzle migration SQL files (20+ migrations) |
 | `scripts/` | One-off scripts (seed, sweep, backfill, verify) |
 | `e2e/` | Playwright end-to-end tests (11 spec files) |
-| `workers/` | Cloudflare Workers (email, url-shortener) |
+| `workers/` | Cloudflare Workers (`email/` has own `package.json`; `url-shortener/` shares root workspace) |
 
 ### Route Structure
 
@@ -81,7 +90,7 @@ Next.js 16 deprecates `middleware.ts`. The file is named `src/proxy.ts` and expo
 
 ### Auth Flow
 
-Uses `@neondatabase/auth/next/server`. Auth routes are at `/api/auth/[...path]`. Session can be checked server-side via `getSession()` from `src/lib/auth/auth.ts`. The session cookie name is `__Secure-neon-auth.session_token` or `neon-auth.session_token`.
+Uses `@neondatabase/auth/next/server`. Auth routes are at `/api/auth/[...path]`. Session can be checked server-side via `getSession()` from `src/lib/auth/auth.ts`. The session cookie name is `__Secure-neon-auth.session_token` or `neon-auth.session_token`. Auth config reads prefixed env vars via `src/lib/env-prefix.ts` (`prefixedEnvReader("NEON_AUTH_")`).
 
 ### Database
 
@@ -102,11 +111,15 @@ const nonce = hdrs.get("x-nonce") || undefined;
 
 ### Env Validation
 
-`src/lib/env.ts` validates required env vars at startup using Zod. Required vars: `DATABASE_URL`, `NEXT_PUBLIC_URL`, `CRON_SECRET`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`. In production, Cloudinary and Billplz vars are also required.
+`src/lib/env.ts` validates required env vars at startup using Zod. Required vars: `DATABASE_URL`, `NEXT_PUBLIC_URL`, `CRON_SECRET`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`. Additional vars like `BREVO_API_KEY`, `BILLPLZ_*`, `CLOUDINARY_*` are optional in the schema but may be needed for full functionality in production.
 
-### Vercel Cron Eras
+### Vercel Cron Jobs
 
 Defined in `vercel.json` — 6 daily cron jobs. Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`.
+
+### Sentry
+
+Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instrumentation.ts` (server). The root layout imports `@/instrumentation-client` and `@/lib/env` at the top. Client-side Sentry is only enabled in production when `SENTRY_DSN` is set.
 
 ## Current Known Issues
 
@@ -118,4 +131,5 @@ Defined in `vercel.json` — 6 daily cron jobs. Each uses `CRON_SECRET` for auth
 - **The `feat/multi-language` remote branch is stale** — 208 commits behind main, never merged. Do not use.
 - **`src/middleware.ts` does not exist** — middleware is `src/proxy.ts`. Do not create `middleware.ts` unless specifically needed for the build system.
 - **Outbound email** uses Brevo. **Inbound email** uses Cloudflare Email Routing (MX records) — not Brevo Inbound Parse.
-- **`workers/`** contains standalone Cloudflare Workers (`email`, `url-shortener`) with their own `package.json` and `wrangler.jsonc` deployments.
+- **`workers/`** contains standalone Cloudflare Workers: `email/` has its own `package.json` and `wrangler.jsonc`; `url-shortener/` shares the root workspace config and has its own `wrangler.jsonc` but no `package.json`.
+- **CI** runs `pnpm typecheck`, `pnpm lint`, `pnpm build` on push/PR to `main`.

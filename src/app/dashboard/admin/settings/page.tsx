@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2, Image, Plus, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 
 export default function AdminSettings() {
@@ -123,14 +124,14 @@ export default function AdminSettings() {
 
           <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
             <div className="flex items-center gap-2 mb-4">
-              <Image className="w-5 h-5 text-rose-500" />
+              <ImageIcon className="w-5 h-5 text-rose-500" />
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Hero Section Images</h2>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Manage the 4 images displayed on the homepage hero section. Images are shown in a 2x2 grid.</p>
             <div className="grid grid-cols-2 gap-3 mb-4">
               {heroImages.map((img, i) => (
                 <div key={i} className="relative group">
-                  <img src={img} alt={`Hero ${i + 1}`} className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-neutral-700" />
+                  <Image src={img} alt={`Hero ${i + 1}`} width={400} height={96} className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-neutral-700" />
                   <button
                     type="button"
                     onClick={() => setHeroImages(heroImages.filter((_, idx) => idx !== i))}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Users, Building2, DollarSign, BarChart3, TrendingUp,
   Calendar, Star, Shield, Palette, Store, UserCheck,
@@ -1017,7 +1018,7 @@ export default function DashboardAdmin() {
                       <input type="text" value={addEventForm.image} onChange={(e) => setAddEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="https://..." />
                       {addEventForm.image && (
                         <div className="mt-2 relative group">
-                          <img src={addEventForm.image} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <Image src={addEventForm.image} alt="Preview" width={400} height={128} className="w-full h-32 object-cover rounded-xl" />
                           <button
                             type="button"
                             onClick={() => setAddEventForm((f) => ({ ...f, image: "" }))}
@@ -1108,7 +1109,7 @@ export default function DashboardAdmin() {
                       <input type="text" value={editEventForm.image} onChange={(e) => setEditEventForm((f) => ({ ...f, image: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="https://..." />
                       {editEventForm.image && (
                         <div className="mt-2 relative group">
-                          <img src={editEventForm.image} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <Image src={editEventForm.image} alt="Preview" width={400} height={128} className="w-full h-32 object-cover rounded-xl" />
                           <button
                             type="button"
                             onClick={() => setEditEventForm((f) => ({ ...f, image: "" }))}
@@ -1176,7 +1177,7 @@ export default function DashboardAdmin() {
                   <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800">
                     <td className="p-3">
                       {(ev as any).image && (ev as any).image !== "/placeholder.svg" ? (
-                        <img src={(ev as any).image} alt={ev.title} className="w-12 h-12 object-cover rounded-lg" />
+                        <Image src={(ev as any).image} alt={ev.title} width={48} height={48} className="w-12 h-12 object-cover rounded-lg" />
                       ) : (
                         <div className="w-12 h-12 bg-gray-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
                           <Calendar className="w-5 h-5 text-gray-300" />

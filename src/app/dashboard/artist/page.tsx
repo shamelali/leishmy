@@ -148,9 +148,11 @@ export default function DashboardArtist() {
       // silent
     }
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -158,6 +160,7 @@ export default function DashboardArtist() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleConfirm = useCallback(async (bookingId: string) => {
     if (!user?.id) return;
     await fetch("/api/user/confirm-booking", {
@@ -170,6 +173,7 @@ export default function DashboardArtist() {
     );
   }, [user?.id]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleReject = useCallback(async (bookingId: string) => {
     if (!user?.id) return;
     await fetch("/api/user/reject-booking", {
