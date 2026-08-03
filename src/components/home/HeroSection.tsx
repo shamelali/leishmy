@@ -3,15 +3,20 @@ import { ArrowRight, Sparkles, Users, Clock } from "lucide-react";
 import { db } from "@/db";
 import { adminSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { cldImage } from "@/lib/cloudinary-url-gen";
 
 const statIcons = [Sparkles, undefined, Users, Clock];
 
-const DEFAULT_HERO_IMAGES = [
+const LOCAL_HERO_IMAGES = [
   "/images/artfulcolorworks-ai-generated-9159114.jpg",
   "/images/gromovataya-woman-3096664.jpg",
   "/images/omarmedinafilms-wedding-1183271_1920.jpg",
   "/images/u_p081rxaf-wedding-9473397.jpg",
 ];
+
+function getCloudinaryUrl(publicId: string): string {
+  return cldImage(publicId, { width: 800, crop: "fill", quality: "auto", format: "auto" });
+}
 
 async function getHeroImages(): Promise<string[]> {
   try {
@@ -21,7 +26,14 @@ async function getHeroImages(): Promise<string[]> {
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {}
-  return DEFAULT_HERO_IMAGES;
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  if (cloudName) {
+    return LOCAL_HERO_IMAGES.map((path) => {
+      const publicId = path.replace("/images/", "").replace(/\.\w+$/, "");
+      return getCloudinaryUrl(publicId);
+    });
+  }
+  return LOCAL_HERO_IMAGES;
 }
 
 export async function HeroSection({ stats }: { stats?: { value: string; label: string }[] }) {
@@ -90,7 +102,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-[3/4] relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={heroImages[0] || DEFAULT_HERO_IMAGES[0]}
+                    src={heroImages[0] || LOCAL_HERO_IMAGES[0]}
                     alt={imgAlts[0]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -101,7 +113,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={heroImages[1] || DEFAULT_HERO_IMAGES[1]}
+                    src={heroImages[1] || LOCAL_HERO_IMAGES[1]}
                     alt={imgAlts[1]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -114,7 +126,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-square group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={heroImages[2] || DEFAULT_HERO_IMAGES[2]}
+                    src={heroImages[2] || LOCAL_HERO_IMAGES[2]}
                     alt={imgAlts[2]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
@@ -125,7 +137,7 @@ export async function HeroSection({ stats }: { stats?: { value: string; label: s
                 <div className="aspect-[3/4] group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={heroImages[3] || DEFAULT_HERO_IMAGES[3]}
+                    src={heroImages[3] || LOCAL_HERO_IMAGES[3]}
                     alt={imgAlts[3]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"

@@ -123,7 +123,12 @@ Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instr
 
 ## Current Known Issues
 
-- ESLint has pending errors (6 errors, 12 warnings): `react-hooks/set-state-in-effect` in artist/studio dashboards + BookingForm, `react-hooks/preserve-manual-memoization` in artist page + ProfilePictureUploader. Run `pnpm lint` to see current state.
+- **ESLint is clean** — all previous errors resolved.
+- **Sitemap** now includes DB-driven dynamic routes (artists, studios, services, categories) — falls back to static routes if DB is unavailable at build time.
+- **Manifest icons** compressed to WebP (<50K) with maskable icon added.
+- **HeroSection** uses Cloudinary URLs when `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` is set; falls back to local `/images/` paths.
+- **E2E tests** need a real Neon preview branch DB (dummy env causes ECONNREFUSED but fallback works).
+- **Public/images** (9.4MB) should be served via Cloudinary, not Vercel static — verify Cloudinary upload configuration for hero images.
 
 ## MCP Config
 
