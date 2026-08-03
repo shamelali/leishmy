@@ -125,11 +125,14 @@ Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instr
 
 - ESLint has pending errors (6 errors, 12 warnings): `react-hooks/set-state-in-effect` in artist/studio dashboards + BookingForm, `react-hooks/preserve-manual-memoization` in artist page + ProfilePictureUploader. Run `pnpm lint` to see current state.
 
+## MCP Config
+
+MCP servers are configured in `opencode.json` at the repo root. The `.opencode/` directory contains the OpenCode plugin (`@opencode-ai/plugin`). Do not edit `.opencode/node_modules` or `.opencode/package-lock.json`.
+
 ## Notes
 
 - **No GitHub Copilot autofix PRs** — Sentry generated some auto-PRs (PR ##6, ##7, ##8), but the codebase has moved since. Review manually before merging.
 - **The `feat/multi-language` remote branch is stale** — 208 commits behind main, never merged. Do not use.
-- **`src/middleware.ts` does not exist** — middleware is `src/proxy.ts`. Do not create `middleware.ts` unless specifically needed for the build system.
 - **Outbound email** uses Brevo. **Inbound email** uses Cloudflare Email Routing (MX records) — not Brevo Inbound Parse.
 - **`workers/`** contains standalone Cloudflare Workers: `email/` has its own `package.json` and `wrangler.jsonc`; `url-shortener/` shares the root workspace config and has its own `wrangler.jsonc` but no `package.json`.
 - **CI** runs `pnpm typecheck`, `pnpm lint`, `pnpm build` on push/PR to `main`.

@@ -72,35 +72,6 @@ async function ensureCustomer(
   return { id: newId, name: body.clientName || body.name || "Guest", email, phone: body.phone || body.clientPhone || null };
 }
 
-async function resolveAmount(
-  serviceId: number | string | null,
-  artistId: string | null,
-  studioId: string | null,
-): Promise<{ amount: string; serviceName: string } | { error: string }> {
-  if (!serviceId) {
-    return { error: "serviceId is required — price must be resolved from a specific service" };
-  }
-
-  const [service] = await db
-    .select({ id: services.id, name: services.name, price: services.price, artistId: services.artistId, studioId: services.studioId })
-    .from(services)
-    .where(eq(services.id, Number(serviceId)))
-    .limit(1);
-
-  if (!service) {
-    return { error: "Selected service not found" };
-  }
-
-  // Ensure the service actually belongs to the provider being booked
-  const belongsToArtist = artistId && service.artistId === artistId;
-  const belongsToStudio = studioId && service.studioId === studioId;
-  if (!belongsToArtist && !belongsToStudio) {
-    return { error: "Selected service does not belong to this provider" };
-  }
-
-  return { amount: String(service.price), serviceName: service.name };
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -193,8 +164,8 @@ export async function POST(request: NextRequest) {
         placeId: body.placeId || null,
         date: new Date(date),
         time: time || null,
-        amount: body.amount ? String(body.amount) : "0",
-        depositAmount: body.amount ? String(Math.round(Number(body.amount) * 0.3)) : "0",
+        amount: "0",
+        depositAmount: "0",
         milestone: "quote_pending",
         status: "quote_pending",
       })

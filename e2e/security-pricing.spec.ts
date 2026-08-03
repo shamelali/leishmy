@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Security: server must resolve prices itself, never trust the client", () => {
-  // Skipped: current booking flow defers pricing to artist quote approval
-  // (amount stays at 0 until artist submits a quote). Tests below assume
-  // instant server-side price resolution that the API does not implement.
+  // Skipped: booking creation no longer accepts an amount from the client.
+  // Bookings start at amount=0 (quote_pending) and pricing is set server-side
+  // via the quote → accept flow. The tampered-amount test is no longer applicable.
   test.skip("POST /api/bookings ignores a tampered client-submitted amount", async ({ request }) => {
     test.setTimeout(120_000);
 
@@ -35,12 +35,8 @@ test.describe("Security: server must resolve prices itself, never trust the clie
     const body = await res.json();
     expect(body.success).toBe(true);
 
-    expect(
-      Number(body.booking.amount),
-      `Booking amount is RM${body.booking.amount} but should be RM${realPrice}. ` +
-      `The client-submitted amount (RM${tamperedAmount}) was trusted instead of ` +
-      `the artist's DB price. Fix resolveAmount() in bookings/route.ts.`,
-    ).toBeCloseTo(Number(realPrice), 2);
+    // With the new quote-pending flow, amount is always 0 at creation time
+    expect(Number(body.booking.amount)).toBe(0);
   });
 
   test.skip("POST /api/payments?action=create-bill uses booking stored amount", async ({ request }) => {

@@ -42,7 +42,7 @@ When adding new external services:
 2. Add only the specific domain, **not** a wildcard (e.g., `https://api.example.com`, not `https:`)
 3. Verify with the Vercel preview deployment before promoting
 
-CSP is set in `src/middleware.ts` — update it when adding new external domains.
+CSP is set in `src/proxy.ts` — update it when adding new external domains.
 
 ## Cloudinary
 

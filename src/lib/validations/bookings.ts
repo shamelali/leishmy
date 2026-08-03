@@ -13,7 +13,6 @@ export const createBookingSchema = z.object({
   phone: z.string().max(20).optional(),
   clientEmail: z.string().email().optional(),
   clientName: z.string().max(255).optional(),
-  amount: z.number().nonnegative().optional(),
   // No fees - MUA adds them later
 });
 
