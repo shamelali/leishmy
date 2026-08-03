@@ -1,0 +1,30 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        languages: typescript
+
+      - name: Perform build
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        category: "/language:typescript"
