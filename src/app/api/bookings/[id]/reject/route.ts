@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, profiles, notifications } from "@/db/schema";
+import { bookings, profiles, notifications, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
 import { rejectQuoteSchema } from "@/lib/validations/bookings";
+import { sendQuoteRejectedEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -78,6 +79,56 @@ export async function POST(
           body: `Customer declined your quote for "${booking.service}".`,
           data: { link: `/dashboard/bookings`, bookingId: String(booking.id) },
         }).catch(() => {});
+      }
+    }
+
+    // Notify customer
+    if (booking.userId) {
+      const [customer] = await db
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(eq(users.id, booking.userId))
+        .limit(1);
+
+      if (customer?.id) {
+        await db.insert(notifications).values({
+          userId: customer.id,
+          type: "quote_rejected",
+          title: "Quote Rejected",
+          body: `You have rejected the quote for "${booking.service}". You can request a new quote if you'd like to proceed.`,
+          data: { link: "/bookings", bookingId: String(booking.id) },
+        }).catch(() => {});
+      }
+
+      if (customer?.email) {
+        let providerName = "Your Provider";
+        if (booking.artistId) {
+          const [artistUser] = await db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, booking.artistId))
+            .limit(1);
+          providerName = artistUser?.name || providerName;
+        } else if (booking.studioId) {
+          const [studioUser] = await db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, booking.studioId))
+            .limit(1);
+          providerName = studioUser?.name || providerName;
+        }
+
+        sendQuoteRejectedEmail({
+          email: customer.email,
+          customerName: customer.name || "Valued Customer",
+          bookingId: String(booking.id),
+          serviceName: booking.service || "Service",
+          providerName,
+          date: new Date(booking.date).toLocaleDateString("en-MY", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric",
+          }),
+          time: booking.time || "To be confirmed",
+        }).catch((err) => console.error("sendQuoteRejectedEmail failed:", err));
       }
     }
 

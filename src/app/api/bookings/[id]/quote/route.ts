@@ -100,6 +100,8 @@ export async function PUT(
     const depositPercentNum = Math.min(100, Math.max(10, depositPercent || 30));
     const depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
 
+    const quoteId = `quote_${bookingId}_${Date.now()}`;
+
     // Update booking with quote
     const [updated] = await db
       .update(bookings)
@@ -118,6 +120,8 @@ export async function PUT(
         notes: notes || null,
         status: "quote_sent",
         milestone: `deposit_${depositPercentNum}`,
+        quoteId,
+        quoteSentAt: new Date(),
       })
       .where(eq(bookings.id, bookingId))
       .returning();

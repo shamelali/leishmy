@@ -5,6 +5,7 @@ export {
   sendBookingReceivedEmail,
   sendProviderNewBookingEmail,
   sendQuoteReadyEmail,
+  sendQuoteRejectedEmail,
 } from "./booking-confirmation";
 export { sendPaymentReceiptEmail } from "./payment-receipt";
 export { sendSubscriptionCreatedEmail } from "./subscription-created";

@@ -46,6 +46,9 @@ export async function sendProviderNewBookingEmail(params: {
   time: string;
   travelSurcharge?: number;
   accommodationFee?: number;
+  totalPrice?: number;
+  depositAmount?: number;
+  depositPercent?: number;
 }) {
   const template = providerNewBookingTemplate({
     providerName: params.providerName,
@@ -56,12 +59,49 @@ export async function sendProviderNewBookingEmail(params: {
     time: params.time,
     travelSurcharge: params.travelSurcharge,
     accommodationFee: params.accommodationFee,
+    totalPrice: params.totalPrice,
+    depositAmount: params.depositAmount,
+    depositPercent: params.depositPercent,
   });
   return sendEmail({
     to: params.email,
     subject: template.subject,
     html: template.html,
     text: template.text,
+    from: getEmailAlias("notifications"),
+  });
+}
+
+export async function sendQuoteRejectedEmail(params: {
+  email: string;
+  customerName: string;
+  bookingId: string;
+  serviceName: string;
+  providerName: string;
+  date: string;
+  time: string;
+}) {
+  const subject = `Quote Rejected — Booking #${params.bookingId}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Quote Rejected</h2>
+      <p>Hi ${params.customerName},</p>
+      <p>You have rejected the quote for your booking with <strong>${params.providerName}</strong>.</p>
+      <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Booking Details</h3>
+        <p><strong>Service:</strong> ${params.serviceName}</p>
+        <p><strong>Date:</strong> ${params.date}</p>
+        <p><strong>Time:</strong> ${params.time}</p>
+      </div>
+      <p>If you'd like to proceed, you can request a new quote from the provider.</p>
+      <p><a href="${process.env.NEXT_PUBLIC_URL || 'https://leish.my'}/bookings/${params.bookingId}" style="display: inline-block; background: #e91e63; color: white; padding: 12px 24px; border-radius: 4px; text-decoration: none;">View Booking</a></p>
+    </div>
+  `;
+  return sendEmail({
+    to: params.email,
+    subject,
+    html,
+    text: `You have rejected the quote for booking #${params.bookingId}. Service: ${params.serviceName} on ${params.date} at ${params.time}.`,
     from: getEmailAlias("notifications"),
   });
 }

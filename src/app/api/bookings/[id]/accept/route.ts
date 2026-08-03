@@ -61,16 +61,17 @@ export async function POST(
       (Number(booking.accommodationFee) || 0) +
       (Number(booking.travelSurcharge) || 0);
     const totalPrice = quoteTotal || Number(booking.amount) || 0;
-    const depositAmount = Math.round(totalPrice * 0.3 * 100) / 100;
+    const depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
+    const depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
 
-    // Update booking: set amount to quote total, status to pending, milestone to deposit_30
+    // Update booking: set amount to quote total, status to pending, milestone to deposit_{percent}
     const [updated] = await db
       .update(bookings)
       .set({
         status: "pending",
         amount: String(totalPrice),
         depositAmount: String(depositAmount),
-        milestone: "deposit_30",
+        milestone: `deposit_${depositPercentNum}`,
       })
       .where(eq(bookings.id, bookingId))
       .returning();
@@ -117,6 +118,9 @@ export async function POST(
             time: booking.time || "To be confirmed",
             travelSurcharge: Number(booking.travelSurcharge) || undefined,
             accommodationFee: Number(booking.accommodationFee) || undefined,
+            totalPrice: Number(booking.amount) || undefined,
+            depositAmount: Number(booking.depositAmount) || undefined,
+            depositPercent: booking.depositPercent || undefined,
           }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
         }
       }

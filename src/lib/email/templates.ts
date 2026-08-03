@@ -562,6 +562,9 @@ export function providerNewBookingTemplate(params: {
   time: string;
   travelSurcharge?: number;
   accommodationFee?: number;
+  totalPrice?: number;
+  depositAmount?: number;
+  depositPercent?: number;
 }) {
   const subject = `New Booking Received - ${params.bookingId}`;
   const html = `
@@ -591,13 +594,15 @@ export function providerNewBookingTemplate(params: {
       <div class="detail-row"><span>Service:</span><strong>${params.serviceName}</strong></div>
       <div class="detail-row"><span>Date:</span><strong>${params.date}</strong></div>
       <div class="detail-row"><span>Time:</span><strong>${params.time}</strong></div>
+      ${params.totalPrice ? `<div class="detail-row"><span>Total Price:</span><strong>MYR ${params.totalPrice.toFixed(2)}</strong></div>` : ""}
+      ${params.depositAmount ? `<div class="detail-row"><span>Deposit (${params.depositPercent || 30}%):</span><strong>MYR ${params.depositAmount.toFixed(2)}</strong></div>` : ""}
     </div>
     <p style="text-align: center;"><a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist" class="button">View Booking</a></p>
   </div>
   <div class="footer"><p>&copy; 2026 Leish. All rights reserved.</p></div>
 </body>
 </html>`;
-  const text = `New Booking Received - ${params.bookingId}\n\nHi ${params.providerName},\n\nYou've received a new booking from ${params.customerName}.\n\nBOOKING DETAILS:\n- Reference: ${params.bookingId}\n- Service: ${params.serviceName}\n- Date: ${params.date}\n- Time: ${params.time}\n\nView Booking: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist\n\n&copy; 2026 Leish. All rights reserved.`;
+  const text = `New Booking Received - ${params.bookingId}\n\nHi ${params.providerName},\n\nYou've received a new booking from ${params.customerName}.\n\nBOOKING DETAILS:\n- Reference: ${params.bookingId}\n- Service: ${params.serviceName}\n- Date: ${params.date}\n- Time: ${params.time}${params.totalPrice ? `\n- Total Price: MYR ${params.totalPrice.toFixed(2)}` : ""}${params.depositAmount ? `\n- Deposit (${params.depositPercent || 30}%): MYR ${params.depositAmount.toFixed(2)}` : ""}\n\nView Booking: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/artist\n\n&copy; 2026 Leish. All rights reserved.`;
   return { subject, html, text };
 }
 

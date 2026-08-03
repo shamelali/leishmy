@@ -54,6 +54,8 @@ export function BookingForm({
     travelFee: number;
     totalPrice: number;
     quoteId: string;
+    discount: number;
+    extras: Array<{ name: string; price: number }>;
   } | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, startTransition] = useTransition();
@@ -180,25 +182,24 @@ export function BookingForm({
         return;
       }
 
-      if (booking.status === "quote_sent" && booking.servicePrice) {
-        if (pollingRef.current) {
-          clearInterval(pollingRef.current);
-          pollingRef.current = null;
-        }
-        startTransition(() => {
-          setQuoteData({
-            servicePrice: Number(booking.servicePrice) || 0,
-            accommodationFee: Number(booking.accommodationFee) || 0,
-            travelFee: Number(booking.travelSurcharge) || 0,
-            totalPrice:
-              (Number(booking.servicePrice) || 0) +
-              (Number(booking.accommodationFee) || 0) +
-              (Number(booking.travelSurcharge) || 0),
-            quoteId: String(booking.quoteId || booking.id),
-          });
-          setStep("checkout");
-        });
-      } else {
+       if (booking.status === "quote_sent" && booking.servicePrice) {
+         if (pollingRef.current) {
+           clearInterval(pollingRef.current);
+           pollingRef.current = null;
+         }
+         startTransition(() => {
+           setQuoteData({
+             servicePrice: Number(booking.servicePrice) || 0,
+             accommodationFee: Number(booking.accommodationFee) || 0,
+             travelFee: Number(booking.travelSurcharge) || 0,
+             totalPrice: Number(booking.amount) || 0,
+             quoteId: String(booking.quoteId || booking.id),
+             discount: Number(booking.discount) || 0,
+             extras: booking.extras || [],
+           });
+           setStep("checkout");
+         });
+       } else {
         setStatusMessage("Quote not ready yet. The MUA hasn't sent a quote — you will also be notified by email.");
       }
     } catch {
@@ -249,28 +250,10 @@ export function BookingForm({
         throw new Error(msg);
       }
 
-      const billRes = await fetch("/api/payments?action=create-bill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId: Number(bookingId),
-          name,
-          email,
-          description: `Booking with ${artistName}`,
-          idempotencyKey: `booking_${bookingId}`,
-          amount: quoteData.totalPrice * 100,
-        }),
-      });
-
-      const billData = await billRes.json();
-      if (!billRes.ok) {
-        const msg = typeof billData?.error === "string" ? billData.error : (billData?.error?.message ?? JSON.stringify(billData?.error)) || "Failed to start payment";
-        throw new Error(msg);
-      }
-
-      if (billData?.bill?.url) {
+      const billUrl = data?.bill?.url;
+      if (billUrl) {
         setSuccess(true);
-        window.location.href = billData.bill.url;
+        window.location.href = billUrl;
         return;
       }
 
