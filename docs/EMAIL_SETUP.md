@@ -16,8 +16,11 @@ Used for: booking confirmations, payment receipts, welcome emails, subscription 
 3. Name: your name, Email: your @leish.my address
 4. Uncheck "Treat as alias"
 5. SMTP Server: `smtp-relay.brevo.com`, Port: `587`
-6. Username: (paste BREVO_API_KEY value), Password: (same key)
-7. Secured connection using TLS
+6. Username: `aa2b54001@smtp-brevo.com` (SMTP relay login from Brevo's account API)
+7. Password: your Brevo **SMTP key** (Settings → SMTP & API → SMTP keys — NOT the `BREVO_API_KEY`; the API key fails SMTP AUTH with `535 5.7.8`)
+8. Secured connection using TLS
+
+> Verified 2026-08-03: the API key authenticates to the Brevo **API** (`/v3/account` → `200`) but is **rejected by the SMTP relay** (`smtp-relay.brevo.com:587`) with `535 5.7.8 Authentication failed`. Use the relay login above + a dedicated SMTP key.
 
 ### DNS Authentication
 

@@ -99,85 +99,322 @@ Terms & Conditions: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/terms
   return { subject, html, text };
 }
 
-export function welcomeEmailTemplate(params: { name: string; role?: string }) {
-  const subject =
-    params.role === "artist"
-      ? "Welcome to Leish! Artist Network"
-      : params.role === "studio"
-        ? "Your Studio Registration on Leish!"
-        : "Welcome to Leish!";
+const LEISH_BASE_URL = () => process.env.NEXT_PUBLIC_URL || "https://leish.my";
 
-  const html = `
+type WelcomeStep = {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaUrl: string;
+};
+
+type WelcomeResource = {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaUrl: string;
+};
+
+function buildWelcomeHtml(params: {
+  name: string;
+  heroTitle: string;
+  intro: string;
+  steps: WelcomeStep[];
+  resources: WelcomeResource[];
+  closing: string;
+}) {
+  const base = LEISH_BASE_URL();
+
+  const stepsHtml = params.steps
+    .map(
+      (step, i) => `
+    <div class="step">
+      <p class="step-head"><span class="step-num">${i + 1}</span><strong>${step.title}</strong></p>
+      <p class="step-desc">${step.description}</p>
+      <a href="${step.ctaUrl}" class="button">${step.ctaLabel}</a>
+    </div>`,
+    )
+    .join("");
+
+  const resourcesHtml = params.resources
+    .map(
+      (resource) => `
+    <div class="resource">
+      <p class="resource-title">${resource.title}</p>
+      <p class="resource-desc">${resource.description}</p>
+      <a href="${resource.ctaUrl}" class="link">${resource.ctaLabel}</a>
+    </div>`,
+    )
+    .join("");
+
+  return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Welcome to Leish</title>
+  <title>${params.heroTitle}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: #1a1a1a; color: white; padding: 30px; text-align: center; }
+    .brand { color: #c9a96e; font-size: 20px; font-weight: bold; letter-spacing: 2px; margin-bottom: 8px; }
     .content { background: #f9f9f9; padding: 30px; margin: 20px 0; }
+    .section-title { font-weight: bold; font-size: 16px; margin: 28px 0 12px; color: #1a1a1a; }
+    .step { background: white; padding: 18px; margin: 12px 0; border-radius: 10px; border-left: 4px solid #c9a96e; }
+    .step-head { margin: 0 0 6px; }
+    .step-num { display: inline-block; background: #1a1a1a; color: #c9a96e; font-weight: bold; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%; margin-right: 8px; font-size: 14px; }
+    .step-desc { margin: 0 0 10px; font-size: 14px; color: #555; }
+    .button { display: inline-block; background: #1a1a1a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 14px; }
+    .resource { background: white; padding: 16px; margin: 10px 0; border-radius: 10px; }
+    .resource-title { margin: 0 0 4px; font-weight: bold; }
+    .resource-desc { margin: 0 0 8px; font-size: 14px; color: #555; }
+    .link { color: #c9a96e; font-weight: bold; text-decoration: none; font-size: 14px; }
+    .contact { background: white; padding: 16px; margin: 10px 0; border-radius: 10px; }
+    .contact a { color: #7c3aed; text-decoration: none; font-weight: bold; }
+    .closing { margin-top: 24px; }
+    .signature { font-weight: bold; color: #1a1a1a; }
     .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
-    .button { display: inline-block; background: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <div class="header"><h1>Welcome to Leish</h1></div>
+  <div class="header">
+    <div class="brand">LEISH.MY</div>
+    <h1 style="margin: 0;">${params.heroTitle}</h1>
+  </div>
   <div class="content">
     <p>Hi ${params.name},</p>
-    ${
-      params.role === "artist"
-        ? `<p>Thank you for joining Leish! As an artist, your profile is now live. Start receiving bookings!</p>`
-        : params.role === "studio"
-          ? `<p>Thank you for registering your studio on Leish! Your studio listing is being reviewed.</p>`
-          : `<p>Welcome to Leish! We're thrilled to have you join our platform.</p>`
-    }
-    <p>Discover top makeup artists, book appointments, and find your perfect look.</p>
-    ${
-      params.role === "artist" || params.role === "studio"
-        ? `<div style="background: #f3e8ff; padding: 20px; margin: 20px 0; border-radius: 8px;">
-             <p style="font-weight: bold; margin: 0 0 8px 0;">💰 Earn 200 points per referral</p>
-             <p style="margin: 0 0 12px 0; font-size: 14px; color: #555;">Share your profile link with clients and earn 200 loyalty points when they book through your link.</p>
-             <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/${params.role}/share" style="display: inline-block; background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 14px;">Get Your Share Link</a>
-           </div>`
-        : ""
-    }
-    <p style="text-align: center;">
-      <a href="${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/artists" class="button">Explore Artists</a>
-    </p>
+    <p>${params.intro}</p>
+    <p class="section-title">To make the most of it, here are three quick steps to get you started.</p>
+    ${stepsHtml}
+    <p class="section-title">Resources</p>
+    ${resourcesHtml}
+    <div class="contact">
+      <p style="margin: 0 0 6px;"><strong>Stay connected</strong></p>
+      <p style="margin: 0; font-size: 14px; color: #555;">
+        <a href="https://www.instagram.com/leish.my">Instagram @leish.my</a> &middot;
+        <a href="https://wa.me/601137633788">WhatsApp</a> &middot;
+        <a href="mailto:hello@leish.my">hello@leish.my</a>
+      </p>
+    </div>
+    <p class="closing">${params.closing}</p>
+    <p class="signature">Team LEISH.MY</p>
   </div>
   <div class="footer">
     <p>&copy; 2026 Leish. All rights reserved.</p>
+    <p><a href="${base}/terms" style="color: #666;">Terms &amp; Conditions</a></p>
   </div>
 </body>
 </html>`;
+}
 
-  const text = `
-${subject}
+function buildWelcomeText(params: {
+  subject: string;
+  name: string;
+  intro: string;
+  steps: WelcomeStep[];
+  resources: WelcomeResource[];
+  closing: string;
+}) {
+  const stepsText = params.steps
+    .map(
+      (step, i) => `
+${i + 1}. ${step.title}
+${step.description}
+${step.ctaLabel}: ${step.ctaUrl}`,
+    )
+    .join("\n");
+
+  const resourcesText = params.resources
+    .map(
+      (resource) => `
+${resource.title}
+${resource.description}
+${resource.ctaLabel}: ${resource.ctaUrl}`,
+    )
+    .join("\n");
+
+  return `
+${params.subject}
 
 Hi ${params.name},
 
-${
-  params.role === "artist"
-    ? "Thank you for joining Leish! As an artist, your profile is now live. Start receiving bookings!"
-    : params.role === "studio"
-      ? "Thank you for registering your studio on Leish! Your studio listing is being reviewed."
-      : "Welcome to Leish! We're thrilled to have you join our platform."
-}
+${params.intro}
 
-Discover top makeup artists, book appointments, and find your perfect look.
+TO MAKE THE MOST OF IT, HERE ARE THREE QUICK STEPS TO GET YOU STARTED:${stepsText}
 
-${
-  params.role === "artist" || params.role === "studio"
-    ? `\nEARN 200 POINTS PER REFERRAL\nShare your profile link with clients and earn 200 loyalty points when they book through you.\nGet your share link: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/dashboard/${params.role}/share\n`
-    : ""
-}
+RESOURCES:${resourcesText}
 
-Explore Artists: ${process.env.NEXT_PUBLIC_URL || "https://leish.my"}/artists
+STAY CONNECTED
+Instagram: https://www.instagram.com/leish.my
+WhatsApp: https://wa.me/601137633788
+Email: hello@leish.my
+
+${params.closing}
+
+Team LEISH.MY
 
 &copy; 2026 Leish. All rights reserved.`;
+}
 
-  return { subject, html, text };
+export function customerWelcomeTemplate(params: { name: string }) {
+  const subject = "Welcome to Leish! Let's get you started";
+  const heroTitle = "Welcome to Leish! Let's get you started.";
+  const intro =
+    "You've just joined Malaysia's finest beauty marketplace. From glam to bridal, find and book the perfect makeup artist or studio for any occasion.";
+  const steps: WelcomeStep[] = [
+    {
+      title: "Set up your profile",
+      description:
+        "Add your name, preferences and location so we can match you with artists you'll love.",
+      ctaLabel: "Set up your profile",
+      ctaUrl: `${LEISH_BASE_URL()}/profile`,
+    },
+    {
+      title: "Find your perfect artist",
+      description:
+        "Browse Malaysia's top makeup artists and studios by category, and save your favorites.",
+      ctaLabel: "Explore artists",
+      ctaUrl: `${LEISH_BASE_URL()}/artists`,
+    },
+    {
+      title: "Book & earn rewards",
+      description: "Book your look in a few clicks and earn loyalty points on every session.",
+      ctaLabel: "See your rewards",
+      ctaUrl: `${LEISH_BASE_URL()}/rewards`,
+    },
+  ];
+  const resources: WelcomeResource[] = [
+    {
+      title: "Community",
+      description:
+        "Join the conversation on Instagram @leish.my and WhatsApp — share looks, ask questions and get beauty tips.",
+      ctaLabel: "Join discussions",
+      ctaUrl: "https://www.instagram.com/leish.my",
+    },
+    {
+      title: "Help center",
+      description: "Our FAQ and support pages cover everything from bookings to payments.",
+      ctaLabel: "Visit help pages",
+      ctaUrl: `${LEISH_BASE_URL()}/faq`,
+    },
+  ];
+  const closing = "Happy booking!";
+
+  return {
+    subject,
+    html: buildWelcomeHtml({ name: params.name, heroTitle, intro, steps, resources, closing }),
+    text: buildWelcomeText({ subject, name: params.name, intro, steps, resources, closing }),
+  };
+}
+
+export function artistWelcomeTemplate(params: { name: string }) {
+  const subject = "Welcome to the Leish! Elite Network";
+  const heroTitle = "Welcome to the Leish! Elite Network";
+  const intro =
+    "You've just joined Malaysia's premier beauty marketplace. Your profile is now live — let's get it ready to bring in bookings.";
+  const steps: WelcomeStep[] = [
+    {
+      title: "Complete your profile",
+      description:
+        "Add your portfolio, bio, services and pricing. Profiles with clear pricing get more bookings.",
+      ctaLabel: "Complete your profile",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/artist`,
+    },
+    {
+      title: "Get ready to book",
+      description:
+        "Sync your calendar, set your availability and accept bookings in real time.",
+      ctaLabel: "Manage your bookings",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/artist/bookings`,
+    },
+    {
+      title: "Share & grow",
+      description:
+        "Share your profile link with clients and earn 200 loyalty points when they book through your link.",
+      ctaLabel: "Get your share link",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/artist/share`,
+    },
+  ];
+  const resources: WelcomeResource[] = [
+    {
+      title: "Community",
+      description:
+        "Join the exclusive MUA community and follow @leish.my — we feature our artists.",
+      ctaLabel: "Join discussions",
+      ctaUrl: "https://www.instagram.com/leish.my",
+    },
+    {
+      title: "Help center",
+      description:
+        "Read the Artist Onboarding guide — a step-by-step playbook to a world-class profile.",
+      ctaLabel: "Read the onboarding guide",
+      ctaUrl: `${LEISH_BASE_URL()}/artist-onboarding`,
+    },
+  ];
+  const closing = "Let's get you booked!";
+
+  return {
+    subject,
+    html: buildWelcomeHtml({ name: params.name, heroTitle, intro, steps, resources, closing }),
+    text: buildWelcomeText({ subject, name: params.name, intro, steps, resources, closing }),
+  };
+}
+
+export function studioWelcomeTemplate(params: { name: string }) {
+  const subject = "Welcome to the Leish! Studio Network";
+  const heroTitle = "Welcome to the Leish! Studio Network";
+  const intro =
+    "Thank you for registering your studio on Leish! Your listing is being reviewed. Here's how to set your studio up for success.";
+  const steps: WelcomeStep[] = [
+    {
+      title: "Set up your studio",
+      description:
+        "Add your listing, services, staff and pricing so clients know exactly what you offer.",
+      ctaLabel: "Edit your studio profile",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/studio/edit`,
+    },
+    {
+      title: "Manage your operations",
+      description:
+        "Keep your calendar, inventory and finances in one place — all from your studio dashboard.",
+      ctaLabel: "Open your dashboard",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/studio`,
+    },
+    {
+      title: "Grow your business",
+      description:
+        "Share your studio link and earn 200 loyalty points when new clients book through your link.",
+      ctaLabel: "Get your share link",
+      ctaUrl: `${LEISH_BASE_URL()}/dashboard/studio/share`,
+    },
+  ];
+  const resources: WelcomeResource[] = [
+    {
+      title: "Community",
+      description:
+        "Join the conversation on Instagram @leish.my and WhatsApp — connect with Malaysia's beauty industry.",
+      ctaLabel: "Join discussions",
+      ctaUrl: "https://www.instagram.com/leish.my",
+    },
+    {
+      title: "Help center",
+      description: "Our FAQ and support pages cover everything from bookings to payouts.",
+      ctaLabel: "Visit help pages",
+      ctaUrl: `${LEISH_BASE_URL()}/faq`,
+    },
+  ];
+  const closing = "Let's grow your studio!";
+
+  return {
+    subject,
+    html: buildWelcomeHtml({ name: params.name, heroTitle, intro, steps, resources, closing }),
+    text: buildWelcomeText({ subject, name: params.name, intro, steps, resources, closing }),
+  };
+}
+
+export function welcomeEmailTemplate(params: { name: string; role?: string }) {
+  if (params.role === "artist") return artistWelcomeTemplate({ name: params.name });
+  if (params.role === "studio") return studioWelcomeTemplate({ name: params.name });
+  return customerWelcomeTemplate({ name: params.name });
 }
 
 export function paymentReceiptTemplate(params: {

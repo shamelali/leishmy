@@ -13,6 +13,9 @@ export { sendPayoutNotificationEmail } from "./payout-notification";
 export {
   bookingConfirmationTemplate,
   welcomeEmailTemplate,
+  customerWelcomeTemplate,
+  artistWelcomeTemplate,
+  studioWelcomeTemplate,
   paymentReceiptTemplate,
   loyaltyPointsEarnedTemplate,
   providerNewBookingTemplate,
