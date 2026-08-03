@@ -21,7 +21,11 @@
     "test:e2e:ui": "playwright test --ui",
     "preview": "pnpm build && pnpm start",
     "cloudinary:auto-upload": "tsx scripts/configure-auto-upload.ts",
-    "cloudinary:verify": "tsx scripts/verify-sign.ts"
+    "cloudinary:verify": "tsx scripts/verify-sign.ts",
+    "launch": "tsx scripts/launch.ts",
+    "launch:check": "tsx scripts/launch.ts --check-only",
+    "launch:dry": "tsx scripts/launch.ts --dry-run",
+    "launch:validate": "tsx scripts/validate-env.ts"
   },
   "dependencies": {
     "@cloudinary/url-gen": "^1.22.0",
