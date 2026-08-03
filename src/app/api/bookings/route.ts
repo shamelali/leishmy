@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, profiles, notifications, referrals, services } from "@/db/schema";
+import { bookings, users, profiles, notifications, referrals, services, payouts, payments } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail } from "@/lib/email";
@@ -626,7 +626,12 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     const [updated] = await db
       .update(bookings)
-      .set({ status })
+      .set({
+        status,
+        lateFeeCharged:
+          existing.secondPaymentDueDate &&
+          existing.secondPaymentDueDate < new Date(),
+      })
       .where(eq(bookings.id, Number(id)))
       .returning();
 
@@ -660,6 +665,47 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
             console.error("sendCancellationNotice WhatsApp failed:", err)
           );
         }
+      }
+    }
+
+    if (status === "completed" && existing.userId) {
+      const recipientId = existing.artistId || existing.studioId;
+
+      if (recipientId) {
+        const [payment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.bookingId, Number(id)))
+          .limit(1);
+
+        if (payment) {
+          await db
+            .update(payments)
+            .set({ status: "released", updatedAt: new Date() })
+            .where(eq(payments.id, payment.id));
+
+          await db.insert(payouts).values({
+            userId: recipientId,
+            amount: payment.amount,
+            status: "pending",
+            paymentId: payment.id,
+          });
+
+          await db.insert(notifications).values({
+            userId: recipientId,
+            type: "payout_released",
+            title: "Payment Released from Escrow",
+            body: `MYR ${(payment.amount / 100).toLocaleString()} has been released from escrow. It is now pending payout to your bank account.`,
+            data: { link: "/dashboard/artist" },
+          });
+        }
+
+        await awardPoints(
+          existing.userId,
+          "booking_completed",
+          String(updated.id),
+          `Booking #${updated.id} completed`
+        );
       }
     }
 

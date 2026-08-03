@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { webhookEvents, payments, bookings, users, notifications } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { sendPaymentReceiptEmail } from "@/lib/email";
@@ -72,80 +72,108 @@ export async function POST(request: NextRequest) {
           .set({ status: "paid", paidAt: new Date(body.paid_at), updatedAt: new Date() })
           .where(eq(payments.billplzId, body.id));
 
-        if (payment.bookingId) {
-          await db
-            .update(bookings)
-            .set({ status: "confirmed", updatedAt: new Date() })
-            .where(eq(bookings.id, payment.bookingId));
-        }
-
         if (alreadyPaid) {
           console.log(`[webhook] payment ${payment.id} already paid — skipping duplicate side effects`);
           return NextResponse.json({ success: true, duplicate: true });
         }
-      }
 
-      if (payment?.bookingId) {
-        const [booking] = await db
-          .select()
-          .from(bookings)
-          .where(eq(bookings.id, payment.bookingId))
-          .limit(1);
-
-        if (booking?.userId) {
-          const [user] = await db
+        if (payment.bookingId) {
+          const [booking] = await db
             .select()
-            .from(users)
-            .where(eq(users.id, booking.userId))
+            .from(bookings)
+            .where(eq(bookings.id, payment.bookingId))
             .limit(1);
 
-          if (user) {
-            const paidDate = new Date(body.paid_at).toLocaleDateString("en-MY", {
-              weekday: "long", year: "numeric", month: "long", day: "numeric",
-            });
+          if (booking) {
+            const remainingAmount =
+              Number(booking.amount) - (Number(booking.depositAmount) || 0);
+            const isDepositPayment =
+              Number(payment.amount) === Number(booking.depositAmount);
+            const isRemainingPayment =
+              remainingAmount > 0 &&
+              Number(payment.amount) === remainingAmount;
 
-            await db.insert(notifications).values({
-              userId: booking.userId,
-              type: "booking_confirmed",
-              title: "Booking Confirmed",
-              body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${(Number(payment.amount) / 100).toLocaleString()} received.`,
-              data: { link: "/dashboard/bookings", bookingId: String(payment.bookingId) },
-            }).catch(() => {});
+            const updateData: {
+              status: string;
+              secondPaymentDueDate?: Date;
+              remainingPaymentSent?: boolean;
+              updatedAt: Date;
+            } = {
+              status: "confirmed",
+              updatedAt: new Date(),
+            };
 
-            if (booking.artistId) {
-              await db.insert(notifications).values({
-                userId: booking.artistId,
-                type: "booking_confirmed",
-                title: "Payment Received — Booking Confirmed",
-                body: `Payment received for booking #${payment.bookingId}. The appointment is now confirmed.`,
-                data: { link: "/dashboard/artist", bookingId: String(payment.bookingId) },
-              }).catch(() => {});
+            if (isDepositPayment && !booking.secondPaymentDueDate) {
+              const secondPaymentDate = new Date(booking.date);
+              secondPaymentDate.setDate(secondPaymentDate.getDate() + 14);
+              updateData.secondPaymentDueDate = secondPaymentDate;
             }
 
-            sendPaymentReceiptEmail({
-              email: user.email,
-              customerName: user.name || "Valued Customer",
-              bookingId: String(payment.bookingId),
-              amount: Number(payment.amount),
-              paymentMethod: "Billplz",
-              date: paidDate,
-            }).catch((err) => console.error("sendPaymentReceiptEmail failed:", err));
+            if (isRemainingPayment) {
+              updateData.remainingPaymentSent = true;
+            }
 
-            if (user.phone) {
-              sendPaymentConfirmation({
-                customerName: user.name || "Valued Customer",
-                bookingId: String(payment.bookingId),
-              amount: Number(payment.amount) / 100,
-                phone: user.phone,
-              }).catch((err) => console.error("sendPaymentConfirmation WhatsApp failed:", err));
+            await db
+              .update(bookings)
+              .set(updateData)
+              .where(eq(bookings.id, payment.bookingId));
+
+            if (booking.userId) {
+              const [user] = await db
+                .select()
+                .from(users)
+                .where(eq(users.id, booking.userId))
+                .limit(1);
+
+              if (user) {
+                const paidDate = new Date(body.paid_at).toLocaleDateString("en-MY", {
+                  weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+
+                await db.insert(notifications).values({
+                  userId: booking.userId,
+                  type: "booking_confirmed",
+                  title: "Booking Confirmed",
+                  body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${(Number(payment.amount) / 100).toLocaleString()} received.`,
+                  data: { link: "/dashboard/bookings", bookingId: String(payment.bookingId) },
+                }).catch(() => {});
+
+                if (booking.artistId) {
+                  await db.insert(notifications).values({
+                    userId: booking.artistId,
+                    type: "booking_confirmed",
+                    title: "Payment Received — Booking Confirmed",
+                    body: `Payment received for booking #${payment.bookingId}. The appointment is now confirmed.`,
+                    data: { link: "/dashboard/artist", bookingId: String(payment.bookingId) },
+                  }).catch(() => {});
+                }
+
+                sendPaymentReceiptEmail({
+                  email: user.email,
+                  customerName: user.name || "Valued Customer",
+                  bookingId: String(payment.bookingId),
+                  amount: Number(payment.amount),
+                  paymentMethod: "Billplz",
+                  date: paidDate,
+                }).catch((err) => console.error("sendPaymentReceiptEmail failed:", err));
+
+                if (user.phone) {
+                  sendPaymentConfirmation({
+                    customerName: user.name || "Valued Customer",
+                    bookingId: String(payment.bookingId),
+                    amount: Number(payment.amount) / 100,
+                    phone: user.phone,
+                  }).catch((err) => console.error("sendPaymentConfirmation WhatsApp failed:", err));
+                }
+              }
             }
           }
         }
       }
-    }
 
-    return NextResponse.json({ success: true });
-  } catch (err) {
+      return NextResponse.json({ success: true });
+    }
+    } catch (err) {
     console.error("Webhook error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
