@@ -8,23 +8,41 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
-  const userId = sp.get("userId");
+  const requestedUserId = sp.get("userId");
   const dateStr = sp.get("date");
-  const duration = Number(sp.get("duration")) || 60;
 
-  if (!userId || !dateStr) {
-    return NextResponse.json({ error: "userId and date required" }, { status: 400 });
+  if (!requestedUserId) {
+    return NextResponse.json({ error: "userId required" }, { status: 400 });
   }
 
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) {
-    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+  let userId = requestedUserId;
+  if (requestedUserId === "me") {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.id;
   }
-
-  const dayOfWeek = date.getDay();
-  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
   try {
+    // The provider dashboard loads its complete weekly schedule before editing it.
+    if (!dateStr) {
+      const rules = await db
+        .select()
+        .from(availabilityRules)
+        .where(eq(availabilityRules.userId, userId))
+        .orderBy(availabilityRules.dayOfWeek);
+      return NextResponse.json({ rules, overrides: [] });
+    }
+
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+    }
+
+    const dayOfWeek = date.getDay();
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
     // Get rules for this day of week
     const rules = await db
       .select()

@@ -1,11 +1,40 @@
 import { db } from "@/db";
-import { pushSubscriptions } from "@/db/schema";
+import { notificationPreferences, pushSubscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 interface PushPayload {
   title: string;
   body: string;
   url?: string;
+  kind?: "booking" | "message" | "promo";
+}
+
+function isWithinQuietHours(start: string | null, end: string | null): boolean {
+  if (!start || !end || !/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) {
+    return false;
+  }
+
+  const minutes = (value: string) => {
+    const [hours, mins] = value.split(":").map(Number);
+    return hours * 60 + mins;
+  };
+  const startMinutes = minutes(start);
+  const endMinutes = minutes(end);
+  if (startMinutes === endMinutes) return false;
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kuala_Lumpur",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  const nowMinutes = hour * 60 + minute;
+
+  return startMinutes < endMinutes
+    ? nowMinutes >= startMinutes && nowMinutes < endMinutes
+    : nowMinutes >= startMinutes || nowMinutes < endMinutes;
 }
 
 export async function sendPushNotification(userId: string, payload: PushPayload) {
@@ -15,6 +44,23 @@ export async function sendPushNotification(userId: string, payload: PushPayload)
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
   try {
+    const [preferences] = await db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId))
+      .limit(1);
+
+    if (preferences) {
+      const typeEnabled = payload.kind === "message"
+        ? preferences.messageNotifications
+        : payload.kind === "promo"
+          ? preferences.promoNotifications
+          : preferences.bookingNotifications;
+      if (!preferences.pushEnabled || !typeEnabled || isWithinQuietHours(preferences.quietHoursStart, preferences.quietHoursEnd)) {
+        return;
+      }
+    }
+
     const subscriptions = await db
       .select()
       .from(pushSubscriptions)

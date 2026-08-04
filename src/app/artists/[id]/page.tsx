@@ -29,7 +29,9 @@ import { BookingForm } from "@/components/BookingForm";
 import { BookingInquiryTabs } from "@/components/BookingInquiryTabs";
 import ArtistReviews from "@/components/ArtistReviews";
 import ShareButtons from "@/components/ShareButtons";
+import { JsonLd } from "@/components/JsonLd";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -176,8 +178,37 @@ export default async function ArtistDetailPage({ params }: Props) {
     notFound();
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
+  const nonce = (await headers()).get("x-nonce") || undefined;
+  const artistJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: artist.name,
+    description: artist.bio || `Makeup artist in ${artist.location || "Malaysia"}`,
+    url: `${baseUrl}/artists/${artist.slug}`,
+    image: artist.image,
+    areaServed: [artist.district, artist.area, artist.location].filter(Boolean),
+    ...(artist.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: artist.rating,
+            reviewCount: artist.reviewCount,
+          },
+        }
+      : {}),
+    offers: artist.services.map((service) => ({
+      "@type": "Offer",
+      name: service.name,
+      price: service.price,
+      priceCurrency: "MYR",
+      description: service.description || undefined,
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <JsonLd data={artistJsonLd} nonce={nonce} />
       {/* Back link */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Link

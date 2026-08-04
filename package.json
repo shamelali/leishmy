@@ -18,6 +18,7 @@
     "setup": "pnpm install && pnpm db:push && pnpm db:seed",
     "dev:fresh": "pnpm db:push && pnpm db:seed && pnpm dev",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts e2e/api-public.spec.ts e2e/public-pages.spec.ts e2e/security.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "preview": "pnpm build && pnpm start",
     "cloudinary:auto-upload": "tsx scripts/configure-auto-upload.ts",

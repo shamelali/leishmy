@@ -1,13 +1,16 @@
-name: Playwright Tests
+name: Full Playwright Tests (manual)
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      NEXT_PUBLIC_URL: http://localhost:3000
+      CRON_SECRET: test-cron-secret
+      NEON_AUTH_BASE_URL: http://localhost:3000
+      NEON_AUTH_COOKIE_SECRET: test-neon-auth-cookie-secret-at-least-32-chars
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4

@@ -1,169 +1,95 @@
-# Leish! Roadmap
+# Leish! Product Roadmap
 
-## Current State (Aug 2026)
+Updated: August 2026
 
-**Live at**: leish.my | **Stack**: Next.js 16, Neon Postgres, Drizzle, Brevo, Billplz, Cloudinary, Vercel
+## Direction
 
-### What's Built
+Leish! is a Malaysian beauty-services marketplace. The near-term focus is making discovery, booking, and operations dependable before adding broader marketplace and growth features.
 
-#### Core Platform
-- [x] User auth (Neon Auth / Better Auth)
-- [x] Role system: customer, artist, studio, admin
-- [x] 42 database tables (artists, studios, bookings, services, reviews, etc.)
-- [x] 8 beauty categories with seed data
-- [x] 3 dashboards: admin, artist, studio
-- [x] ~30 API routes
+## Completed Foundation
 
-#### Bookings & Payments
-- [x] Full booking flow: request → quote → accept/reject → pay deposit → complete → pay remaining
-- [x] Billplz integration (deposit + remaining payment)
-- [x] Commission tracking (8% default, configurable in admin settings)
-- [x] Auto-release payments cron (deducts commission, creates payouts)
-- [x] Invoice download (branded HTML)
-- [x] Idempotent payment processing
+- [x] Authentication, role-based access, and customer/artist/studio/admin dashboards
+- [x] Booking lifecycle: request, quote, acceptance, deposit, completion, and final payment
+- [x] Billplz payments, commission tracking, payout release, invoices, and reconciliation jobs
+- [x] Messaging, in-app/email/WhatsApp notifications, reviews, favorites, referrals, and loyalty
+- [x] Cloudinary media support, Sentry monitoring, dynamic sitemap, and optimized PWA icons
+- [x] Scheduled operational jobs: reminders, follow-ups, payment reconciliation, and weekly digests
 
-#### Messaging
-- [x] Two-user conversations (inbox + thread UI)
-- [x] Read receipts (single/double checkmarks)
-- [x] Polling-based real-time (60s interval)
-- [x] Booking-gated new conversations (requires confirmed/completed booking)
-- [x] Safe communication (phone/email masked on-platform)
+## Now — Production Readiness
 
-#### Engagement & Growth
-- [x] Loyalty points system (earn on bookings, redeem on services)
-- [x] 4 tiers: bronze/silver/gold/platinum with multipliers
-- [x] Referral program (200 points per referral, 50-day expiry)
-- [x] Referral UI page (share link, stats, how-it-works)
-- [x] Reviews & ratings system
-- [x] Favorites system
-- [x] Event listings
+These items remove operational risk and should be completed before expanding scope.
 
-#### Notifications
-- [x] In-app notifications (unread badge, dropdown)
-- [x] Email notifications (Brevo — booking confirmations, quote requests, payment received, etc.)
-- [x] WhatsApp notifications (Cloud API — booking confirmations, cancellations)
-- [x] Push notifications infrastructure (web-push, service worker, subscription API)
-- [x] Push toggle component
+- [ ] Configure a Neon preview database for Playwright and run E2E tests in pull requests.
+- [ ] Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in Vercel for distributed rate limiting.
+- [ ] Verify Billplz production callback URLs and webhook secret in Vercel.
+- [ ] Confirm Cloudinary is serving the remaining large public images rather than Vercel static storage.
+- [ ] Monitor the Next.js/PostCSS/Sharp dependency overrides after framework upgrades.
+- [x] Establish a production-release checklist: preview verification, migrations, payment smoke test, and rollback owner. See `docs/PRODUCTION_RELEASE_CHECKLIST.md`.
 
-#### Operations
-- [x] Vercel cron jobs (9 daily/weekly jobs)
-- [x] Weekly email digest (booking stats, reviews, loyalty balance)
-- [x] Lead follow-up reminders
-- [x] Booking reminders
-- [x] Payment reconciliation
-- [x] Audit logging
-- [x] Sentry monitoring
-- [x] Cloudinary image optimization
+## Next — Discovery & Booking Quality
 
-#### MCP Integrations (10 connected)
-- [x] GitHub (local, full read/write)
-- [x] Vercel (deployments, projects, analytics)
-- [x] Cloudflare (Workers, DNS, analytics)
-- [x] Neon (database management)
-- [x] Brevo (email management)
-- [x] Sequential Thinking
-- [x] Filesystem, Memory
+### Search and SEO
 
----
+- [ ] Full-text search across artists, studios, services, categories, and locations.
+- [ ] Filters for price, rating, availability, and location.
+- [ ] Sorting by relevance, price, rating, popularity, and distance where location data permits.
+- [ ] Add JSON-LD structured data to public artist, studio, and service pages.
 
-## Phase 3: Intelligence & Automation (Next)
+### Availability
 
-### Priority 1 — Search & Discovery
-- [ ] Full-text search (artist/studio/service name, location, category)
-- [ ] Advanced filters (price range, rating, availability, location radius)
-- [ ] Sort by: distance, price, rating, popularity
-- [ ] SEO: dynamic sitemap, structured data (JSON-LD)
+- [x] Provider availability calendars and working hours.
+- [ ] Real-time slot validation during booking.
+- [ ] Configurable buffer time between appointments.
+- [ ] iCalendar export, followed by Google/Outlook calendar sync if adoption warrants it.
 
-### Priority 2 — Scheduling & Availability
-- [ ] Artist/studio availability calendar (set available hours)
-- [ ] Real-time slot checking during booking
-- [ ] Buffer time between bookings
-- [ ] Google Calendar / Outlook sync (ical export)
+### Notifications
 
-### Priority 3 — Smart Notifications
-- [ ] Push notification delivery (deploy push_subscriptions table + VAPID keys)
-- [ ] Push notifications on new bookings, quotes, messages
-- [ ] Notification preferences per user (email/push/whatsapp toggles)
-- [ ] Quiet hours support
+- [ ] Deploy the push-subscription migration and configure VAPID production secrets.
+- [ ] Deliver push notifications for bookings, quotes, and messages.
+- [ ] Per-user delivery preferences for email, push, and WhatsApp.
+- [ ] Quiet-hours support across every delivery channel.
 
-### Priority 4 — Analytics Dashboards
-- [ ] Artist dashboard: booking trends, revenue charts, peak hours
-- [ ] Studio dashboard: staff utilization, inventory alerts, financial summaries
-- [ ] Admin dashboard: platform growth, GMV, retention metrics
-- [ ] Vercel Web Analytics integration
+## Later — Marketplace Operations & Growth
 
----
+### Studio operations
 
-## Phase 4: Marketplace Features
+- [ ] Staff management, assignment, and availability.
+- [ ] Inventory and low-stock alerts.
+- [ ] Studio-specific pricing overrides.
+- [ ] Multi-studio support for chains.
 
-### Priority 1 — Studio Management
-- [ ] Staff management (assign artists to studios, availability)
-- [ ] Inventory tracking (products, consumables, low-stock alerts)
-- [ ] Studio-level pricing (override artist pricing)
-- [ ] Multi-studio support for chains
+### Payments and monetisation
 
-### Priority 2 — Enhanced Payments
-- [ ] Multi-currency support (MYR + SGD for cross-border)
-- [ ] Promo codes & discounts (% off, fixed amount, first-booking)
-- [ ] Bundle packages (e.g., "Bridal package: hair + makeup + nails")
-- [ ] Subscription plans for studios (monthly SaaS fee)
+- [ ] Promo codes and discounts.
+- [ ] Bundle packages.
+- [ ] Studio subscription plans.
+- [ ] Evaluate SGD support only after validating cross-border demand.
 
-### Priority 3 — Content & Marketing
-- [ ] Artist/studio blog posts (portfolio updates, tips)
-- [ ] Social media integration (Instagram feed embed)
-- [ ] Automated review request emails (post-booking)
-- [ ] Testimonial carousel on homepage
+### Growth and administration
 
-### Priority 4 — Admin Tools
-- [ ] Bulk operations (mass email, bulk status changes)
-- [ ] Commission rate management UI (currently in DB only)
-- [ ] Platform-wide announcements banner
-- [ ] User impersonation (admin → view as customer/artist)
+- [ ] Automated post-booking review requests.
+- [ ] Artist/studio content and social integrations.
+- [ ] Admin bulk operations, commission-management UI, and platform announcements.
+- [ ] Vercel Web Analytics and role-specific booking, revenue, and retention dashboards.
 
----
+## Ongoing — Trust, Performance & Mobile
 
-## Phase 5: Scale & Polish
+- [ ] PDPA review, data export/deletion workflow, and two-factor authentication.
+- [ ] Query/index audit, connection-pooling review, edge caching, and dashboard lazy loading.
+- [ ] Touch-focused booking flow, mobile dashboard navigation, and offline support.
+- [ ] Browser-based translation only if customer demand supports it; do not introduce server-side i18n.
 
-### Priority 1 — Performance
-- [ ] Image optimization audit (hero images via Cloudinary, not Vercel static)
-- [ ] Database query optimization (indexes, connection pooling)
-- [ ] Edge caching (Cloudflare CDN for static pages)
-- [ ] Lazy loading for dashboard data
+## External Dependencies
 
-### Priority 2 — Mobile Experience
-- [ ] PWA manifest + install prompt
-- [ ] Touch-optimized booking flow
-- [ ] Bottom navigation for mobile dashboards
-- [ ] Offline support (service worker cache)
-
-### Priority 3 — Internationalization
-- [ ] Browser-based translation integration
-- [ ] Multi-language support if needed (Malay, Chinese, Tamil)
-
-### Priority 4 — Compliance & Security
-- [ ] PDPA compliance (Malaysian data protection)
-- [ ] Data export/deletion (GDPR-like)
-- [ ] Two-factor authentication
-- [ ] Rate limiting review (currently Upstash Redis)
-
----
-
-## Blocked / Needs Action
-
-| Item | Blocker | Action |
-|------|---------|--------|
-| Push notifications (production) | Missing VAPID keys + `push_subscriptions` table not deployed | Generate keys, set env vars, run migration |
-| Sentry MCP | No `SENTRY_AUTH_TOKEN` | User to provide token |
-| Supabase MCP | No `SUPABASE_ACCESS_TOKEN` | User to provide token (or remove) |
-| Cloudflare/Meta remote MCPs | Need browser OAuth | User to authorize |
-| Drizzle migrations | `db:push`/`db:generate` fail without TTY | Use Neon SQL API directly |
-| E2E tests | Need real Neon preview branch DB | Configure preview DB |
-
----
+| Item | Needed action |
+|---|---|
+| E2E environment | Create/configure a Neon preview branch database. |
+| Push delivery | Generate VAPID keys, configure Vercel secrets, and deploy the subscription migration. |
+| Distributed rate limits | Add Upstash Redis credentials to Vercel. |
+| Remote MCP integrations | Authorize Cloudflare and Meta via browser OAuth. |
+| Sentry MCP | Provide `SENTRY_AUTH_TOKEN` if MCP access is required. |
 
 ## Revenue Model
 
-- **8% commission** on completed bookings (configurable in admin_settings)
-- **Future**: Studio SaaS subscriptions (RM 99-299/month)
-- **Future**: Featured listings (artists pay for visibility boost)
-- **Future**: Premium analytics for studios
+- Current: 8% commission on completed bookings, configurable through admin settings.
+- Planned: studio SaaS subscriptions, featured listings, and premium analytics.

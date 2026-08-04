@@ -8,12 +8,17 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
-  const userId = sp.get("userId");
+  const requestedUserId = sp.get("userId") || "me";
   const from = sp.get("from");
   const to = sp.get("to");
 
-  if (!userId) {
-    return NextResponse.json({ error: "userId required" }, { status: 400 });
+  let userId = requestedUserId;
+  if (requestedUserId === "me") {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.id;
   }
 
   try {

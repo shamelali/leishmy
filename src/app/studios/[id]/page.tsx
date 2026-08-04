@@ -7,7 +7,9 @@ import { eq, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import ShareButtons from "@/components/ShareButtons";
+import { JsonLd } from "@/components/JsonLd";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -97,8 +99,30 @@ export default async function StudioDetailPage({ params }: Props) {
     notFound();
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
+  const nonce = (await headers()).get("x-nonce") || undefined;
+  const studioJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BeautySalon",
+    name: studio.name,
+    description: studio.description || `Beauty studio in ${studio.location || "Malaysia"}`,
+    url: `${baseUrl}/studios/${studio.slug}`,
+    image: studio.image,
+    areaServed: studio.location || "Malaysia",
+    ...(studio.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: studio.rating,
+            reviewCount: studio.reviewCount,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <JsonLd data={studioJsonLd} nonce={nonce} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Link
           href="/studios"

@@ -3,8 +3,14 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Users, Clock, CheckCircle2 } from "lucide-react";
 import { WaitlistForm } from "@/components/WaitlistForm";
+import { cldImage } from "@/lib/cloudinary-url-gen";
 
 const statIcons = [Sparkles, undefined, Users, Clock];
+
+function launchImage(publicId: string, fallback: string, width: number, height: number): string {
+  if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) return fallback;
+  return cldImage(publicId, { width, height, crop: "fill", quality: "auto", format: "auto" });
+}
 
 export function LaunchPage({ waitlistCount }: { waitlistCount?: number }) {
   const displayCount = waitlistCount ?? 0;
@@ -54,7 +60,7 @@ export function LaunchPage({ waitlistCount }: { waitlistCount?: number }) {
                   <div className="aspect-[3/4] relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/artfulcolorworks-ai-generated-9159114.jpg"
+                      src={launchImage("artfulcolorworks-ai-generated-9159114", "/images/artfulcolorworks-ai-generated-9159114.jpg", 720, 960)}
                       alt="Soft glam makeup"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
@@ -65,7 +71,7 @@ export function LaunchPage({ waitlistCount }: { waitlistCount?: number }) {
                   <div className="aspect-square group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/gromovataya-woman-3096664.jpg"
+                      src={launchImage("gromovataya-woman-3096664", "/images/gromovataya-woman-3096664.jpg", 720, 720)}
                       alt="Contemporary beauty"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
@@ -78,7 +84,7 @@ export function LaunchPage({ waitlistCount }: { waitlistCount?: number }) {
                   <div className="aspect-square group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/omarmedinafilms-wedding-1183271_1920.jpg"
+                      src={launchImage("omarmedinafilms-wedding-1183271_1920", "/images/omarmedinafilms-wedding-1183271_1920.jpg", 720, 720)}
                       alt="Warm tones"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
@@ -89,7 +95,7 @@ export function LaunchPage({ waitlistCount }: { waitlistCount?: number }) {
                   <div className="aspect-[3/4] group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/u_p081rxaf-wedding-9473397.jpg"
+                      src={launchImage("u_p081rxaf-wedding-9473397", "/images/u_p081rxaf-wedding-9473397.jpg", 720, 960)}
                       alt="Beautiful look"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
