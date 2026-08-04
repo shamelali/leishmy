@@ -177,6 +177,7 @@ export default function DashboardAdmin() {
   const [setPwValue, setSetPwValue] = useState("");
   const [setPwLoading, setSetPwLoading] = useState(false);
   const [setPwMessage, setSetPwMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [bookingFilterStatus, setBookingFilterStatus] = useState("all");
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, payouts: 1, events: 1, inbox: 1, webhooks: 1, overview: 1, monitoring: 1,
@@ -364,6 +365,24 @@ export default function DashboardAdmin() {
     if (!search) return items;
     const q = search.toLowerCase();
     return items.filter((i) => (i.name || "").toLowerCase().includes(q) || (i.id || "").toLowerCase().includes(q) || (i.email || "").toLowerCase().includes(q));
+  };
+
+  const filterBookings = (items: Booking[]): Booking[] => {
+    let result = items;
+    if (bookingFilterStatus !== "all") {
+      result = result.filter((b) => b.status === bookingFilterStatus);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((b) =>
+        (b.id || "").toLowerCase().includes(q) ||
+        (b.userName || "").toLowerCase().includes(q) ||
+        (b.artistName || "").toLowerCase().includes(q) ||
+        (b.location || "").toLowerCase().includes(q) ||
+        (b.notes || "").toLowerCase().includes(q)
+      );
+    }
+    return result;
   };
 
   return (
@@ -922,6 +941,35 @@ export default function DashboardAdmin() {
 
         {tab === "bookings" && (
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+            <div className="px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center gap-3">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {filterBookings(bookings).length} booking{filterBookings(bookings).length !== 1 ? "s" : ""}
+                {bookingFilterStatus !== "all" && <span className="font-normal text-gray-400"> ({bookingFilterStatus})</span>}
+              </p>
+              <div className="flex items-center gap-2 flex-1 sm:justify-end">
+                <div className="relative flex-1 sm:flex-initial">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search bookings..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full sm:w-56 pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  />
+                </div>
+                <select
+                  value={bookingFilterStatus}
+                  onChange={(e) => setBookingFilterStatus(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-gray-50 dark:bg-neutral-800">
@@ -940,9 +988,9 @@ export default function DashboardAdmin() {
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {loading ? (
                   <tr><td colSpan={9} className="p-8"><Skeleton className="h-8 w-full" /></td></tr>
-                ) : filterBySearch(bookings).length === 0 ? (
+                ) : filterBookings(bookings).length === 0 ? (
                   <tr><td colSpan={9} className="p-8 text-center text-gray-400">No bookings found</td></tr>
-                ) : filterBySearch(bookings).map((b) => (
+                ) : filterBookings(bookings).map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer" onClick={() => setSelectedEmail({ ...b, id: b.id, subject: `Booking #${b.id}`, sender: b.userName, recipient: b.artistName, bodyText: b.notes || "No notes", bodyHtml: null, createdAt: b.date, source: "booking" })}>
                       <td className="p-3 font-mono text-xs text-gray-500">{(b.id || "").slice(0, 8)}</td>
                       <td className="p-3 font-medium text-gray-900 dark:text-white">{b.userName || "—"}</td>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { CheckCircle, Loader2, AlertCircle, ArrowRight, Calendar } from "lucide-react";
+import { CheckCircle, Loader2, AlertCircle, ArrowRight, Calendar, Download } from "lucide-react";
 
 export default function BookingPaymentSuccessPage() {
   const params = useParams();
@@ -11,6 +11,7 @@ export default function BookingPaymentSuccessPage() {
   const bookingId = params.id as string;
   const isRemainingPayment = searchParams.get("type") === "remaining";
   const [status, setStatus] = useState<"loading" | "verified" | "pending">("loading");
+  const [invoiceId, setInvoiceId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -27,6 +28,14 @@ export default function BookingPaymentSuccessPage() {
         if (data.booking?.status === "confirmed" || data.booking?.status === "completed") {
           setStatus("verified");
           clearInterval(interval);
+          // Fetch invoice for this booking
+          try {
+            const invRes = await fetch(`/api/invoices?bookingId=${bookingId}`);
+            if (invRes.ok) {
+              const invData = await invRes.json();
+              if (invData.invoice?.id) setInvoiceId(invData.invoice.id);
+            }
+          } catch { /* invoice may not exist yet */ }
         } else if (attempts >= maxAttempts) {
           setStatus("pending");
           clearInterval(interval);
@@ -90,6 +99,16 @@ export default function BookingPaymentSuccessPage() {
           >
             <Calendar className="w-4 h-4" /> View Booking
           </Link>
+          {status === "verified" && invoiceId && (
+            <a
+              href={`/api/invoices?id=${invoiceId}&format=pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+            >
+              <Download className="w-4 h-4" /> Download Invoice
+            </a>
+          )}
           <Link
             href="/bookings"
             className="inline-flex items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-rose-500 transition-colors"

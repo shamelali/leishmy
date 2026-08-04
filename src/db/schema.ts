@@ -262,6 +262,7 @@ export const bookings = pgTable("bookings", {
   extras: jsonb("extras").$type<Array<{ name: string; price: number }>>().default([]),
   packageName: varchar("package_name", { length: 255 }),
   depositPercent: integer("deposit_percent").default(30),
+  promoCodeId: integer("promo_code_id"),
   quoteId: text("quote_id"),
   quoteSentAt: timestamp("quote_sent_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -892,5 +893,182 @@ export const pushSubscriptions = pgTable(
   (table) => [
     index("push_sub_user_idx").on(table.userId),
     sql`UNIQUE (${table.userId}, ${table.endpoint})`,
+  ],
+);
+
+// ── Phase 3.2: Scheduling ──────────────────────────────────────────────
+
+export const availabilityRules = pgTable(
+  "availability_rules",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dayOfWeek: integer("day_of_week").notNull(), // 0=Sun..6=Sat
+    startTime: varchar("start_time", { length: 5 }).notNull(), // "09:00"
+    endTime: varchar("end_time", { length: 5 }).notNull(), // "17:00"
+    slotDurationMinutes: integer("slot_duration_minutes").default(60),
+    active: boolean("active").default(true),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("avail_rules_user_idx").on(table.userId),
+    index("avail_rules_day_idx").on(table.dayOfWeek),
+  ],
+);
+
+export const availabilityOverrides = pgTable(
+  "availability_overrides",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: timestamp("date", { mode: "date" }).notNull(),
+    unavailable: boolean("unavailable").default(false),
+    startTime: varchar("start_time", { length: 5 }),
+    endTime: varchar("end_time", { length: 5 }),
+    reason: varchar("reason", { length: 255 }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("avail_overrides_user_idx").on(table.userId),
+    index("avail_overrides_date_idx").on(table.date),
+  ],
+);
+
+// ── Phase 3.3: Notification Preferences ────────────────────────────────
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    emailEnabled: boolean("email_enabled").default(true),
+    pushEnabled: boolean("push_enabled").default(true),
+    whatsappEnabled: boolean("whatsapp_enabled").default(true),
+    bookingNotifications: boolean("booking_notifications").default(true),
+    messageNotifications: boolean("message_notifications").default(true),
+    promoNotifications: boolean("promo_notifications").default(false),
+    quietHoursStart: varchar("quiet_hours_start", { length: 5 }), // "22:00"
+    quietHoursEnd: varchar("quiet_hours_end", { length: 5 }), // "08:00"
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("notif_prefs_user_idx").on(table.userId),
+  ],
+);
+
+// ── Phase 4.2: Promo Codes ─────────────────────────────────────────────
+
+export const promoCodes = pgTable(
+  "promo_codes",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    type: varchar("type", { length: 20 }).notNull(), // "percent" | "fixed"
+    value: decimal("value", { precision: 10, scale: 2 }).notNull(),
+    minAmount: decimal("min_amount", { precision: 10, scale: 2 }).default("0"),
+    maxUses: integer("max_uses"),
+    usedCount: integer("used_count").default(0),
+    validFrom: timestamp("valid_from", { mode: "date" }).defaultNow().notNull(),
+    validUntil: timestamp("valid_until", { mode: "date" }),
+    active: boolean("active").default(true),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("promo_codes_code_idx").on(table.code),
+    index("promo_codes_active_idx").on(table.active),
+  ],
+);
+
+export const promoCodeUsages = pgTable(
+  "promo_code_usages",
+  {
+    id: serial("id").primaryKey(),
+    promoCodeId: integer("promo_code_id")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("promo_usage_code_idx").on(table.promoCodeId),
+    index("promo_usage_user_idx").on(table.userId),
+  ],
+);
+
+// ── Phase 4.3: Blog Posts ──────────────────────────────────────────────
+
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    excerpt: text("excerpt"),
+    content: text("content").notNull(),
+    coverImage: text("cover_image"),
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+    tags: text("tags").array(),
+    published: boolean("published").default(false),
+    publishedAt: timestamp("published_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("blog_posts_slug_idx").on(table.slug),
+    index("blog_posts_published_idx").on(table.published),
+  ],
+);
+
+// ── Phase 5.3: Compliance ──────────────────────────────────────────────
+
+export const dataExportRequests = pgTable(
+  "data_export_requests",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 50 }).default("pending"), // pending | processing | completed | failed
+    requestedAt: timestamp("requested_at", { mode: "date" }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { mode: "date" }),
+    downloadUrl: text("download_url"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("data_export_user_idx").on(table.userId),
+    index("data_export_status_idx").on(table.status),
+  ],
+);
+
+export const consentRecords = pgTable(
+  "consent_records",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 50 }).notNull(), // "marketing_email" | "push_notifications" | "data_analytics" | "third_party_sharing"
+    granted: boolean("granted").notNull(),
+    ip: varchar("ip", { length: 45 }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("consent_user_idx").on(table.userId),
+    index("consent_type_idx").on(table.type),
   ],
 );

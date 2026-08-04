@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, profiles, notifications, referrals, services, payouts, payments } from "@/db/schema";
+import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices, quoteOptions } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail } from "@/lib/email";
@@ -598,7 +598,7 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     const { id, status } = parsed.data;
 
-    const allowedStatuses = ["cancelled"];
+    const allowedStatuses = ["cancelled", "completed"];
     if (!allowedStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
@@ -706,6 +706,68 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
           String(updated.id),
           `Booking #${updated.id} completed`
         );
+
+        // Auto-generate invoice for completed booking
+        const [existingInvoice] = await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.bookingId, Number(id)))
+          .limit(1);
+
+        if (!existingInvoice) {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, "0");
+          const [lastInvoice] = await db
+            .select({ invoiceNumber: invoices.invoiceNumber })
+            .from(invoices)
+            .orderBy(invoices.id)
+            .limit(1);
+          let seq = 1;
+          if (lastInvoice) {
+            const match = lastInvoice.invoiceNumber.match(/-(\d{6})$/);
+            if (match) seq = parseInt(match[1], 10) + 1;
+          }
+          const invoiceNumber = `INV-${year}${month}-${String(seq).padStart(6, "0")}`;
+
+          let serviceName = existing.service || "Service";
+          if (existing.serviceId) {
+            const [svc] = await db
+              .select({ name: services.name })
+              .from(services)
+              .where(eq(services.id, existing.serviceId))
+              .limit(1);
+            if (svc) serviceName = svc.name;
+          }
+
+          const subtotal = Number(existing.amount) || 0;
+          const commissionRate = 0.08;
+          const commissionAmount = Math.round(subtotal * commissionRate);
+
+          const lineItems = [
+            { description: serviceName, quantity: 1, unitPrice: subtotal, amount: subtotal },
+          ];
+          if (existing.travelSurcharge && Number(existing.travelSurcharge) > 0) {
+            lineItems.push({ description: "Travel surcharge", quantity: 1, unitPrice: Number(existing.travelSurcharge), amount: Number(existing.travelSurcharge) });
+          }
+          if (existing.accommodationFee && Number(existing.accommodationFee) > 0) {
+            lineItems.push({ description: "Accommodation fee", quantity: 1, unitPrice: Number(existing.accommodationFee), amount: Number(existing.accommodationFee) });
+          }
+
+          await db.insert(invoices).values({
+            invoiceNumber,
+            bookingId: Number(id),
+            issuerId: recipientId,
+            recipientId: existing.userId,
+            subtotal: String(subtotal / 100),
+            commissionAmount: String(commissionAmount / 100),
+            commissionRate: String(commissionRate),
+            total: String(subtotal / 100),
+            status: "issued",
+            lineItems,
+            issuedAt: new Date(),
+          });
+        }
       }
     }
 
