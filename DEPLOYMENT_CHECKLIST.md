@@ -74,6 +74,14 @@ Set all from `.env.example` in Vercel Project Settings → Environment Variables
 - [ ] Inbound parse webhook: `https://leish.my/api/email/inbound`
 - [ ] Webhook secret configured
 
+**WhatsApp Cloud API:**
+- [ ] `WHATSAPP_PHONE_NUMBER_ID` set in env
+- [ ] `WHATSAPP_ACCESS_TOKEN` set in env
+- [ ] `WHATSAPP_WEBHOOK_SECRET` set in env
+- [ ] Webhook URL configured in Meta Developer Portal: `https://leish.my/api/webhook/whatsapp`
+- [ ] Verify token matches `WHATSAPP_WEBHOOK_SECRET`
+- [ ] Subscribed to `messages` and `message_status` fields
+
 **Vercel Cron Jobs:**
 - [ ] `vercel.json` deployed with:
   - `0 3 * * *` → `/api/cron/sweep-orphans`

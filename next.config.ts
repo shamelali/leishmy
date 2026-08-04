@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", destination: "/dashboard/admin/:path*" },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/terms", destination: "/terms-of-service", permanent: true },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {

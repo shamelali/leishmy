@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { inquiries, profiles, users } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/brevo";
+import { sendInquiryAckEmail } from "@/lib/email";
 import { limit } from "@/lib/rate-limit";
 import { getSession } from "@/lib/auth/auth";
 import { escapeHtml } from "@/lib/html-escape";
@@ -76,6 +77,12 @@ ${location ? `<p><strong>Location:</strong> ${escapeHtml(location)}</p>` : ""}
         Sentry.captureException(err, { extra: { artistId, artistEmail: artist.email, inquiryId: inquiry.id } });
       });
     }
+
+    sendInquiryAckEmail({
+      email,
+      name,
+      artistName: artist.name || "the artist",
+    }).catch((err) => console.error("Inquiry client ack failed:", err));
 
     return NextResponse.json({ success: true, inquiry });
   } catch (error) {

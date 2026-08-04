@@ -8,6 +8,7 @@ import {
   profiles,
   users,
   services,
+  notifications,
 } from "@/db/schema";
 import { getAuthSession } from "@/lib/auth/server";
 import { limit } from "@/lib/rate-limit";
@@ -24,6 +25,11 @@ import {
   deleteAssets,
   isOwnerScopedPublicId,
 } from "@/lib/cloudinary-server";
+import {
+  sendArtistOnboardingSubmittedEmail,
+  sendAdminNewArtistNotification,
+} from "@/lib/email";
+import { getEmailAlias } from "@/lib/constants";
 
 export type ActionResult<T = unknown> =
   | { ok: true; data: T }
@@ -459,6 +465,47 @@ export async function submitProfile(input: unknown): Promise<ActionResult<{ stat
     })
     .where(eq(profiles.userId, session.id))
     .returning({ status: profiles.status, slug: profiles.slug });
+
+  // Notify artist + admins
+  const [artistUser] = await db
+    .select({ name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.id, session.id))
+    .limit(1);
+
+  if (artistUser?.email) {
+    sendArtistOnboardingSubmittedEmail({
+      email: artistUser.email,
+      name: artistUser.name || "Artist",
+    }).catch((err) => console.error("Onboarding submitted email failed:", err));
+  }
+
+  const adminUsers = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.isAdmin, true));
+
+  const adminEmails = adminUsers
+    .map((u) => u.email)
+    .filter(Boolean) as string[];
+
+  for (const admin of adminUsers) {
+    db.insert(notifications)
+      .values({
+        userId: admin.id,
+        type: "artist_verification",
+        title: "New artist awaiting verification",
+        body: `${artistUser?.name || "An artist"} has submitted their profile for review.`,
+        data: { link: "/dashboard/admin/people" },
+      })
+      .catch(() => {});
+  }
+
+  sendAdminNewArtistNotification({
+    adminEmails: adminEmails.length > 0 ? adminEmails : [getEmailAlias("admin")],
+    artistName: artistUser?.name || "Unknown",
+    artistEmail: artistUser?.email || "",
+  }).catch((err) => console.error("Admin onboarding notification failed:", err));
 
   revalidatePath("/artist-onboarding/create");
   revalidatePath("/dashboard/artist");

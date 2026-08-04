@@ -115,7 +115,7 @@ const nonce = hdrs.get("x-nonce") || undefined;
 
 ### Vercel Cron Jobs
 
-Defined in `vercel.json` — 6 daily cron jobs. Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`.
+Defined in `vercel.json` — 8 cron jobs. Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack`.
 
 ### Sentry
 
@@ -133,6 +133,43 @@ Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instr
 ## MCP Config
 
 MCP servers are configured in `opencode.json` at the repo root. The `.opencode/` directory contains the OpenCode plugin (`@opencode-ai/plugin`). Do not edit `.opencode/node_modules` or `.opencode/package-lock.json`.
+
+### Meta MCP Servers
+
+Two remote MCP servers connect the project to Meta's developer platform:
+
+| Server | URL | Purpose |
+|--------|-----|---------|
+| Meta Developer Tools | `https://mcp.facebook.com/devtools` | Manage Meta apps, webhooks, compliance, App Review, API health, changelog, doc search |
+| Meta Ads | `https://mcp.facebook.com/ads` | Manage Meta Ads campaigns, ad sets, reporting, catalogs, A/B tests |
+
+**OAuth setup** (required before MCP works):
+1. Go to [developers.facebook.com](https://developers.facebook.com) and create a Meta app
+2. Add the **Meta Developer Tools** and **Meta Ads** products to the app
+3. Configure OAuth redirect URIs pointing to your opencode instance
+4. Generate an access token with Read and Manage scopes per app
+5. Grant access in Business Integrations settings (Read scope for viewing, Manage for webhook writes)
+
+Both servers use OAuth-based authentication — no API keys stored in config. The `meta-devtools` server supports Read and Manage scopes; the `meta-ads` server uses standard Meta Ads API permissions.
+
+### CSP Allowlist
+
+`https://mcp.facebook.com` is included in the `connect-src` CSP directive in `src/proxy.ts` to allow MCP connections.
+
+### WhatsApp Webhook
+
+The project receives incoming WhatsApp messages via a Cloud API webhook at `/api/webhook/whatsapp`.
+
+**Setup:**
+1. In Meta Developer Portal, go to your WhatsApp app → Configuration → Webhook
+2. Set URL to `https://leish.my/api/webhook/whatsapp`
+3. Set Verify Token to the value of `WHATSAPP_WEBHOOK_SECRET` in your env
+4. Subscribe to `messages` and `message_status` fields
+
+**Webhook route:** `src/app/api/webhook/whatsapp/route.ts`
+- Handles GET (Meta verification) and POST (incoming messages)
+- Logs all events to `webhookEvents` table in the database
+- Supports text, interactive, and status message types
 
 ## Notes
 

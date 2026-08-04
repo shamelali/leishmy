@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
 import { sendEmail } from "@/lib/email/brevo";
+import { sendContactAckEmail } from "@/lib/email";
 import { limit } from "@/lib/rate-limit";
 
 const contactSchema = z.object({
@@ -55,6 +56,10 @@ ${location ? `<p><strong>Location:</strong> ${escapeHtml(location)}</p>` : ""}
 <p>${escapeHtml(message)}</p>`,
       text: `Name: ${name}\nEmail: ${email}${location ? `\nLocation: ${location}` : ""}\nMessage:\n${message}`,
     }).catch((err) => console.error("Contact form email notify failed:", err));
+
+    sendContactAckEmail({ email, name }).catch((err) =>
+      console.error("Contact form auto-ack failed:", err),
+    );
 
     return NextResponse.json({ success: true, contact });
   } catch (error) {

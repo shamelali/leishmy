@@ -12,6 +12,14 @@ export { sendSubscriptionCreatedEmail } from "./subscription-created";
 export { sendSubscriptionCanceledEmail } from "./subscription-canceled";
 export { sendPayoutNotificationEmail } from "./payout-notification";
 export {
+  sendContactAckEmail,
+  sendInquiryAckEmail,
+  sendArtistOnboardingSubmittedEmail,
+  sendAdminNewArtistNotification,
+  sendLeadFollowUpEmail,
+  sendInboundAckEmail,
+} from "./acknowledgements";
+export {
   bookingConfirmationTemplate,
   welcomeEmailTemplate,
   customerWelcomeTemplate,
