@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { MessageCircle, Send, ArrowLeft, Clock, Check, CheckCheck, User, Calendar, RefreshCw } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -56,52 +57,54 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/messages");
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data.conversations || []);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/messages");
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setConversations(data.conversations || []);
+        }
+      } catch {
+        // silent
       }
-    } catch {
-      // silent
+      if (!cancelled) setLoading(false);
     }
-    setLoading(false);
-  }, []);
+    load();
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
-
-  const fetchMessages = useCallback(async (convId: number) => {
-    setMessagesLoading(true);
-    try {
-      const res = await fetch(`/api/messages?conversationId=${convId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages || []);
+    if (activeConvId === null) return;
+    let cancelled = false;
+    async function load() {
+      if (!cancelled) setMessagesLoading(true);
+      try {
+        const res = await fetch(`/api/messages?conversationId=${activeConvId}`);
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setMessages(data.messages || []);
+        }
+      } catch {
+        // silent
       }
-    } catch {
-      // silent
+      if (!cancelled) setMessagesLoading(false);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        inputRef.current?.focus();
+      }, 100);
     }
-    setMessagesLoading(false);
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      inputRef.current?.focus();
-    }, 100);
-  }, []);
-
-  useEffect(() => {
-    if (activeConvId !== null) {
-      fetchMessages(activeConvId);
-    }
-  }, [activeConvId, fetchMessages]);
+    load();
+    return () => { cancelled = true; };
+  }, [activeConvId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
@@ -155,7 +158,7 @@ export default function MessagesPage() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
             <h1 className="text-sm font-bold text-gray-900 dark:text-white">Messages</h1>
             <button
-              onClick={fetchConversations}
+              onClick={() => { setLoading(true); setRefreshKey((k) => k + 1); }}
               className="p-1.5 text-gray-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
               aria-label="Refresh"
             >
@@ -195,7 +198,7 @@ export default function MessagesPage() {
                 >
                   <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center shrink-0">
                     {conv.otherUser?.image ? (
-                      <img src={conv.otherUser.image} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      <Image src={conv.otherUser.image} alt="" width={40} height={40} unoptimized className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <User className="w-5 h-5 text-rose-500" />
                     )}
@@ -241,7 +244,7 @@ export default function MessagesPage() {
                 </button>
                 <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center shrink-0">
                   {activeConv.otherUser?.image ? (
-                    <img src={activeConv.otherUser.image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    <Image src={activeConv.otherUser.image} alt="" width={32} height={32} unoptimized className="w-8 h-8 rounded-full object-cover" />
                   ) : (
                     <User className="w-4 h-4 text-rose-500" />
                   )}
