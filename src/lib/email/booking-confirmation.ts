@@ -106,6 +106,49 @@ export async function sendQuoteRejectedEmail(params: {
   });
 }
 
+export async function sendRemainingPaymentReminderEmail(params: {
+  email: string;
+  customerName: string;
+  bookingId: string;
+  serviceName: string;
+  providerName: string;
+  date: string;
+  time: string;
+  remainingAmount: number;
+  dueDate: string;
+  paymentUrl: string;
+}) {
+  const subject = `Payment Due for Booking #${params.bookingId}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Payment Reminder</h2>
+      <p>Hi ${params.customerName},</p>
+      <p>Your booking with <strong>${params.providerName}</strong> is coming up, and the remaining balance is now due.</p>
+      <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Booking Details</h3>
+        <p><strong>Service:</strong> ${params.serviceName}</p>
+        <p><strong>Date:</strong> ${params.date}</p>
+        <p><strong>Time:</strong> ${params.time}</p>
+        <p><strong>Provider:</strong> ${params.providerName}</p>
+      </div>
+      <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p><strong>Remaining Balance:</strong> MYR ${params.remainingAmount.toFixed(2)}</p>
+        <p><strong>Due Date:</strong> ${params.dueDate}</p>
+      </div>
+      <p>Please complete the payment to confirm your appointment.</p>
+      <p><a href="${params.paymentUrl}" style="display: inline-block; background: #e91e63; color: white; padding: 12px 24px; border-radius: 4px; text-decoration: none;">Pay Now</a></p>
+      <p style="color: #666; font-size: 12px; margin-top: 20px;">If you have any questions, please contact us at hello@leish.my</p>
+    </div>
+  `;
+  return sendEmail({
+    to: params.email,
+    subject,
+    html,
+    text: `Payment due for booking #${params.bookingId}. Remaining balance: MYR ${params.remainingAmount.toFixed(2)}. Due by ${params.dueDate}. Pay here: ${params.paymentUrl}`,
+    from: getEmailAlias("notifications"),
+  });
+}
+
 export async function sendQuoteReadyEmail(params: {
   email: string;
   customerName: string;
