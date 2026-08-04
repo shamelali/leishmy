@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Sparkles, Star, Clock } from "lucide-react";
 import { db } from "@/db";
 import { adminSettings, profiles, users } from "@/db/schema";
@@ -175,9 +176,11 @@ export async function HeroSection({ stats }: { stats?: HeroStats[] }) {
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 ring-2 ring-rose-400/50">
                   {featuredArtist.image ? (
-                    <img
+                    <Image
                       src={featuredArtist.image}
                       alt={featuredArtist.name}
+                      width={48}
+                      height={48}
                       className="w-full h-full object-cover"
                     />
                   ) : (
