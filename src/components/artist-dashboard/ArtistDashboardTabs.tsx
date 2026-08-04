@@ -12,9 +12,10 @@ import {
   FileText,
   Lock,
   Clock,
+  BarChart3,
 } from "lucide-react";
 
-export type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts" | "availability" | "account";
+export type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts" | "availability" | "analytics" | "account";
 
 interface Tab {
   id: TabId;
@@ -32,6 +33,7 @@ export const tabs: Tab[] = [
   { id: "pricing", label: "Pricing Rules", icon: Percent },
   { id: "payouts", label: "Payouts", icon: Wallet },
   { id: "availability", label: "Availability", icon: Clock },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "account", label: "Account", icon: Lock },
 ];
 

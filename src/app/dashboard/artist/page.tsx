@@ -17,6 +17,7 @@ import {
   PricingRulesTab,
   PayoutsTab,
   AvailabilityTab,
+  AnalyticsTab,
 } from "@/components/artist-dashboard";
 import ChangePassword from "@/components/ChangePassword";
 
@@ -275,6 +276,8 @@ export default function DashboardArtist() {
         )}
 
         {activeTab === "availability" && <AvailabilityTab />}
+
+        {activeTab === "analytics" && <AnalyticsTab />}
 
         {activeTab === "account" && (
           <div className="space-y-6">
