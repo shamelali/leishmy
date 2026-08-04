@@ -8,6 +8,7 @@ import { acceptQuoteSchema } from "@/lib/validations/bookings";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { createBillForBooking } from "@/lib/billplz-bill";
 import { logAudit } from "@/lib/audit";
+import { sendPushNotification } from "@/lib/notifications/push";
 
 export const runtime = "nodejs";
 
@@ -100,6 +101,13 @@ export async function POST(
           title: "Quote Accepted",
           body: `Customer accepted your quote for "${booking.service}". Payment pending.`,
           data: { link: `/dashboard/bookings`, bookingId: String(booking.id) },
+        }).catch(() => {});
+
+        // Send push notification
+        sendPushNotification(artist.userId, {
+          title: "Quote Accepted",
+          body: `Customer accepted your quote for "${booking.service}". Payment pending.`,
+          url: "/dashboard/bookings",
         }).catch(() => {});
 
         const [providerUser] = await db

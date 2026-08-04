@@ -5,6 +5,7 @@ import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
+import { sendPushNotification } from "@/lib/notifications/push";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
@@ -187,6 +188,11 @@ export async function POST(request: NextRequest) {
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
         data: { link: "/dashboard/artist/quotes", bookingId: String(booking.id) },
       }).catch(() => {});
+      sendPushNotification(artist.userId, {
+        title: "New Quote Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
+        url: "/dashboard/artist/quotes",
+      }).catch(() => {});
     }
 
     // Notify studio of new quote request
@@ -197,6 +203,11 @@ export async function POST(request: NextRequest) {
         title: "New Quote Request",
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
         data: { link: "/dashboard/studio/quotes", bookingId: String(booking.id) },
+      }).catch(() => {});
+      sendPushNotification(studio.userId, {
+        title: "New Quote Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
+        url: "/dashboard/studio/quotes",
       }).catch(() => {});
     }
 

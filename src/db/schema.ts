@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable(
   "user",
@@ -873,5 +874,23 @@ export const auditLogs = pgTable(
     index("audit_logs_action_idx").on(table.action),
     index("audit_logs_entity_idx").on(table.entityType, table.entityId),
     index("audit_logs_created_idx").on(table.createdAt),
+  ],
+);
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull().default(""),
+    authKey: text("auth_key").notNull().default(""),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("push_sub_user_idx").on(table.userId),
+    sql`UNIQUE (${table.userId}, ${table.endpoint})`,
   ],
 );

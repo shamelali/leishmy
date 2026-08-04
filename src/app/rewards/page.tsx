@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Gift, TrendingUp, Star, ChevronRight, Clock, Sparkles } from "lucide-react";
+import { Award, Gift, TrendingUp, Star, ChevronRight, Clock, Sparkles, Share2 } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Skeleton from "@/components/Skeleton";
 
@@ -116,6 +117,25 @@ export default function RewardsPage() {
             )}
           </div>
         </div>
+
+        {/* Referral CTA */}
+        <Link
+          href="/referrals"
+          className="block bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 mb-8 text-white hover:from-rose-600 hover:to-pink-700 transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-xl">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Refer & Earn</p>
+                <p className="text-xs text-white/70">Share your link, earn 200 points per referral</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/60" />
+          </div>
+        </Link>
 
         {/* Tier Perks */}
         {tierInfo?.perks && (
