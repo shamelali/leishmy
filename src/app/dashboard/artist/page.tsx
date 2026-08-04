@@ -16,6 +16,7 @@ import {
   PackagesTab,
   PricingRulesTab,
   PayoutsTab,
+  AvailabilityTab,
 } from "@/components/artist-dashboard";
 import ChangePassword from "@/components/ChangePassword";
 
@@ -272,6 +273,8 @@ export default function DashboardArtist() {
             onRefresh={fetchData}
           />
         )}
+
+        {activeTab === "availability" && <AvailabilityTab />}
 
         {activeTab === "account" && (
           <div className="space-y-6">

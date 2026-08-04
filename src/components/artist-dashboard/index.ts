@@ -7,5 +7,6 @@ export { default as PricesTab } from "./PricesTab";
 export { default as PackagesTab } from "./PackagesTab";
 export { default as PricingRulesTab } from "./PricingRulesTab";
 export { default as PayoutsTab } from "./PayoutsTab";
+export { default as AvailabilityTab } from "./AvailabilityTab";
 export { default as AutoSaveField } from "./AutoSaveField";
 export { default as AvailabilityToggle } from "./AvailabilityToggle";

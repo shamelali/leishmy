@@ -46,3 +46,4 @@ opencode.json
 /playwright/.cache/
 /playwright/.auth/
 .neon
+.aider*
