@@ -173,6 +173,10 @@ export default function DashboardAdmin() {
   const [monitoringData, setMonitoringData] = useState<MonitoringData | null>(null);
   const [monitoringLoading, setMonitoringLoading] = useState(false);
   const [monitoringAutoRefresh, setMonitoringAutoRefresh] = useState(true);
+  const [setPwUserId, setSetPwUserId] = useState<string | null>(null);
+  const [setPwValue, setSetPwValue] = useState("");
+  const [setPwLoading, setSetPwLoading] = useState(false);
+  const [setPwMessage, setSetPwMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const pageSize = 20;
   const [page, setPage] = useState<Record<Tab, number>>({
     artists: 1, studios: 1, users: 1, bookings: 1, payments: 1, payouts: 1, events: 1, inbox: 1, webhooks: 1, overview: 1, monitoring: 1,
@@ -876,7 +880,13 @@ export default function DashboardAdmin() {
                                   <td className="p-3 font-medium text-gray-900 dark:text-white">{user.name || "—"}</td>
                                   <td className="p-3 text-gray-600 dark:text-gray-300">{user.email}</td>
                                   <td className="p-3 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
-                                  <td className="p-3 text-right">
+                                  <td className="p-3 text-right space-x-2">
+                                    <button
+                                      onClick={() => { setSetPwUserId(user.id); setSetPwValue(""); setSetPwMessage(null); }}
+                                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 touch-target"
+                                    >
+                                      Set Password
+                                    </button>
                                     {user.role !== "admin" && (
                                       <button
                                         onClick={async () => {
@@ -2007,6 +2017,55 @@ export default function DashboardAdmin() {
                   </table>
                 </div>
               ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {setPwUserId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setSetPwUserId(null)}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Set Password</h3>
+            {setPwMessage && (
+              <div className={`mb-3 p-2 rounded-lg text-sm ${setPwMessage.type === "success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+                {setPwMessage.text}
+              </div>
+            )}
+            <input
+              type="text"
+              value={setPwValue}
+              onChange={(e) => setSetPwValue(e.target.value)}
+              placeholder="New password (min 6 chars)"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm mb-4 outline-none focus:ring-2 focus:ring-rose-500"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setSetPwUserId(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-neutral-700">Cancel</button>
+              <button
+                disabled={setPwLoading || setPwValue.length < 6}
+                onClick={async () => {
+                  setSetPwLoading(true);
+                  try {
+                    const res = await fetch("/api/admin?action=set-user-password", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ userId: setPwUserId, newPassword: setPwValue }),
+                    });
+                    if (res.ok) {
+                      setSetPwMessage({ type: "success", text: "Password set!" });
+                      setTimeout(() => setSetPwUserId(null), 1500);
+                    } else {
+                      const data = await res.json();
+                      setSetPwMessage({ type: "error", text: data.error || "Failed" });
+                    }
+                  } catch {
+                    setSetPwMessage({ type: "error", text: "Network error" });
+                  }
+                  setSetPwLoading(false);
+                }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40"
+              >
+                {setPwLoading ? "Setting..." : "Set Password"}
+              </button>
             </div>
           </div>
         </div>
