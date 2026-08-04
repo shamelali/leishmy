@@ -97,55 +97,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For quote_pending, we don't need to resolve amount yet
-    // Just get service name if serviceId provided
+    // Resolve service price and provider deposit percent for server-side amount calculation
     let serviceName = body.service || "Service Request";
+    let servicePrice = "0";
+    let depositPercent = 30;
     if (serviceIdNum) {
       const [service] = await db
-        .select({ name: services.name })
+        .select({ name: services.name, price: services.price })
         .from(services)
         .where(eq(services.id, serviceIdNum))
         .limit(1);
-      if (service) serviceName = service.name;
+      if (service) {
+        serviceName = service.name;
+        servicePrice = String(service.price);
+      }
     }
 
-    // Check for scheduling conflicts
-    if (artistIdStr) {
-      const [conflict] = await db
-        .select({ id: bookings.id })
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.artistId, artistIdStr),
-            eq(bookings.date, new Date(date)),
-            eq(bookings.time, time ?? null as unknown as string),
-            inArray(bookings.status, ["pending", "confirmed", "quote_pending", "quote_sent"]),
-          ),
-        )
+    // Resolve provider's default deposit percent
+    const providerUserId = artistIdStr ? artistIdStr : studioIdStr;
+    if (providerUserId) {
+      const [providerProfile] = await db
+        .select({ defaultDepositPercent: profiles.defaultDepositPercent })
+        .from(profiles)
+        .where(eq(profiles.userId, providerUserId))
         .limit(1);
-      if (conflict) {
-        return NextResponse.json(
-          { error: "Artist is already booked for this date and time" },
-          { status: 409 },
-        );
+      if (providerProfile?.defaultDepositPercent) {
+        depositPercent = providerProfile.defaultDepositPercent;
       }
-    } else if (studioIdStr) {
-      const [conflict] = await db
-        .select({ id: bookings.id })
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.studioId, studioIdStr),
-            eq(bookings.date, new Date(date)),
-            eq(bookings.time, time ?? null as unknown as string),
-            inArray(bookings.status, ["pending", "confirmed", "quote_pending", "quote_sent"]),
-          ),
-        )
-        .limit(1);
-      if (conflict) {
+    }
+
+    const depositAmount = String(
+      Math.round(Number(servicePrice) * (depositPercent / 100) * 100) / 100,
+    );
+
+    if (Number(servicePrice) > 0) {
+      if (Number(servicePrice) < MIN_BOOKING_AMOUNT || Number(servicePrice) > MAX_BOOKING_AMOUNT) {
         return NextResponse.json(
-          { error: "Studio is already booked for this date and time" },
-          { status: 409 },
+          { error: `Service price must be between ${MIN_BOOKING_AMOUNT} and ${MAX_BOOKING_AMOUNT}` },
+          { status: 400 },
         );
       }
     }
@@ -164,8 +153,8 @@ export async function POST(request: NextRequest) {
         placeId: body.placeId || null,
         date: new Date(date),
         time: time || null,
-        amount: "0",
-        depositAmount: "0",
+        amount: servicePrice,
+        depositAmount,
         milestone: "quote_pending",
         status: "quote_pending",
       })
