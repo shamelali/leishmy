@@ -44,7 +44,7 @@ export function Footer() {
                   href="/artists"
                   className="text-sm text-gray-500 hover:text-rose-500 dark:text-gray-400 dark:hover:text-rose-400 transition-colors"
                 >
-                  Categories
+                  Artists
                 </Link>
               </li>
             </ul>

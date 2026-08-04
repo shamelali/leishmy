@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/db";
-import { bookings, profiles, services, categories } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { profiles } from "@/db/schema";
+import { inArray } from "drizzle-orm";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
@@ -34,33 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     }
 
-    const activeServices = await db
-      .select({ slug: services.name, id: services.id })
-      .from(services)
-      .limit(50);
-
-    for (const service of activeServices) {
-      dynamicRoutes.push({
-        url: `${baseUrl}/services/${service.id}`,
-        lastModified: new Date(),
-        changeFrequency: "weekly" as const,
-        priority: 0.5,
-      });
-    }
-
-    const activeCategories = await db
-      .select({ slug: categories.slug })
-      .from(categories)
-      .limit(20);
-
-    for (const cat of activeCategories) {
-      dynamicRoutes.push({
-        url: `${baseUrl}/category/${cat.slug}`,
-        lastModified: new Date(),
-        changeFrequency: "weekly" as const,
-        priority: 0.5,
-      });
-    }
   } catch {
     // DB unavailable during build — return static routes only
   }
