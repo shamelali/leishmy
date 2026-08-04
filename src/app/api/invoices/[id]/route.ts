@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const invoiceId = searchParams.get("id");
+    const format = searchParams.get("format") || "html";
 
     if (!invoiceId) {
       return new Response("Missing invoice id", { status: 400 });
@@ -175,6 +176,20 @@ export async function GET(request: NextRequest) {
 </div>
 </body>
 </html>`;
+
+    if (format === "pdf") {
+      const htmlPdfNode = (await import("html-pdf-node")).default;
+      const pdfBuffer = await htmlPdfNode.generatePdf(
+        { content: html },
+        { format: "A4", printBackground: true },
+      );
+      return new Response(pdfBuffer, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${invoice.invoiceNumber}.pdf"`,
+        },
+      });
+    }
 
     return new Response(html, {
       headers: {

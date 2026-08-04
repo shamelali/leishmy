@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users } from "@/db/schema";
+import { bookings, users, profiles, notifications } from "@/db/schema";
 import { eq, and, gte, lte, inArray, isNull, like, or } from "drizzle-orm";
 import { sendMessage } from "@/lib/notifications/whatsapp";
 import { verifyCronSecret } from "@/lib/cron-auth";
@@ -56,19 +56,22 @@ export async function POST(request: Request) {
       )
       .limit(100);
 
-    const userIds = [
-      ...new Set(dueBookings.map((b) => b.userId).filter(Boolean)),
+    const allIds = [
+      ...new Set([
+        ...dueBookings.map((b) => b.userId).filter(Boolean),
+        ...dueBookings.map((b) => b.artistId).filter(Boolean),
+      ]),
     ] as string[];
     const userMap = new Map<
       string,
       { name: string | null; email: string | null; phone: string | null }
     >();
 
-    if (userIds.length > 0) {
+    if (allIds.length > 0) {
       const usersResult = await db
         .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
         .from(users)
-        .where(inArray(users.id, userIds));
+        .where(inArray(users.id, allIds));
 
       for (const user of usersResult) {
         userMap.set(user.id, {
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
         email: user.email || "",
         phone: user.phone || "",
         idempotencyKey,
+        redirectUrl: `${BASE_URL}/bookings/${booking.id}/success?type=remaining`,
       });
 
       let paymentUrl = `${BASE_URL}/bookings/${booking.id}`;
@@ -176,6 +180,38 @@ export async function POST(request: Request) {
             err,
           ),
         );
+      }
+
+      // Notify provider that customer's remaining payment is due
+      if (booking.artistId) {
+        const provider = userMap.get(booking.artistId);
+        if (provider) {
+          const providerMessage =
+            "Hi " +
+            (provider.name || "Provider") +
+            ", the remaining balance of MYR " +
+            remainingAmount.toFixed(2) +
+            " for booking #" +
+            booking.id +
+            " (" +
+            booking.service +
+            " on " +
+            booking.date.toLocaleDateString("en-MY") +
+            ") is due by " +
+            dueDateStr +
+            ".\n\nThe customer has been notified to complete payment." +
+            "\n\nThank you,\nLeish";
+
+          await sendMessage(provider.name || "Provider", providerMessage).catch(() => {});
+
+          await db.insert(notifications).values({
+            userId: booking.artistId,
+            type: "second_payment_due",
+            title: "Second Payment Due",
+            body: `Remaining balance of MYR ${remainingAmount.toFixed(2)} for booking #${booking.id} is due by ${dueDateStr}. Customer has been notified.`,
+            data: { link: "/dashboard/artist/bookings", bookingId: String(booking.id) },
+          }).catch(() => {});
+        }
       }
 
       await db

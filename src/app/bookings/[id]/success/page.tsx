@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CheckCircle, Loader2, AlertCircle, ArrowRight, Calendar } from "lucide-react";
 
 export default function BookingPaymentSuccessPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const bookingId = params.id as string;
+  const isRemainingPayment = searchParams.get("type") === "remaining";
   const [status, setStatus] = useState<"loading" | "verified" | "pending">("loading");
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function BookingPaymentSuccessPage() {
           <>
             <Loader2 className="w-14 h-14 text-rose-500 mx-auto mb-4 animate-spin" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Confirming Payment
+              {isRemainingPayment ? "Confirming Final Payment" : "Confirming Payment"}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Please wait while we verify your payment with Billplz...
@@ -59,10 +61,12 @@ export default function BookingPaymentSuccessPage() {
           <>
             <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Payment Successful!
+              {isRemainingPayment ? "Final Payment Received!" : "Payment Successful!"}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Your booking #{bookingId} has been confirmed. You will receive a confirmation email shortly.
+              {isRemainingPayment
+                ? `Your final payment for booking #${bookingId} has been received. Your booking is now fully paid.`
+                : `Your booking #${bookingId} has been confirmed. You will receive a confirmation email shortly.`}
             </p>
           </>
         )}
@@ -71,7 +75,7 @@ export default function BookingPaymentSuccessPage() {
           <>
             <AlertCircle className="w-14 h-14 text-amber-500 mx-auto mb-4" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Payment Received
+              {isRemainingPayment ? "Final Payment Received" : "Payment Received"}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               We received your payment but are still finalizing your booking. This usually takes a few moments. You can check the latest status on your bookings page.

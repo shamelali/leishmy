@@ -20,6 +20,7 @@ export interface CreateBillOptions {
   email?: string;
   phone?: string;
   idempotencyKey?: string;
+  redirectUrl?: string;
 }
 
 export interface CreateBillResult {
@@ -36,7 +37,7 @@ export interface CreateBillResult {
 export async function createBillForBooking(
   opts: CreateBillOptions,
 ): Promise<{ ok: true; data: CreateBillResult } | { ok: false; status: number; error: string }> {
-  const { bookingId, description, name, email, phone, idempotencyKey } = opts;
+  const { bookingId, description, name, email, phone, idempotencyKey, redirectUrl } = opts;
 
   // Idempotency: prevent duplicate bill creation on retry
   if (idempotencyKey) {
@@ -139,7 +140,7 @@ export async function createBillForBooking(
     email: email || "",
     phone: phone || "",
     callback_url: `${BASE_URL}/api/webhook`,
-    redirect_url: `${BASE_URL}/bookings/${bookingId}/success`,
+    redirect_url: redirectUrl || `${BASE_URL}/bookings/${bookingId}/success`,
   });
 
   const billplzResponse = await fetch(`${BILLPLZ_API}/bills`, {
