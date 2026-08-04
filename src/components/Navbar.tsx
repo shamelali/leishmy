@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets, Shield } from "lucide-react";
+import { Menu, X, User, Calendar, LogOut, Sparkles, LayoutDashboard, Heart, ImageIcon, Award, Droplets, Shield, MessageCircle } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
@@ -123,6 +123,14 @@ export function Navbar() {
                     className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                   >
                     <Calendar className="w-3.5 h-3.5 text-rose-500" /> My Bookings
+                  </Link>
+
+                  <Link
+                    href="/messages"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-rose-500" /> Messages
                   </Link>
 
                   <Link

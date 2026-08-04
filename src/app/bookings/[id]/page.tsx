@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save, Tag } from "lucide-react";
+import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save, Tag, FileText } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 
@@ -415,6 +415,31 @@ export default function BookingDetailPage() {
                 </div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{booking.artistName}</p>
               </div>
+            </div>
+          )}
+
+          {(booking.status === "confirmed" || booking.status === "completed") && (
+            <div className="pt-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/invoices", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ bookingId: Number(booking.id) }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      window.open(`/api/invoices/${data.invoice.id}`, "_blank");
+                    }
+                  } catch {
+                    alert("Failed to generate invoice");
+                  }
+                }}
+                className="flex items-center gap-2 w-full justify-center px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <FileText className="w-4 h-4 text-rose-500" /> Download Invoice
+              </button>
             </div>
           )}
         </div>
