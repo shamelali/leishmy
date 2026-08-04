@@ -2,6 +2,7 @@ export { default as ArtistDashboardTabs, type TabId, tabs } from "./ArtistDashbo
 export { default as ProfileTab } from "./ProfileTab";
 export { default as PortfolioTab } from "./PortfolioTab";
 export { default as BookingsTab } from "./BookingsTab";
+export { default as QuotesTab } from "./QuotesTab";
 export { default as PricesTab } from "./PricesTab";
 export { default as PackagesTab } from "./PackagesTab";
 export { default as PricingRulesTab } from "./PricingRulesTab";

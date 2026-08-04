@@ -11,6 +11,7 @@ import {
   ProfileTab,
   PortfolioTab,
   BookingsTab,
+  QuotesTab,
   PricesTab,
   PackagesTab,
   PricingRulesTab,
@@ -190,6 +191,10 @@ export default function DashboardArtist() {
     (b) => b.status === "pending" || b.status === "quote_pending",
   ).length;
 
+  const pendingQuotes = bookings.filter(
+    (b) => b.status === "quote_pending",
+  ).length;
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -209,6 +214,7 @@ export default function DashboardArtist() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         pendingBookings={pendingBookings}
+        pendingQuotes={pendingQuotes}
       >
         {activeTab === "profile" && (
           <ProfileTab
@@ -234,6 +240,8 @@ export default function DashboardArtist() {
             onReject={handleReject}
           />
         )}
+
+        {activeTab === "quotes" && <QuotesTab />}
 
         {activeTab === "prices" && (
           <PricesTab

@@ -9,9 +9,10 @@ import {
   Wallet,
   Package,
   Percent,
+  FileText,
 } from "lucide-react";
 
-export type TabId = "profile" | "portfolio" | "bookings" | "prices" | "packages" | "pricing" | "payouts";
+export type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts";
 
 interface Tab {
   id: TabId;
@@ -23,6 +24,7 @@ export const tabs: Tab[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "portfolio", label: "Portfolio", icon: Image },
   { id: "bookings", label: "Bookings", icon: Calendar },
+  { id: "quotes", label: "Quotes", icon: FileText },
   { id: "prices", label: "Prices", icon: Tag },
   { id: "packages", label: "Packages", icon: Package },
   { id: "pricing", label: "Pricing Rules", icon: Percent },
@@ -34,6 +36,7 @@ interface ArtistDashboardTabsProps {
   onTabChange: (tab: TabId) => void;
   children: ReactNode;
   pendingBookings?: number;
+  pendingQuotes?: number;
 }
 
 export default function ArtistDashboardTabs({
@@ -41,6 +44,7 @@ export default function ArtistDashboardTabs({
   onTabChange,
   children,
   pendingBookings,
+  pendingQuotes,
 }: ArtistDashboardTabsProps) {
   return (
     <div className="min-h-[80vh]">
@@ -63,6 +67,11 @@ export default function ArtistDashboardTabs({
                 {id === "bookings" && pendingBookings !== undefined && pendingBookings > 0 && (
                   <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
                     {pendingBookings}
+                  </span>
+                )}
+                {id === "quotes" && pendingQuotes !== undefined && pendingQuotes > 0 && (
+                  <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                    {pendingQuotes}
                   </span>
                 )}
               </button>
@@ -90,6 +99,11 @@ export default function ArtistDashboardTabs({
               {id === "bookings" && pendingBookings !== undefined && pendingBookings > 0 && (
                 <span className="absolute -top-0.5 right-0 w-4 h-4 flex items-center justify-center text-[8px] font-bold bg-amber-500 text-white rounded-full">
                   {pendingBookings > 9 ? "9+" : pendingBookings}
+                </span>
+              )}
+              {id === "quotes" && pendingQuotes !== undefined && pendingQuotes > 0 && (
+                <span className="absolute -top-0.5 right-0 w-4 h-4 flex items-center justify-center text-[8px] font-bold bg-amber-500 text-white rounded-full">
+                  {pendingQuotes > 9 ? "9+" : pendingQuotes}
                 </span>
               )}
             </button>

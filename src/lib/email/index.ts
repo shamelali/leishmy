@@ -20,6 +20,11 @@ export {
   sendInboundAckEmail,
 } from "./acknowledgements";
 export {
+  sendWaitlistWelcomeEmail,
+  sendBehindTheScenesEmail,
+  sendLaunchReminderEmail,
+} from "./waitlist";
+export {
   bookingConfirmationTemplate,
   welcomeEmailTemplate,
   customerWelcomeTemplate,
