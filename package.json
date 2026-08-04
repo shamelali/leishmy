@@ -38,6 +38,7 @@
     "cloudinary": "^2.10.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "0.45.2",
+    "emitter": "^0.0.5",
     "googleapis": "^173.0.0",
     "html-pdf-node": "^1.0.8",
     "jsonwebtoken": "^9.0.3",
