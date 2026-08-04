@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock,
   Calendar,
@@ -68,8 +68,12 @@ export default function AvailabilityTab() {
     }
   }, []);
 
+  const fetchedRef = useRef(false);
   useEffect(() => {
-    fetchData();
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      fetchData();
+    }
   }, [fetchData]);
 
   const toggleDay = (dayOfWeek: number) => {
