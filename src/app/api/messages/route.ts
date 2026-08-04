@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { conversations, messages, users } from "@/db/schema";
+import { conversations, messages, users, bookings } from "@/db/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
@@ -159,6 +159,45 @@ export async function POST(request: NextRequest) {
       if (existing) {
         targetConvId = existing.id;
       } else {
+        // Booking gate: new conversations require a confirmed/completed booking
+        if (!bookingId) {
+          return NextResponse.json(
+            { error: "A booking is required to start a new conversation" },
+            { status: 403 },
+          );
+        }
+
+        const [booking] = await db
+          .select({ id: bookings.id, status: bookings.status, userId: bookings.userId, artistId: bookings.artistId, studioId: bookings.studioId })
+          .from(bookings)
+          .where(eq(bookings.id, bookingId))
+          .limit(1);
+
+        if (!booking) {
+          return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+        }
+
+        // Sender must be the client, artist, or studio on this booking
+        const isParticipant =
+          booking.userId === session.id ||
+          booking.artistId === session.id ||
+          booking.studioId === session.id;
+
+        if (!isParticipant) {
+          return NextResponse.json(
+            { error: "You are not part of this booking" },
+            { status: 403 },
+          );
+        }
+
+        // Only confirmed or completed bookings allow messaging
+        if (booking.status !== "confirmed" && booking.status !== "completed") {
+          return NextResponse.json(
+            { error: "Messaging is available after the booking is confirmed" },
+            { status: 403 },
+          );
+        }
+
         const [p1, p2] = session.id < recipientId
           ? [session.id, recipientId]
           : [recipientId, session.id];
