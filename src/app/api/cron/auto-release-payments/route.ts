@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, bookings, notifications } from "@/db/schema";
+import { payments, payouts, bookings, notifications, adminSettings } from "@/db/schema";
 import { awardPoints } from "@/lib/loyalty";
 import { eq, sql, and, lte } from "drizzle-orm";
 import { Redis } from "@upstash/redis";
 import { verifyCronSecret } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron-tracking";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,9 @@ export async function POST(request: NextRequest) {
       bookingId: number | null;
       recipientId: string | null;
       amount: number;
+      commissionRate: number;
+      commissionAmount: number;
+      netAmount: number;
       released: boolean;
       reason: string;
     }[] = [];
@@ -104,6 +108,14 @@ export async function POST(request: NextRequest) {
     let released = 0;
     let skipped = 0;
     let errors = 0;
+
+    // Fetch current commission rate from admin_settings (default 8%)
+    const [commissionSetting] = await db
+      .select({ value: adminSettings.value })
+      .from(adminSettings)
+      .where(eq(adminSettings.key, "commission_rate"))
+      .limit(1);
+    const commissionRate = commissionSetting ? parseFloat(commissionSetting.value) : 0.08;
 
     for (const row of rows) {
       const recipientId = row.artistId || row.studioId;
@@ -115,6 +127,9 @@ export async function POST(request: NextRequest) {
           bookingId: row.bookingId,
           recipientId: null,
           amount: row.paymentAmount,
+          commissionRate,
+          commissionAmount: 0,
+          netAmount: 0,
           released: false,
           reason: "no artistId or studioId on booking",
         });
@@ -122,11 +137,15 @@ export async function POST(request: NextRequest) {
       }
 
       if (dryRun) {
+        const commissionAmt = Math.round(row.paymentAmount * commissionRate);
         details.push({
           paymentId: row.paymentId,
           bookingId: row.bookingId,
           recipientId,
           amount: row.paymentAmount,
+          commissionRate,
+          commissionAmount: commissionAmt,
+          netAmount: row.paymentAmount - commissionAmt,
           released: false,
           reason: "dry run",
         });
@@ -134,6 +153,9 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        const commissionAmt = Math.round(row.paymentAmount * commissionRate);
+        const netAmount = row.paymentAmount - commissionAmt;
+
         await db.transaction(async (tx) => {
           await tx
             .update(payments)
@@ -157,6 +179,9 @@ export async function POST(request: NextRequest) {
             await tx.insert(payouts).values({
               userId: recipientId,
               amount: row.paymentAmount,
+              commissionRate: String(commissionRate),
+              commissionAmount: commissionAmt,
+              netAmount,
               status: "pending",
               paymentId: row.paymentId,
             });
@@ -166,8 +191,23 @@ export async function POST(request: NextRequest) {
             userId: recipientId,
             type: "payout_released",
             title: "Payment Released from Escrow",
-            body: `MYR ${(row.paymentAmount / 100).toLocaleString()} has been released from escrow. It is now pending payout to your bank account.`,
-            data: { link: "/dashboard/artist" },
+            body: `MYR ${(netAmount / 100).toLocaleString()} has been released (commission: MYR ${(commissionAmt / 100).toLocaleString()}). It is now pending payout to your bank account.`,
+            data: { link: "/dashboard/artist", bookingId: row.bookingId },
+          });
+
+          await logAudit(tx, {
+            actorId: "system",
+            action: "payment.released",
+            entityType: "payment",
+            entityId: String(row.paymentId),
+            meta: {
+              bookingId: row.bookingId,
+              recipientId,
+              grossAmount: row.paymentAmount,
+              commissionRate,
+              commissionAmount: commissionAmt,
+              netAmount,
+            },
           });
         });
 
@@ -181,6 +221,9 @@ export async function POST(request: NextRequest) {
           bookingId: row.bookingId,
           recipientId,
           amount: row.paymentAmount,
+          commissionRate,
+          commissionAmount: commissionAmt,
+          netAmount,
           released: true,
           reason: "released",
         });
@@ -192,6 +235,9 @@ export async function POST(request: NextRequest) {
           bookingId: row.bookingId,
           recipientId,
           amount: row.paymentAmount,
+          commissionRate,
+          commissionAmount: 0,
+          netAmount: 0,
           released: false,
           reason: `error: ${err instanceof Error ? err.message : "unknown"}`,
         });

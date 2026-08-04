@@ -358,6 +358,9 @@ export const payouts = pgTable("payouts", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).default("0.08"),
+  commissionAmount: integer("commission_amount").default(0),
+  netAmount: integer("net_amount"),
   status: varchar("status", { length: 50 }).default("pending"),
   paymentId: integer("payment_id").references(() => payments.id, {
     onDelete: "set null",
@@ -761,5 +764,114 @@ export const urlAnalytics = pgTable(
   (table) => [
     index("url_analytics_code_idx").on(table.code),
     index("url_analytics_timestamp_idx").on(table.timestamp),
+  ],
+);
+
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id").references(() => bookings.id, {
+      onDelete: "set null",
+    }),
+    participant1Id: text("participant1_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    participant2Id: text("participant2_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastMessageAt: timestamp("last_message_at", { mode: "date" }).defaultNow().notNull(),
+    lastMessagePreview: varchar("last_message_preview", { length: 200 }),
+    participant1Read: boolean("participant1_read").default(true),
+    participant2Read: boolean("participant2_read").default(true),
+    closed: boolean("closed").default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("conversations_booking_idx").on(table.bookingId),
+    index("conversations_p1_idx").on(table.participant1Id),
+    index("conversations_p2_idx").on(table.participant2Id),
+    index("conversations_last_msg_idx").on(table.lastMessageAt),
+  ],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: serial("id").primaryKey(),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderId: text("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("messages_conversation_idx").on(table.conversationId),
+    index("messages_sender_idx").on(table.senderId),
+    index("messages_created_idx").on(table.createdAt),
+  ],
+);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: serial("id").primaryKey(),
+    invoiceNumber: varchar("invoice_number", { length: 50 }).unique().notNull(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    issuerId: text("issuer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientId: text("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+    commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+    commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull(),
+    total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+    status: varchar("status", { length: 50 }).default("issued"),
+    lineItems: jsonb("line_items").$type<Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      amount: number;
+    }>>().default([]),
+    issuedAt: timestamp("issued_at", { mode: "date" }).defaultNow().notNull(),
+    paidAt: timestamp("paid_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("invoices_booking_idx").on(table.bookingId),
+    index("invoices_issuer_idx").on(table.issuerId),
+    index("invoices_recipient_idx").on(table.recipientId),
+    index("invoices_status_idx").on(table.status),
+  ],
+);
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: serial("id").primaryKey(),
+    actorId: text("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    action: varchar("action", { length: 100 }).notNull(),
+    entityType: varchar("entity_type", { length: 50 }).notNull(),
+    entityId: varchar("entity_id", { length: 50 }),
+    meta: jsonb("meta"),
+    ip: varchar("ip", { length: 45 }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("audit_logs_actor_idx").on(table.actorId),
+    index("audit_logs_action_idx").on(table.action),
+    index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+    index("audit_logs_created_idx").on(table.createdAt),
   ],
 );

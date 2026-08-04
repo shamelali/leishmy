@@ -6,6 +6,7 @@ import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
 import { rejectQuoteSchema } from "@/lib/validations/bookings";
 import { sendQuoteRejectedEmail } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,14 @@ export async function POST(
       })
       .where(eq(bookings.id, bookingId))
       .returning();
+
+    logAudit(db, {
+      actorId: session.id,
+      action: "booking.quote_rejected",
+      entityType: "booking",
+      entityId: String(bookingId),
+      meta: { previousStatus: "quote_sent", newStatus: "rejected" },
+    }).catch(() => {});
 
     // Notify provider
     if (booking.artistId) {

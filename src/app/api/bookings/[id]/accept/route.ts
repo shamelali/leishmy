@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { acceptQuoteSchema } from "@/lib/validations/bookings";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
 import { createBillForBooking } from "@/lib/billplz-bill";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,14 @@ export async function POST(
       })
       .where(eq(bookings.id, bookingId))
       .returning();
+
+    logAudit(db, {
+      actorId: session.id,
+      action: "booking.quote_accepted",
+      entityType: "booking",
+      entityId: String(bookingId),
+      meta: { previousStatus: "quote_sent", newStatus: "pending", totalPrice, depositAmount },
+    }).catch(() => {});
 
     // Notify provider
     if (booking.artistId) {

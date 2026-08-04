@@ -129,7 +129,6 @@ export async function GET(request: NextRequest) {
         featured: profiles.featured,
         name: users.name,
         image: users.image,
-        email: users.email,
         location: users.location,
       })
       .from(profiles)
