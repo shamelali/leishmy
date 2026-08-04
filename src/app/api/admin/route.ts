@@ -715,21 +715,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
       }
       try {
-        const { prefixedEnvReader } = await import("@/lib/env-prefix");
-        const neauth = prefixedEnvReader("NEON_AUTH_");
-        const baseUrl = neauth.require("BASE_URL");
-        const res = await fetch(`${baseUrl}/admin/set-user-password`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: request.headers.get("authorization") || "",
-            Cookie: request.headers.get("cookie") || "",
-          },
-          body: JSON.stringify({ userId: targetUserId, newPassword }),
+        const { getAuth } = await import("@/lib/auth/auth");
+        const authInstance = getAuth() as any;
+        const result = await authInstance.admin.setUserPassword({
+          userId: targetUserId,
+          newPassword,
+        }, {
+          headers: request.headers,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Failed" }));
-          return NextResponse.json({ error: err.error || "Failed to set password" }, { status: res.status });
+        if (result?.error) {
+          return NextResponse.json({ error: result.error.message || "Failed to set password" }, { status: 500 });
         }
         return NextResponse.json({ success: true });
       } catch (err: any) {
