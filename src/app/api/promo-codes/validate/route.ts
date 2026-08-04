@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { promoCodes } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { promoCodes, promoCodeUsages } from "@/db/schema";
+import { eq, and, gte, lte, sql, count } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 
 export const runtime = "nodejs";
@@ -9,72 +9,62 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { code, amount } = await request.json();
-
-    if (!code || amount === undefined) {
-      return NextResponse.json({ error: "code and amount required" }, { status: 400 });
-    }
-
-    const bookingAmount = Number(amount);
-    if (isNaN(bookingAmount) || bookingAmount <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
-    }
+    if (!code) return NextResponse.json({ valid: false, error: "Code is required" });
 
     const [promo] = await db
       .select()
       .from(promoCodes)
-      .where(
-        and(
-          eq(promoCodes.code, code.toUpperCase()),
-          eq(promoCodes.active, true),
-          sql`${promoCodes.validFrom} <= NOW()`,
-          sql`(${promoCodes.validUntil} IS NULL OR ${promoCodes.validUntil} >= NOW())`,
-        ),
-      )
+      .where(eq(promoCodes.code, code.toUpperCase()))
       .limit(1);
 
-    if (!promo) {
-      return NextResponse.json({ valid: false, error: "Invalid or expired promo code" });
-    }
+    if (!promo) return NextResponse.json({ valid: false, error: "Invalid promo code" });
+    if (!promo.active) return NextResponse.json({ valid: false, error: "This promo code has expired" });
 
-    if (promo.maxUses && (promo.usedCount ?? 0) >= promo.maxUses) {
-      return NextResponse.json({ valid: false, error: "Promo code usage limit reached" });
-    }
+    const now = new Date();
+    if (promo.validFrom && new Date(promo.validFrom) > now)
+      return NextResponse.json({ valid: false, error: "This promo code is not yet active" });
+    if (promo.validUntil && new Date(promo.validUntil) < now)
+      return NextResponse.json({ valid: false, error: "This promo code has expired" });
 
+    const bookingAmount = Number(amount) || 0;
     const minAmount = Number(promo.minAmount) || 0;
-    if (bookingAmount < minAmount) {
-      return NextResponse.json({
-        valid: false,
-        error: `Minimum booking amount is RM ${minAmount.toFixed(2)}`,
-      });
-    }
+    if (bookingAmount < minAmount)
+      return NextResponse.json({ valid: false, error: `Minimum order amount is RM ${minAmount.toFixed(2)}` });
 
-    let discountAmount: number;
+    if (promo.maxUses !== null && promo.usedCount !== null && promo.usedCount >= promo.maxUses)
+      return NextResponse.json({ valid: false, error: "This promo code has reached its usage limit" });
+
+    const [usageCount] = await db
+      .select({ count: count() })
+      .from(promoCodeUsages)
+      .where(and(eq(promoCodeUsages.promoCodeId, promo.id), eq(promoCodeUsages.userId, session.id)));
+
+    if (Number(usageCount?.count ?? 0) > 0)
+      return NextResponse.json({ valid: false, error: "You have already used this promo code" });
+
+    let discountAmount = 0;
     if (promo.type === "percent") {
-      discountAmount = (bookingAmount * Number(promo.value)) / 100;
+      discountAmount = bookingAmount * (Number(promo.value) / 100);
+      if (discountAmount > bookingAmount) discountAmount = bookingAmount;
     } else {
-      discountAmount = Math.min(Number(promo.value), bookingAmount);
+      discountAmount = Number(promo.value);
+      if (discountAmount > bookingAmount) discountAmount = bookingAmount;
     }
 
     const finalAmount = bookingAmount - discountAmount;
 
     return NextResponse.json({
       valid: true,
-      promoCode: {
-        id: promo.id,
-        code: promo.code,
-        type: promo.type,
-        value: Number(promo.value),
-      },
-      discountAmount: discountAmount.toFixed(2),
-      finalAmount: finalAmount.toFixed(2),
+      discount: Number(discountAmount.toFixed(2)),
+      discountAmount: Number(discountAmount.toFixed(2)),
+      finalAmount: Number(finalAmount.toFixed(2)),
+      promoCode: { id: promo.id, code: promo.code, type: promo.type, value: Number(promo.value) },
     });
   } catch (error) {
-    console.error("Validate promo code error:", error);
-    return NextResponse.json({ error: "Failed to validate promo code" }, { status: 500 });
+    console.error("Promo validate error:", error);
+    return NextResponse.json({ valid: false, error: "Failed to validate promo code" });
   }
 }

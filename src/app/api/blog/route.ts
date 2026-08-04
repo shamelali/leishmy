@@ -1,113 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { blogPosts, users } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
+  const page = Math.max(1, Number(sp.get("page")) || 1);
+  const limit = Math.min(50, Math.max(1, Number(sp.get("limit")) || 10));
+  const tag = sp.get("tag");
+  const admin = sp.get("admin") === "true";
+
   try {
-    const { searchParams } = new URL(request.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 10));
-    const tag = searchParams.get("tag");
-    const adminView = searchParams.get("admin") === "true";
+    const conditions = admin ? [] : [eq(blogPosts.published, true)];
+    if (tag) conditions.push(sql`${tag} = ANY(${blogPosts.tags})`);
 
-    const session = adminView ? await getAuthSession() : null;
-    const showAll = adminView && session && hasAdminAccess(session);
+    const [totalRow] = await db
+      .select({ total: sql<number>`COUNT(*)::int` })
+      .from(blogPosts)
+      .where(and(...conditions));
 
-    const conditions = showAll ? undefined : eq(blogPosts.published, true);
-    const tagCondition = tag ? sql`EXISTS (SELECT 1 FROM unnest(${blogPosts.tags}) AS t WHERE t = ${tag})` : undefined;
+    const posts = await db
+      .select({
+        id: blogPosts.id,
+        title: blogPosts.title,
+        slug: blogPosts.slug,
+        excerpt: blogPosts.excerpt,
+        coverImage: blogPosts.coverImage,
+        tags: blogPosts.tags,
+        published: blogPosts.published,
+        publishedAt: blogPosts.publishedAt,
+        createdAt: blogPosts.createdAt,
+        authorName: users.name,
+        authorAvatar: users.avatar,
+      })
+      .from(blogPosts)
+      .leftJoin(users, eq(blogPosts.authorId, users.id))
+      .where(and(...conditions))
+      .orderBy(desc(blogPosts.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
 
-    const where = conditions && tagCondition
-      ? sql`${conditions} AND ${tagCondition}`
-      : conditions
-        ? conditions
-        : tagCondition || sql`true`;
-
-    const offset = (page - 1) * limit;
-
-    const [posts, [{ total }]] = await Promise.all([
-      db
-        .select({
-          id: blogPosts.id,
-          title: blogPosts.title,
-          slug: blogPosts.slug,
-          excerpt: blogPosts.excerpt,
-          coverImage: blogPosts.coverImage,
-          authorName: users.name,
-          authorAvatar: users.avatar,
-          tags: blogPosts.tags,
-          published: blogPosts.published,
-          publishedAt: blogPosts.publishedAt,
-        })
-        .from(blogPosts)
-        .leftJoin(users, eq(users.id, blogPosts.authorId))
-        .where(where as any)
-        .orderBy(desc(blogPosts.publishedAt || blogPosts.createdAt))
-        .limit(limit)
-        .offset(offset),
-      db
-        .select({ total: sql<number>`COUNT(*)::int` })
-        .from(blogPosts)
-        .where(where as any),
-    ]);
-
-    return NextResponse.json({
-      posts,
-      page,
-      totalPages: Math.ceil(total / limit),
-      total,
-    });
+    return NextResponse.json({ posts, total: totalRow?.total ?? 0, page, totalPages: Math.ceil((totalRow?.total ?? 0) / limit) });
   } catch (error) {
-    console.error("List blog posts error:", error);
-    return NextResponse.json({ error: "Failed to list blog posts" }, { status: 500 });
+    console.error("Blog list error:", error);
+    return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session || !hasAdminAccess(session)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const session = await getAuthSession();
+  if (!session || !hasAdminAccess(session)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
     const body = await request.json();
     const { title, content, excerpt, coverImage, tags, published } = body;
 
-    if (!title || !content) {
-      return NextResponse.json({ error: "title and content required" }, { status: 400 });
-    }
+    if (!title || !content) return NextResponse.json({ error: "title and content required" }, { status: 400 });
 
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
+    const slug = body.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-    const now = new Date();
-
-    const [created] = await db
+    const [post] = await db
       .insert(blogPosts)
       .values({
         title,
         slug,
-        content,
         excerpt: excerpt || null,
+        content,
         coverImage: coverImage || null,
         authorId: session.id,
         tags: tags || null,
-        published: published ?? false,
-        publishedAt: published ? now : null,
+        published: published || false,
+        publishedAt: published ? new Date() : null,
       })
       .returning();
 
-    return NextResponse.json({ success: true, post: created }, { status: 201 });
+    return NextResponse.json({ success: true, post }, { status: 201 });
   } catch (error) {
-    console.error("Create blog post error:", error);
-    return NextResponse.json({ error: "Failed to create blog post" }, { status: 500 });
+    console.error("Blog create error:", error);
+    return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
   }
 }
