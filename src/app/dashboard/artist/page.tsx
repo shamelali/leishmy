@@ -17,6 +17,7 @@ import {
   PricingRulesTab,
   PayoutsTab,
 } from "@/components/artist-dashboard";
+import ChangePassword from "@/components/ChangePassword";
 
 interface Payout {
   id: string;
@@ -270,6 +271,12 @@ export default function DashboardArtist() {
             userId={user?.id || ""}
             onRefresh={fetchData}
           />
+        )}
+
+        {activeTab === "account" && (
+          <div className="space-y-6">
+            <ChangePassword />
+          </div>
         )}
       </ArtistDashboardTabs>
     </div>

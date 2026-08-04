@@ -10,9 +10,10 @@ import {
   Package,
   Percent,
   FileText,
+  Lock,
 } from "lucide-react";
 
-export type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts";
+export type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts" | "account";
 
 interface Tab {
   id: TabId;
@@ -29,6 +30,7 @@ export const tabs: Tab[] = [
   { id: "packages", label: "Packages", icon: Package },
   { id: "pricing", label: "Pricing Rules", icon: Percent },
   { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "account", label: "Account", icon: Lock },
 ];
 
 interface ArtistDashboardTabsProps {

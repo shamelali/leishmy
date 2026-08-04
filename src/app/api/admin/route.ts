@@ -706,6 +706,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === "set-user-password") {
+      const { userId: targetUserId, newPassword } = body;
+      if (!targetUserId || !newPassword) {
+        return NextResponse.json({ error: "userId and newPassword required" }, { status: 400 });
+      }
+      if (newPassword.length < 6) {
+        return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      }
+      try {
+        const { prefixedEnvReader } = await import("@/lib/env-prefix");
+        const neauth = prefixedEnvReader("NEON_AUTH_");
+        const baseUrl = neauth.require("BASE_URL");
+        const res = await fetch(`${baseUrl}/admin/set-user-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: request.headers.get("authorization") || "",
+            Cookie: request.headers.get("cookie") || "",
+          },
+          body: JSON.stringify({ userId: targetUserId, newPassword }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Failed" }));
+          return NextResponse.json({ error: err.error || "Failed to set password" }, { status: res.status });
+        }
+        return NextResponse.json({ success: true });
+      } catch (err: any) {
+        console.error("set-user-password error:", err);
+        return NextResponse.json({ error: err?.message || "Failed to set password" }, { status: 500 });
+      }
+    }
+
     if (action === "delete-artist") {
       const { artistId } = body;
       if (artistId) {

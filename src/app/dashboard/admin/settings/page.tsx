@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import ChangePassword from "@/components/ChangePassword";
 
 export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
@@ -188,6 +189,8 @@ export default function AdminSettings() {
               ))}
             </div>
           </div>
+
+          <ChangePassword />
 
           <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

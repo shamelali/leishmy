@@ -924,6 +924,31 @@ export async function POST(
       return NextResponse.json({ success: true });
     }
 
+    if (action === "change-password") {
+      const { currentPassword, newPassword } = body;
+      if (!currentPassword || !newPassword) {
+        return NextResponse.json({ error: "currentPassword and newPassword required" }, { status: 400 });
+      }
+      if (newPassword.length < 6) {
+        return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
+      }
+      try {
+        const { getAuth } = await import("@/lib/auth/auth");
+        const authInstance = getAuth();
+        const result = await (authInstance as any).changePassword({
+          currentPassword,
+          newPassword,
+        }, { headers: request.headers });
+        if (result?.error) {
+          return NextResponse.json({ error: result.error.message || "Failed to change password" }, { status: 400 });
+        }
+        return NextResponse.json({ success: true });
+      } catch (err: any) {
+        console.error("change-password error:", err);
+        return NextResponse.json({ error: err?.message || "Failed to change password" }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("User POST error:", error);

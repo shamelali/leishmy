@@ -10,6 +10,7 @@ import {
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/context/AuthContext";
+import ChangePassword from "@/components/ChangePassword";
 
 interface StudioStats {
   artists: number;
@@ -166,6 +167,10 @@ export default function DashboardStudio() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mt-8">
+          <ChangePassword />
         </div>
     </div>
   );
