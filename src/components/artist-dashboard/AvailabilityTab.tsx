@@ -51,10 +51,16 @@ export default function AvailabilityTab() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/availability");
-      if (res.ok) {
-        const data = await res.json();
+      const [rulesRes, overridesRes] = await Promise.all([
+        fetch("/api/availability?userId=me"),
+        fetch("/api/availability/overrides"),
+      ]);
+      if (rulesRes.ok) {
+        const data = await rulesRes.json();
         setRules(data.rules || []);
+      }
+      if (overridesRes.ok) {
+        const data = await overridesRes.json();
         setOverrides(data.overrides || []);
       }
     } finally {
@@ -100,11 +106,16 @@ export default function AvailabilityTab() {
       const res = await fetch("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "upsert-rules", rules }),
+        body: JSON.stringify({ rules: rules.map(({ dayOfWeek, startTime, endTime, slotDurationMinutes }) => ({ dayOfWeek, startTime, endTime, slotDurationMinutes })) }),
       });
       if (res.ok) {
         const data = await res.json();
-        setRules(data.rules);
+        // Fetch updated rules to get proper IDs
+        const rulesRes = await fetch("/api/availability?userId=me");
+        if (rulesRes.ok) {
+          const rd = await rulesRes.json();
+          setRules(rd.rules || []);
+        }
         setMessage({ type: "success", text: "Availability saved!" });
       } else {
         setMessage({ type: "error", text: "Failed to save" });
@@ -120,14 +131,17 @@ export default function AvailabilityTab() {
     if (!newOverride.date) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/availability", {
+      const res = await fetch("/api/availability/overrides", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add-override", ...newOverride }),
+        body: JSON.stringify({ date: newOverride.date, unavailable: true, reason: newOverride.reason }),
       });
       if (res.ok) {
-        const data = await res.json();
-        setOverrides([...overrides, data.override]);
+        const overridesRes = await fetch("/api/availability/overrides");
+        if (overridesRes.ok) {
+          const data = await overridesRes.json();
+          setOverrides(data.overrides || []);
+        }
         setNewOverride({ date: "", reason: "", unavailable: true });
         setMessage({ type: "success", text: "Date blocked" });
       }
@@ -138,10 +152,10 @@ export default function AvailabilityTab() {
 
   const deleteOverride = async (id: number) => {
     try {
-      const res = await fetch("/api/availability", {
-        method: "POST",
+      const res = await fetch("/api/availability/overrides", {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete-override", overrideId: id }),
+        body: JSON.stringify({ overrideId: id }),
       });
       if (res.ok) {
         setOverrides(overrides.filter((o) => o.id !== id));
