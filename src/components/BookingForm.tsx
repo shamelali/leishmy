@@ -57,6 +57,8 @@ export function BookingForm({
     discount: number;
     extras: Array<{ name: string; price: number }>;
   } | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<Array<{ time: string; available: boolean }> | null>(null);
+  const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, startTransition] = useTransition();
 
@@ -85,6 +87,15 @@ export function BookingForm({
   function getServiceLabel(id: string): string {
     const s = allServices.find(x => String(x.id) === id);
     return s?.name || id;
+  }
+
+  function format24to12(time: string): string {
+    const [hStr, mStr] = time.split(":");
+    const h = Number(hStr);
+    const m = Number(mStr);
+    const period = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
   }
 
   const handleNext = () => {
@@ -227,6 +238,40 @@ export function BookingForm({
       }
     };
   }, [step, bookingId, checkQuoteStatus]);
+
+  useEffect(() => {
+    if (!date || !artistId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAvailableSlots(null);
+      setAvailabilityMessage(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get-slots", providerId: artistId, date }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.slots && data.slots.length > 0) {
+          setAvailableSlots(data.slots);
+          setAvailabilityMessage(null);
+        } else if (data.reason) {
+          setAvailableSlots([]);
+          setAvailabilityMessage(data.reason);
+        } else {
+          setAvailableSlots(null);
+        }
+      } catch {
+        if (!cancelled) setAvailableSlots(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [date, artistId]);
 
   const handleAcceptQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -492,13 +537,28 @@ export function BookingForm({
               value={time}
               onChange={(e) => setTime(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+              disabled={availabilityMessage !== null}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <option value="">Select time</option>
-              {timeSlots.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
+              <option value="">{availabilityMessage ? "Not available" : "Select time"}</option>
+              {availableSlots && availableSlots.length > 0 ? (
+                availableSlots.map((s) => {
+                  const display = format24to12(s.time);
+                  return (
+                    <option key={s.time} value={display} disabled={!s.available}>
+                      {display}{!s.available ? " (booked)" : ""}
+                    </option>
+                  );
+                })
+              ) : availableSlots === null ? (
+                timeSlots.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))
+              ) : null}
             </select>
+            {availabilityMessage && (
+              <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">{availabilityMessage}</p>
+            )}
           </div>
 
           <div>
