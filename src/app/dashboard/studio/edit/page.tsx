@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Save, Store } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Save, Store } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 
 export default function StudioEdit() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -67,9 +69,6 @@ export default function StudioEdit() {
   if (fetchError) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
         <p className="text-red-500 text-center py-16">{fetchError}</p>
       </div>
     );
@@ -77,15 +76,11 @@ export default function StudioEdit() {
 
   if (loading) return <div className="max-w-2xl mx-auto px-4 py-8"><DashboardLoading /></div>;
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <button
-        onClick={() => router.push("/dashboard/studio")}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-      </button>
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
+  return (
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30">
           <Store className="w-5 h-5 text-violet-500" />
@@ -173,6 +168,7 @@ export default function StudioEdit() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardSidebar>
   );
 }

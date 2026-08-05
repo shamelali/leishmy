@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Sparkles } from "lucide-react";
+import {
+  User, Image, Calendar, Tag, Wallet, Package, Percent, FileText, Lock, Clock, BarChart3,
+} from "lucide-react";
 import Skeleton from "@/components/Skeleton";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import type { ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 import {
-  ArtistDashboardTabs,
-  type TabId,
   ProfileTab,
   PortfolioTab,
   BookingsTab,
@@ -20,6 +21,8 @@ import {
   AnalyticsTab,
 } from "@/components/artist-dashboard";
 import ChangePassword from "@/components/ChangePassword";
+
+type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts" | "availability" | "analytics" | "account";
 
 interface Payout {
   id: string;
@@ -198,6 +201,20 @@ export default function DashboardArtist() {
     (b) => b.status === "quote_pending",
   ).length;
 
+  const artistItems = [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "portfolio", label: "Portfolio", icon: Image },
+    { id: "bookings", label: "Bookings", icon: Calendar, badge: pendingBookings },
+    { id: "quotes", label: "Quotes", icon: FileText, badge: pendingQuotes },
+    { id: "prices", label: "Prices", icon: Tag },
+    { id: "packages", label: "Packages", icon: Package },
+    { id: "pricing", label: "Pricing Rules", icon: Percent },
+    { id: "payouts", label: "Payouts", icon: Wallet },
+    { id: "availability", label: "Availability", icon: Clock },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "account", label: "Account", icon: Lock },
+  ];
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -213,11 +230,10 @@ export default function DashboardArtist() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <ArtistDashboardTabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        pendingBookings={pendingBookings}
-        pendingQuotes={pendingQuotes}
+      <DashboardSidebar
+        items={artistItems}
+        activeId={activeTab}
+        onTabChange={(id) => setActiveTab(id as TabId)}
       >
         {activeTab === "profile" && (
           <ProfileTab
@@ -284,7 +300,7 @@ export default function DashboardArtist() {
             <ChangePassword />
           </div>
         )}
-      </ArtistDashboardTabs>
+      </DashboardSidebar>
     </div>
   );
 }

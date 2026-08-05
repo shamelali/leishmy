@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Package, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Package, Plus, Trash2 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
 
 export default function StudioInventory() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -61,12 +64,11 @@ export default function StudioInventory() {
     setItems(items.filter((i) => i.id !== id));
   };
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
+  return (
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inventory</h1>
           <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-rose-500 text-white hover:bg-rose-600">
@@ -133,6 +135,7 @@ export default function StudioInventory() {
             </table>
           </div>
         )}
-    </div>
+      </div>
+    </DashboardSidebar>
   );
 }

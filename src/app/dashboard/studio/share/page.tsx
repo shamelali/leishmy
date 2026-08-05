@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Share2, Copy, Check, Link as LinkIcon, Users, MousePointerClick, Gift, Download } from "lucide-react";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import QRCode from "qrcode";
 
 interface ShareInfo {
@@ -35,6 +38,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ElementType; 
 }
 
 export default function StudioSharePage() {
+  const pathname = usePathname();
   const [data, setData] = useState<ShareInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -116,8 +120,11 @@ export default function StudioSharePage() {
 
   if (!data) return null;
 
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Share & Refer</h1>
         <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
@@ -238,6 +245,7 @@ export default function StudioSharePage() {
           <li>Points unlock rewards like priority booking, exclusive events, and more</li>
         </ol>
       </div>
-    </div>
+      </div>
+    </DashboardSidebar>
   );
 }

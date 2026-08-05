@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowLeft, X, Clock, User, Tag } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ChevronLeft, ChevronRight, X, Clock, User, Tag } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -17,6 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function StudioCalendar() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -64,13 +67,12 @@ export default function StudioCalendar() {
 
   const selectedEvents = selectedDay ? getEvents(selectedDay) : [];
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-      </Link>
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Calendar</h1>
+  return (
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Calendar</h1>
 
       <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
         <div className="p-4 flex items-center justify-between border-b border-gray-100 dark:border-neutral-800">
@@ -164,6 +166,7 @@ export default function StudioCalendar() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </DashboardSidebar>
   );
 }

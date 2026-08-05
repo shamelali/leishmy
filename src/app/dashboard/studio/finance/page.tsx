@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { DollarSign, TrendingUp, ArrowLeft, Wallet, Banknote, Download, CheckCircle, Clock, XCircle } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { DollarSign, TrendingUp, Wallet, Banknote, Download, CheckCircle, Clock, XCircle } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
 
 interface Payout {
@@ -35,6 +37,7 @@ const payoutStatusColor: Record<string, string> = {
 
 export default function StudioFinance() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
@@ -81,12 +84,11 @@ export default function StudioFinance() {
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/dashboard/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
+  return (
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Finance</h1>
 
         {fetchError ? (
@@ -171,6 +173,7 @@ export default function StudioFinance() {
             </div>
           </>
         )}
-    </div>
+      </div>
+    </DashboardSidebar>
   );
 }

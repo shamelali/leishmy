@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3, Users, DollarSign, Star, TrendingUp,
-  Calendar, Clock, Wallet, Store, Package, Briefcase,
-  Share2, Settings, Send,
+  Calendar, Clock, Wallet,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
 import ChangePassword from "@/components/ChangePassword";
 
@@ -40,17 +40,6 @@ export default function DashboardStudio() {
   const [loading, setLoading] = useState(true);
   const [studioName, setStudioName] = useState("");
   const [fetchError, setFetchError] = useState("");
-
-  const studioItems = [
-    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/studio" },
-    { id: "quotes", label: "Quotes", icon: Send, href: "/dashboard/studio/quotes" },
-    { id: "calendar", label: "Calendar", icon: Calendar, href: "/dashboard/studio/calendar" },
-    { id: "staff", label: "Staff", icon: Users, href: "/dashboard/studio/staff" },
-    { id: "finance", label: "Finance", icon: DollarSign, href: "/dashboard/studio/finance" },
-    { id: "inventory", label: "Inventory", icon: Package, href: "/dashboard/studio/inventory" },
-    { id: "edit", label: "Edit Profile", icon: Settings, href: "/dashboard/studio/edit" },
-    { id: "share", label: "Share & Refer", icon: Share2, href: "/dashboard/studio/share" },
-  ];
 
   const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
