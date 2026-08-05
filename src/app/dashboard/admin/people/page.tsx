@@ -258,9 +258,10 @@ export default function PeoplePage() {
               </div>
             </div>
           )}
-          </DashboardSidebar>
         </div>
+        </DashboardSidebar>
       </div>
+    </div>
     </ProtectedRoute>
   );
 }

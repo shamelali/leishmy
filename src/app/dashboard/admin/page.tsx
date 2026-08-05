@@ -405,26 +405,26 @@ export default function DashboardAdmin() {
   ];
 
   return (
-    <>
+    <DashboardSidebar items={sidebarItems} activeId={tab} onTabChange={switchTab}>
+      <>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Platform overview and management</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Platform overview and management</p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 rounded-full self-start sm:self-auto">
+              <Shield className="w-4 h-4 text-rose-500" />
+              <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">Admin</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 rounded-full self-start sm:self-auto">
-            <Shield className="w-4 h-4 text-rose-500" />
-            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">Admin</span>
-          </div>
-        </div>
 
-        {fetchError && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-sm text-red-600 dark:text-red-400">
-            {fetchError}
-          </div>
-        )}
+          {fetchError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-sm text-red-600 dark:text-red-400">
+              {fetchError}
+            </div>
+          )}
 
-        <DashboardSidebar items={sidebarItems} activeId={tab} onTabChange={switchTab}>
           {tab !== "overview" && (
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -2118,8 +2118,8 @@ export default function DashboardAdmin() {
         </div>
         )}
         </DashboardSidebar>
-      </div>
-    </>
+        </div>
+      </>
   );
 }
 

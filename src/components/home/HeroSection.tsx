@@ -77,12 +77,13 @@ export async function HeroSection({ stats }: { stats?: HeroStats[] }) {
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 z-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={heroBg}
           alt=""
+          fill
           className="w-full h-full object-cover animate-ken-burns"
           aria-hidden="true"
+          priority
         />
         {/* Dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30 dark:from-black/90 dark:via-black/60 dark:to-black/40" />

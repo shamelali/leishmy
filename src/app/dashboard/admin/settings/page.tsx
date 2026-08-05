@@ -203,6 +203,5 @@ export default function AdminSettings() {
           </button>
         </form>
       </DashboardSidebar>
-    </div>
   );
 }

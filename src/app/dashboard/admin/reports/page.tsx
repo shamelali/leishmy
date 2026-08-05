@@ -272,7 +272,8 @@ export default function AdminReports() {
             ))}
           </div>
         </div>
-      </DashboardSidebar>
+        </div>
+        </DashboardSidebar>
     </div>
   );
 }
