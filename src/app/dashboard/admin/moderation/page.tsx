@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, startTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Flag, UserCheck, XCircle, MessageSquare, ChevronLeft, Loader2, Shield, AlertTriangle, Eye, Trash2 } from "lucide-react";
+import { Flag, UserCheck, XCircle, MessageSquare, ChevronLeft, Loader2, Shield, AlertTriangle, Eye, Trash2, BarChart3, FileText, Settings, Users } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface ModerationItem {
@@ -41,6 +42,13 @@ interface ModerationStats {
 }
 
 export default function ModerationPage() {
+  const sidebarItems = [
+    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/admin" },
+    { id: "moderation", label: "Moderation", icon: Flag, href: "/dashboard/admin/moderation" },
+    { id: "reports", label: "Reports", icon: FileText, href: "/dashboard/admin/reports" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
+    { id: "people", label: "People", icon: Users, href: "/dashboard/admin/people" },
+  ];
   const [contacts, setContacts] = useState<ModerationItem[]>([]);
   const [pendingArtists, setPendingArtists] = useState<PendingArtist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,16 +184,10 @@ export default function ModerationPage() {
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
-      <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-rose-500 transition-colors mb-6"
-          >
-            <ChevronLeft className="w-4 h-4" /> Back to Dashboard
-          </Link>
-
-          <div className="flex items-center justify-between mb-6">
+      <DashboardSidebar items={sidebarItems} activeId="moderation">
+        <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-6">
             <div>
               <Flag className="w-7 h-7 text-rose-500" />
               <div className="mt-1">
@@ -328,6 +330,7 @@ export default function ModerationPage() {
           )}
         </div>
       </div>
+      </DashboardSidebar>
     </ProtectedRoute>
   );
 }

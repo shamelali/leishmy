@@ -5,10 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Users, ChevronLeft, Search, MapPin, Star, BadgeCheck, Building2,
-  Palette, Shield, User as UserIcon,
+  Palette, Shield, User as UserIcon, BarChart3, FileText, Settings,
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 interface Person {
   id: string;
@@ -72,6 +73,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function PeoplePage() {
+  const sidebarItems = [
+    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/admin" },
+    { id: "moderation", label: "Moderation", icon: Shield, href: "/dashboard/admin/moderation" },
+    { id: "reports", label: "Reports", icon: FileText, href: "/dashboard/admin/reports" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
+    { id: "people", label: "People", icon: Users, href: "/dashboard/admin/people" },
+  ];
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -129,15 +137,9 @@ export default function PeoplePage() {
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
-      <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <Link
-              href="/dashboard/admin"
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-rose-500 transition-colors mb-4"
-            >
-              <ChevronLeft className="w-4 h-4" /> Back to Dashboard
-            </Link>
+      <DashboardSidebar items={sidebarItems} activeId="people">
+        <div className="min-h-screen bg-gray-50/50 dark:bg-neutral-950">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center gap-3">
               <Users className="w-7 h-7 text-rose-500" />
               <div>
@@ -145,7 +147,6 @@ export default function PeoplePage() {
                 <p className="text-sm text-gray-500">Everyone on the platform, in one place</p>
               </div>
             </div>
-          </div>
 
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <div className="relative flex-1 min-w-[200px]">
@@ -257,6 +258,7 @@ export default function PeoplePage() {
               </div>
             </div>
           )}
+          </DashboardSidebar>
         </div>
       </div>
     </ProtectedRoute>

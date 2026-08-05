@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download, ChevronDown, ChevronUp, Eye, Settings, FileText, Users as UsersIcon } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 function pct(num: number, denom: number): string {
   if (denom <= 0) return num > 0 ? "+100%" : "0%";
@@ -12,6 +13,13 @@ function pct(num: number, denom: number): string {
 }
 
 export default function AdminReports() {
+  const sidebarItems = [
+    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/admin" },
+    { id: "moderation", label: "Moderation", icon: Shield, href: "/dashboard/admin/moderation" },
+    { id: "reports", label: "Reports", icon: FileText, href: "/dashboard/admin/reports" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
+    { id: "people", label: "People", icon: UsersIcon, href: "/dashboard/admin/people" },
+  ];
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,11 +89,8 @@ export default function AdminReports() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/dashboard/admin" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
-
+    <DashboardSidebar items={sidebarItems} activeId="reports">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
           <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50">
@@ -267,6 +272,7 @@ export default function AdminReports() {
             ))}
           </div>
         </div>
+      </DashboardSidebar>
     </div>
   );
 }

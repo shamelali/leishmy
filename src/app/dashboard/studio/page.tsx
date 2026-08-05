@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BarChart3, Users, DollarSign, Star, TrendingUp,
   Calendar, Clock, Wallet, Store, Package, Briefcase,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import ChangePassword from "@/components/ChangePassword";
 
@@ -32,11 +34,25 @@ interface RecentBooking {
 
 export default function DashboardStudio() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [stats, setStats] = useState<StudioStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [studioName, setStudioName] = useState("");
   const [fetchError, setFetchError] = useState("");
+
+  const studioItems = [
+    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/studio" },
+    { id: "quotes", label: "Quotes", icon: Send, href: "/dashboard/studio/quotes" },
+    { id: "calendar", label: "Calendar", icon: Calendar, href: "/dashboard/studio/calendar" },
+    { id: "staff", label: "Staff", icon: Users, href: "/dashboard/studio/staff" },
+    { id: "finance", label: "Finance", icon: DollarSign, href: "/dashboard/studio/finance" },
+    { id: "inventory", label: "Inventory", icon: Package, href: "/dashboard/studio/inventory" },
+    { id: "edit", label: "Edit Profile", icon: Settings, href: "/dashboard/studio/edit" },
+    { id: "share", label: "Share & Refer", icon: Share2, href: "/dashboard/studio/share" },
+  ];
+
+  const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
   useEffect(() => {
     if (!user?.id) return;
@@ -83,7 +99,8 @@ export default function DashboardStudio() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <DashboardSidebar items={studioItems} activeId={activeId}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">{studioName}</h1>
 
         {fetchError && (
@@ -91,31 +108,6 @@ export default function DashboardStudio() {
             {fetchError}
           </div>
         )}
-
-        <div className="flex gap-1.5 mb-8 overflow-x-auto pb-1">
-          {[
-            { href: "/dashboard/studio", label: "Overview", icon: BarChart3 },
-            { href: "/dashboard/studio/quotes", label: "Quotes", icon: Send },
-            { href: "/dashboard/studio/calendar", label: "Calendar", icon: Calendar },
-            { href: "/dashboard/studio/staff", label: "Staff", icon: Users },
-            { href: "/dashboard/studio/finance", label: "Finance", icon: DollarSign },
-            { href: "/dashboard/studio/inventory", label: "Inventory", icon: Package },
-            { href: "/dashboard/studio/edit", label: "Edit Profile", icon: Settings },
-            { href: "/dashboard/studio/share", label: "Share & Refer", icon: Share2 },
-          ].map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
-                href === "/dashboard/studio"
-                  ? "bg-rose-500 text-white shadow-sm"
-                  : "bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400"
-              }`}
-            >
-              <Icon className="w-4 h-4" /> {label}
-            </Link>
-          ))}
-        </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {([
@@ -172,6 +164,7 @@ export default function DashboardStudio() {
         <div className="mt-8">
           <ChangePassword />
         </div>
+      </DashboardSidebar>
     </div>
   );
 }

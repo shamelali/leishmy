@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import StatCard from "@/components/StatCard";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { ProfilePictureUploader } from "@/components/upload";
 import { useAuth } from "@/context/AuthContext";
 
@@ -385,6 +386,24 @@ export default function DashboardAdmin() {
     return result;
   };
 
+  const sidebarItems = [
+    { id: "overview", label: "Overview", icon: BarChart3 },
+    { id: "artists", label: "Artists", icon: Palette },
+    { id: "studios", label: "Studios", icon: Store },
+    { id: "users", label: "Users", icon: Users },
+    { id: "bookings", label: "Bookings", icon: BookOpen },
+    { id: "payments", label: "Payments", icon: CreditCard },
+    { id: "payouts", label: "Payouts", icon: DollarSign },
+    { id: "events", label: "Events", icon: Calendar },
+    { id: "inbox", label: "Inbox", icon: Mail },
+    { id: "webhooks", label: "Webhooks", icon: Webhook },
+    { id: "monitoring", label: "Monitoring", icon: Activity },
+    { id: "moderation", label: "Moderation", icon: Flag, href: "/dashboard/admin/moderation" },
+    { id: "reports", label: "Reports", icon: FileText, href: "/dashboard/admin/reports" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
+    { id: "people", label: "People", icon: Users, href: "/dashboard/admin/people" },
+  ];
+
   return (
     <>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
@@ -405,35 +424,15 @@ export default function DashboardAdmin() {
           </div>
         )}
 
-        <div className="flex gap-1 mb-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-          {tabs.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => switchTab(key)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === key ? "bg-rose-500 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800"}`}>
-              <Icon className="w-4 h-4" />{label}
-            </button>
-          ))}
-          <span className="w-px h-6 bg-gray-200 dark:neutral-700 mx-1 self-center hidden sm:inline" />
-          <Link href="/dashboard/admin/moderation" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <Flag className="w-4 h-4" />Moderation
-          </Link>
-          <Link href="/dashboard/admin/reports" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <FileText className="w-4 h-4" />Reports
-          </Link>
-          <Link href="/dashboard/admin/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <Settings className="w-4 h-4" />Settings
-          </Link>
-          <Link href="/dashboard/admin/people" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <Users className="w-4 h-4" />People
-          </Link>
-        </div>
+        <DashboardSidebar items={sidebarItems} activeId={tab} onTabChange={switchTab}>
+          {tab !== "overview" && (
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Search by name, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
+            </div>
+          )}
 
-        {tab !== "overview" && (
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search by name, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400" />
-          </div>
-        )}
-
-        {tab === "overview" && (
+          {tab === "overview" && (
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {loading ? (
@@ -2117,7 +2116,9 @@ export default function DashboardAdmin() {
             </div>
           </div>
         </div>
-      )}
+        )}
+        </DashboardSidebar>
+      </div>
     </>
   );
 }

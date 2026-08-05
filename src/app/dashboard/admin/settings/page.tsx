@@ -3,11 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
+import { Settings, Bell, Shield, Globe, ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2, BarChart3, FileText, Users as UsersIcon } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChangePassword from "@/components/ChangePassword";
 
 export default function AdminSettings() {
+  const sidebarItems = [
+    { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard/admin" },
+    { id: "moderation", label: "Moderation", icon: Shield, href: "/dashboard/admin/moderation" },
+    { id: "reports", label: "Reports", icon: FileText, href: "/dashboard/admin/reports" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
+    { id: "people", label: "People", icon: UsersIcon, href: "/dashboard/admin/people" },
+  ];
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -94,11 +102,8 @@ export default function AdminSettings() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/dashboard/admin" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
-
+    <DashboardSidebar items={sidebarItems} activeId="settings">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
 
         <form onSubmit={handleSave} className="space-y-6">
@@ -197,6 +202,7 @@ export default function AdminSettings() {
             {saved ? "Saved!" : "Save Settings"}
           </button>
         </form>
+      </DashboardSidebar>
     </div>
   );
 }
