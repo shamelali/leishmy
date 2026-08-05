@@ -9,6 +9,7 @@ import {
   Award,
   AtSign,
   Clock,
+  AlertCircle,
 } from "lucide-react";
 import AutoSaveField from "./AutoSaveField";
 import AvailabilityToggle from "./AvailabilityToggle";
@@ -58,20 +59,39 @@ export default function ProfileTab({ profile, available: initialAvailable = true
     const otherEntry = profile.specialties.find((s) => s.startsWith("Other:"));
     return otherEntry ? otherEntry.slice(7).trim() : "";
   });
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const districts = area ? malaysiaDistricts[area] || [] : [];
 
-  const handleFieldSave = useCallback(
-    (field: string) => async (value: string) => {
+  const doSave = useCallback(
+    async (payload: Record<string, unknown>) => {
       const res = await fetch("/api/user/artist-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, [field]: value }),
+        body: JSON.stringify({ userId, ...payload }),
       });
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) {
+        let message = "Failed to save changes. Please try again.";
+        try {
+          const data = await res.json();
+          if (typeof data?.error === "string" && data.error) message = data.error;
+        } catch {
+          // ignore response parse error
+        }
+        setSaveError(message);
+        throw new Error(message);
+      }
+      setSaveError(null);
+    },
+    [userId],
+  );
+
+  const handleFieldSave = useCallback(
+    (field: string) => async (value: string) => {
+      await doSave({ [field]: value });
       onUpdate(field, value);
     },
-    [userId, onUpdate],
+    [doSave, onUpdate],
   );
 
   async function handleImageChange(url: string) {
@@ -87,13 +107,12 @@ export default function ProfileTab({ profile, available: initialAvailable = true
     if (field === "responseTime") setResponseTime(value);
     if (field === "availability") setAvailability(value);
 
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, [field]: value }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate(field, value);
+    try {
+      await doSave({ [field]: value });
+      onUpdate(field, value);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   async function toggleArrayItem(field: "languages" | "specialties", item: string) {
@@ -122,16 +141,12 @@ export default function ProfileTab({ profile, available: initialAvailable = true
           ]
         : undefined;
 
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        [field]: field === "specialties" ? finalSpecialties : newArray,
-      }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate(field, field === "specialties" ? finalSpecialties : newArray);
+    try {
+      await doSave({ [field]: field === "specialties" ? finalSpecialties : newArray });
+      onUpdate(field, field === "specialties" ? finalSpecialties : newArray);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   async function handleOtherSpecialtyChange(value: string) {
@@ -140,35 +155,32 @@ export default function ProfileTab({ profile, available: initialAvailable = true
       ...specialties.filter((s) => s !== "Other"),
       ...(value.trim() ? [`Other: ${value.trim()}`] : ["Other"]),
     ];
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, specialties: finalSpecialties }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate("specialties", finalSpecialties);
+    try {
+      await doSave({ specialties: finalSpecialties });
+      onUpdate("specialties", finalSpecialties);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   async function handleToggleAvailable(available: boolean) {
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, available }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate("available", available);
+    try {
+      await doSave({ available });
+      onUpdate("available", available);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   async function handleToggleShowPrices() {
     const newValue = !showPrices;
     setShowPrices(newValue);
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, showPrices: newValue }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate("showPrices", newValue);
+    try {
+      await doSave({ showPrices: newValue });
+      onUpdate("showPrices", newValue);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   function extractSocialUrl(text: string, host: string): string {
@@ -180,13 +192,12 @@ export default function ProfileTab({ profile, available: initialAvailable = true
   async function handleSocialSave(value: string) {
     const instagramUrl = extractSocialUrl(value, "instagram\\.com");
     const tiktokUrl = extractSocialUrl(value, "tiktok\\.com");
-    const res = await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, instagramUrl, tiktokUrl }),
-    });
-    if (!res.ok) throw new Error("Failed to save");
-    onUpdate("socialProfiles", value);
+    try {
+      await doSave({ instagramUrl, tiktokUrl });
+      onUpdate("socialProfiles", value);
+    } catch {
+      // error surfaced via banner
+    }
   }
 
   return (
@@ -200,6 +211,22 @@ export default function ProfileTab({ profile, available: initialAvailable = true
           Changes save automatically as you type
         </p>
       </div>
+
+      {/* Save error banner */}
+      {saveError && (
+        <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span className="flex-1">{saveError}</span>
+          <button
+            type="button"
+            onClick={() => setSaveError(null)}
+            className="shrink-0 text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 text-lg leading-none"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Profile Photo */}
       <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 p-6">

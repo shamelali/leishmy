@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, AlertCircle } from "lucide-react";
 
 interface AutoSaveFieldProps {
   label: string;
@@ -29,7 +29,7 @@ export default function AutoSaveField({
   className = "",
 }: AutoSaveFieldProps) {
   const [value, setValue] = useState(initialValue);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -57,7 +57,7 @@ export default function AutoSaveField({
           await onSave(newValue);
           if (mountedRef.current) setStatus("saved");
         } catch {
-          if (mountedRef.current) setStatus("idle");
+          if (mountedRef.current) setStatus("error");
         }
         setTimeout(() => {
           if (mountedRef.current) setStatus("idle");
@@ -75,6 +75,7 @@ export default function AutoSaveField({
 
   function handleChange(newValue: string) {
     setValue(newValue);
+    setStatus("idle");
     debouncedSave(newValue);
   }
 
@@ -99,6 +100,12 @@ export default function AutoSaveField({
             <span className="flex items-center gap-1 text-xs text-green-500">
               <Check className="w-3 h-3" />
               Saved
+            </span>
+          )}
+          {status === "error" && (
+            <span className="flex items-center gap-1 text-xs text-rose-500">
+              <AlertCircle className="w-3 h-3" />
+              Save failed
             </span>
           )}
         </div>

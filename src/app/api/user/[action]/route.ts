@@ -572,8 +572,6 @@ export async function POST(
         "price",
         "accommodationFee",
         "travelSurcharge",
-        "location",
-        "phone",
         "area",
         "district",
         "specialties",
@@ -582,6 +580,7 @@ export async function POST(
         "certifications",
         "availability",
         "showPrices",
+        "available",
         "defaultDepositPercent",
         "pricingRules",
       ];
@@ -684,6 +683,12 @@ export async function POST(
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())
       ) {
         userUpdateData.email = body.email.trim().toLowerCase().slice(0, 255);
+      }
+      if (typeof body.phone === "string") {
+        userUpdateData.phone = body.phone.trim().slice(0, 50);
+      }
+      if (typeof body.location === "string") {
+        userUpdateData.location = body.location.trim().slice(0, 255);
       }
       if (typeof body.image === "string") {
         if (body.image === "" || isAllowedImageUrl(body.image)) {
