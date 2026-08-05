@@ -8,6 +8,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ThemeScript } from "@/components/ThemeScript";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: { default: "Leish! — Beauty Booking Marketplace", template: "%s | Leish!" },
@@ -104,6 +105,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <WhatsAppChatbot />
           </Providers>
         </Sentry.ErrorBoundary>
+        <SpeedInsights />
       </body>
     </html>
   );
