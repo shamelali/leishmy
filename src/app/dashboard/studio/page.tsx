@@ -164,7 +164,7 @@ export default function DashboardStudio() {
         <div className="mt-8">
           <ChangePassword />
         </div>
+      </div>
       </DashboardSidebar>
-    </div>
   );
 }

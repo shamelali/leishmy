@@ -329,9 +329,8 @@ export default function ModerationPage() {
             </div>
           )}
         </div>
-        </DashboardSidebar>
       </div>
-    </div>
+      </DashboardSidebar>
     </ProtectedRoute>
   );
 }

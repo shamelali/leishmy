@@ -2117,9 +2117,9 @@ export default function DashboardAdmin() {
           </div>
         </div>
         )}
-        </DashboardSidebar>
         </div>
       </>
+      </DashboardSidebar>
   );
 }
 

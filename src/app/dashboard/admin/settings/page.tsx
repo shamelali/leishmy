@@ -202,6 +202,7 @@ export default function AdminSettings() {
             {saved ? "Saved!" : "Save Settings"}
           </button>
         </form>
+      </div>
       </DashboardSidebar>
   );
 }
