@@ -100,10 +100,11 @@ export default function DashboardArtist() {
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const [payoutRes, bookingsRes, profileRes] = await Promise.all([
+      const [payoutRes, bookingsRes, profileRes, servicesRes] = await Promise.all([
         fetch(`/api/payments?action=payouts&userId=${user.id}`),
         fetch(`/api/user/bookings`),
         fetch(`/api/user/artist-profile`),
+        fetch(`/api/services?artistId=${user.id}`),
       ]);
 
       if (payoutRes.ok) {
@@ -148,8 +149,12 @@ export default function DashboardArtist() {
             socialProfiles: social,
           });
           setAvailable(a.available !== false);
-          setServices(a.services || []);
         }
+      }
+
+      if (servicesRes.ok) {
+        const servicesData = await servicesRes.json();
+        setServices(servicesData.services || []);
       }
     } catch {
       // silent

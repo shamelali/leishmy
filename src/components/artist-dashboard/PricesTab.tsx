@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Save, Loader2, DollarSign } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, DollarSign, AlertCircle } from "lucide-react";
 
 interface Service {
   id: string;
@@ -29,42 +29,110 @@ export default function PricesTab({
   const [services, setServices] = useState(initialServices);
   const [newService, setNewService] = useState({ name: "", price: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({ name: "", price: "", description: "" });
 
-  async function saveServices(newList: Service[]) {
+  function applyResult(newList: Service[]) {
     setServices(newList);
     onUpdate(newList);
+  }
+
+  async function createService(service: Service) {
     setSaving(true);
-    await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        services: newList.map((s) => ({
-          name: s.name,
-          price: Number(s.price),
-          description: s.description || "",
-        })),
-      }),
-    });
-    setSaving(false);
+    setError("");
+    try {
+      const res = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          artistId: userId,
+          name: service.name,
+          price: service.price,
+          description: service.description || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add service");
+      const saved = data.service;
+      applyResult([
+        ...services.filter((s) => !s.id.startsWith("temp-")),
+        {
+          id: String(saved.id),
+          name: saved.name,
+          price: Number(saved.price) || 0,
+          description: saved.description || "",
+          duration: saved.duration || "",
+        },
+      ]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add service");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateService(service: Service) {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/services", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          description: service.description || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update service");
+      const saved = data.service;
+      applyResult(
+        services.map((s) =>
+          s.id === service.id
+            ? {
+                id: String(saved.id),
+                name: saved.name,
+                price: Number(saved.price) || 0,
+                description: saved.description || "",
+                duration: saved.duration || "",
+              }
+            : s,
+        ),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update service");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteService(id: string) {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/services?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete service");
+      applyResult(services.filter((s) => s.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete service");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleAddService() {
     if (!newService.name.trim() || !newService.price) return;
-    const service: Service = {
+    createService({
       id: `temp-${Date.now()}`,
       name: newService.name.trim(),
       price: Number(newService.price),
       description: newService.description.trim(),
-    };
-    saveServices([...services, service]);
+    });
     setNewService({ name: "", price: "", description: "" });
-  }
-
-  function handleDeleteService(id: string) {
-    saveServices(services.filter((s) => s.id !== id));
   }
 
   function startEdit(service: Service) {
@@ -78,24 +146,30 @@ export default function PricesTab({
 
   function saveEdit() {
     if (!editId) return;
-    saveServices(
-      services.map((s) =>
-        s.id === editId
-          ? { ...s, name: editValues.name, price: Number(editValues.price), description: editValues.description }
-          : s,
-      ),
-    );
+    updateService({
+      id: editId,
+      name: editValues.name,
+      price: Number(editValues.price),
+      description: editValues.description,
+    });
     setEditId(null);
   }
 
   async function handleToggleShowPrices() {
     const newValue = !showPrices;
     onToggleShowPrices(newValue);
-    await fetch("/api/user/artist-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, showPrices: newValue }),
-    });
+    setError("");
+    try {
+      const res = await fetch("/api/user/artist-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, showPrices: newValue }),
+      });
+      if (!res.ok) throw new Error("Failed to save price visibility");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save price visibility");
+      onToggleShowPrices(!newValue);
+    }
   }
 
   return (
@@ -106,6 +180,13 @@ export default function PricesTab({
           Manage your services and pricing
         </p>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
       {/* Show prices toggle */}
       <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
@@ -164,10 +245,10 @@ export default function PricesTab({
           />
           <button
             onClick={handleAddService}
-            disabled={!newService.name.trim() || !newService.price}
+            disabled={!newService.name.trim() || !newService.price || saving}
             className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-4 h-4" /> Add Service
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add Service
           </button>
         </div>
       </div>
@@ -216,7 +297,7 @@ export default function PricesTab({
                         onClick={saveEdit}
                         className="px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-medium hover:bg-rose-600 transition-colors"
                       >
-                        Save
+                        <Save className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setEditId(null)}
@@ -249,7 +330,7 @@ export default function PricesTab({
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteService(service.id)}
+                        onClick={() => deleteService(service.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
