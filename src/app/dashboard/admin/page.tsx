@@ -294,11 +294,12 @@ export default function DashboardAdmin() {
     fetchData(t, p);
   };
 
-  const switchTab = (t: Tab) => {
-    setTab(t);
+  const switchTab = (t: string) => {
+    const tab = t as Tab;
+    setTab(tab);
     setSearch("");
-    setPage((prev) => ({ ...prev, [t]: 1 }));
-    fetchData(t, 1);
+    setPage((prev) => ({ ...prev, [tab]: 1 }));
+    fetchData(tab, 1);
   };
 
   const fetchOverviewDetail = async (type: string) => {
@@ -2117,9 +2118,8 @@ export default function DashboardAdmin() {
           </div>
         </div>
         )}
-        </DashboardSidebar>
-        </div>
       </>
+      </DashboardSidebar>
   );
 }
 

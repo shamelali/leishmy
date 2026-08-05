@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download, ChevronDown, ChevronUp, Eye, Settings, FileText, Users as UsersIcon } from "lucide-react";
+import { BarChart3, TrendingUp, Users, DollarSign, Calendar, ArrowLeft, Download, ChevronDown, ChevronUp, Eye, Settings, FileText, Users as UsersIcon, Shield } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
@@ -273,7 +273,6 @@ export default function AdminReports() {
           </div>
         </div>
         </div>
-        </DashboardSidebar>
-    </div>
+      </DashboardSidebar>
   );
 }

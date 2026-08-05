@@ -2,7 +2,10 @@
 
 import { type ReactNode } from "react";
 import Link from "next/link";
-import { type LucideIcon } from "lucide-react";
+import { type ForwardRefExoticComponent, type RefAttributes } from "react";
+import { type SVGProps } from "react";
+
+type LucideIcon = ForwardRefExoticComponent<SVGProps<SVGSVGElement> & RefAttributes<SVGSVGElement>>;
 
 interface SidebarItem {
   id: string;
