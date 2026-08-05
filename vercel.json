@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/cron/inbound-email-ack",
-      "schedule": "15 * * * *"
+      "schedule": "0 14 * * *"
     },
     {
       "path": "/api/cron/weekly-digest",

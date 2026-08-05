@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const ACK_PREFIX = "email:ack:";
-const LOOKBACK_MINUTES = 15;
+const LOOKBACK_MINUTES = 24 * 60;
 
 function aliasLabel(recipient: string): string {
   const local = recipient.split("@")[0]?.toLowerCase() || "";

@@ -115,7 +115,7 @@ const nonce = hdrs.get("x-nonce") || undefined;
 
 ### Vercel Cron Jobs
 
-Defined in `vercel.json` — 8 cron jobs. Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack`.
+Defined in `vercel.json` — 9 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC).
 
 ### Sentry
 
