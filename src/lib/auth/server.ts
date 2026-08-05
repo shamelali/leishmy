@@ -14,5 +14,9 @@ export async function getAuthSession(): Promise<{ id: string; email: string; rol
     .where(eq(users.id, session.user.id))
     .limit(1);
   if (!dbUser) return null;
-  return { id: dbUser.id, email: dbUser.email, role: dbUser.role || "customer", isAdmin: dbUser.isAdmin ?? false };
+  const email = session.user.email ?? dbUser.email;
+  if (session.user.email && session.user.email !== dbUser.email) {
+    db.update(users).set({ email: session.user.email }).where(eq(users.id, dbUser.id)).catch(() => {});
+  }
+  return { id: dbUser.id, email, role: dbUser.role || "customer", isAdmin: dbUser.isAdmin ?? false };
 }
