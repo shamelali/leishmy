@@ -22,6 +22,7 @@ export function Navbar() {
     { href: "/artists", label: "Artists" },
     { href: "/studios", label: "Studios" },
     { href: "/events", label: "Events" },
+    { href: "/pricing", label: "Pricing" },
   ];
 
   useEffect(() => {
