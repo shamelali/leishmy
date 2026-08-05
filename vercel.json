@@ -1,4 +1,5 @@
 {
+  "installCommand": "pnpm install --trust-lockfile",
   "crons": [
     {
       "path": "/api/cron/sync-auth-users",
