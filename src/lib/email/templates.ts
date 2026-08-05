@@ -719,3 +719,62 @@ export function payoutNotificationTemplate(params: {
   const text = `Your Payout from Leish Has Been Processed\n\nHi ${params.name},\n\nYour payout has been processed successfully.\n\nAmount: MYR ${amountStr}\nProcessed on: ${params.date}\n\nThe funds should reflect in your bank account within 1-3 business days.\n\nIf you have any questions, please contact us at hello@leish.my\n\n&copy; 2026 Leish. All rights reserved.`;
   return { subject, html, text };
 }
+
+export function bookingCompletedTemplate(params: {
+  customerName: string;
+  bookingId: string;
+  serviceName: string;
+  providerName: string;
+  reviewUrl: string;
+}) {
+  const subject = `Your Booking is Complete! - ${params.bookingId}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Booking Complete</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #059669; color: white; padding: 30px; text-align: center; }
+    .content { background: #f9f9f9; padding: 30px; margin: 20px 0; }
+    .details { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #059669; }
+    .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+    .button { display: inline-block; background: #c9a96e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Service Complete!</h1>
+    <p>Thank you for choosing ${params.providerName}</p>
+  </div>
+  <div class="content">
+    <p>Hi ${params.customerName},</p>
+    <p>Your service has been completed. We hope you had a wonderful experience!</p>
+    <div class="details">
+      <h3>Booking Details</h3>
+      <div class="detail-row"><span>Reference:</span><strong>${params.bookingId}</strong></div>
+      <div class="detail-row"><span>Service:</span><strong>${params.serviceName}</strong></div>
+      <div class="detail-row"><span>Provider:</span><strong>${params.providerName}</strong></div>
+    </div>
+    <p style="text-align: center; margin-top: 20px;">
+      <a href="${params.reviewUrl}" class="button">Leave a Review</a>
+    </p>
+    <p style="text-align: center; color: #666; font-size: 13px; margin-top: 10px;">
+      Your feedback helps other customers find great providers
+    </p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+    <p>If you have any questions, please contact us at hello@leish.my</p>
+  </div>
+  <div class="footer">
+    <p>&copy; 2026 Leish. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+
+  const text = `Your Booking is Complete!\n\nHi ${params.customerName},\n\nYour service has been completed. We hope you had a wonderful experience!\n\nBooking Details:\nReference: ${params.bookingId}\nService: ${params.serviceName}\nProvider: ${params.providerName}\n\nLeave a review: ${params.reviewUrl}\n\nYour feedback helps other customers find great providers.\n\nIf you have any questions, please contact us at hello@leish.my\n\n© 2026 Leish. All rights reserved.`;
+
+  return { subject, html, text };
+}

@@ -217,11 +217,15 @@ export const reviews = pgTable("reviews", {
   studioId: text("studio_id").references(() => users.id, {
     onDelete: "cascade",
   }),
+  bookingId: integer("booking_id").references(() => bookings.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 },
 (table) => [
   index("reviews_artist_id_idx").on(table.artistId),
   index("reviews_studio_id_idx").on(table.studioId),
+  index("reviews_booking_id_idx").on(table.bookingId),
 ],
 );
 
@@ -875,6 +879,34 @@ export const auditLogs = pgTable(
     index("audit_logs_action_idx").on(table.action),
     index("audit_logs_entity_idx").on(table.entityType, table.entityId),
     index("audit_logs_created_idx").on(table.createdAt),
+  ],
+);
+
+export const disputes = pgTable(
+  "disputes",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id").references(() => bookings.id, {
+      onDelete: "set null",
+    }),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    againstId: text("against_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    category: varchar("category", { length: 100 }).default("general"),
+    status: varchar("status", { length: 50 }).default("open"),
+    resolution: text("resolution"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("disputes_booking_idx").on(table.bookingId),
+    index("disputes_reporter_idx").on(table.reporterId),
+    index("disputes_against_idx").on(table.againstId),
+    index("disputes_status_idx").on(table.status),
   ],
 );
 

@@ -1,5 +1,5 @@
 import { sendEmail } from "./brevo";
-import { bookingConfirmationTemplate, providerNewBookingTemplate } from "./templates";
+import { bookingConfirmationTemplate, providerNewBookingTemplate, bookingCompletedTemplate } from "./templates";
 import { getEmailAlias } from "@/lib/constants";
 
 export async function sendBookingReceivedEmail(params: {
@@ -208,6 +208,31 @@ export async function sendQuoteReadyEmail(params: {
     subject,
     html,
     text: `Your quote for booking #${params.bookingId} is ready. Total: MYR ${params.totalPrice}`,
+    from: getEmailAlias("notifications"),
+  });
+}
+
+export async function sendBookingCompletedEmail(params: {
+  email: string;
+  customerName: string;
+  bookingId: string;
+  serviceName: string;
+  providerName: string;
+}) {
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
+  const reviewUrl = `${baseUrl}/bookings/${params.bookingId}#review`;
+  const template = bookingCompletedTemplate({
+    customerName: params.customerName,
+    bookingId: params.bookingId,
+    serviceName: params.serviceName,
+    providerName: params.providerName,
+    reviewUrl,
+  });
+  return sendEmail({
+    to: params.email,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
     from: getEmailAlias("notifications"),
   });
 }

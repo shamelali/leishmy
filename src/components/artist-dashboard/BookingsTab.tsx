@@ -15,11 +15,14 @@ import {
   Sparkles,
   Tag,
   MessageSquare,
+  Play,
+  CheckCircle,
 } from "lucide-react";
 
 interface Booking {
   id: string;
   artistId?: string;
+  studioId?: string;
   artistName?: string;
   client?: string;
   userName?: string;
@@ -43,6 +46,10 @@ interface BookingsTabProps {
   bookings: Booking[];
   onConfirm: (id: string) => void;
   onReject: (id: string) => void;
+  onSendQuote?: (booking: Booking) => void;
+  onStartService?: (id: string) => void;
+  onCompleteService?: (id: string) => void;
+  isProvider?: boolean;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -53,14 +60,20 @@ const MONTHS = [
 
 function getStatusColor(status: string) {
   switch (status) {
-    case "pending":
-    case "quote_pending":
+    case "requested":
       return "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400";
-    case "confirmed":
+    case "quote_sent":
+      return "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400";
+    case "pending":
       return "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400";
-    case "completed":
+    case "confirmed":
       return "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400";
+    case "in_progress":
+      return "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400";
+    case "completed":
+      return "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400";
     case "cancelled":
+    case "rejected":
       return "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400";
     default:
       return "bg-gray-100 text-gray-600 dark:bg-neutral-700";
@@ -69,22 +82,36 @@ function getStatusColor(status: string) {
 
 function getStatusLabel(status: string) {
   switch (status) {
-    case "quote_pending":
-      return "Quote Pending";
+    case "requested":
+      return "New Request";
+    case "quote_sent":
+      return "Quote Sent";
     case "pending":
-      return "Pending";
+      return "Awaiting Payment";
     case "confirmed":
       return "Confirmed";
+    case "in_progress":
+      return "In Progress";
     case "completed":
       return "Completed";
     case "cancelled":
       return "Cancelled";
+    case "rejected":
+      return "Rejected";
     default:
       return status;
   }
 }
 
-export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsTabProps) {
+export default function BookingsTab({
+  bookings,
+  onConfirm,
+  onReject,
+  onSendQuote,
+  onStartService,
+  onCompleteService,
+  isProvider = false,
+}: BookingsTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -96,10 +123,10 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const statusMap: Record<string, string[]> = {
-    all: ["quote_pending", "pending", "confirmed", "completed", "cancelled"],
-    upcoming: ["quote_pending", "pending", "confirmed"],
+    all: ["requested", "quote_sent", "pending", "confirmed", "in_progress", "completed", "cancelled", "rejected"],
+    upcoming: ["requested", "quote_sent", "pending", "confirmed", "in_progress"],
     completed: ["completed"],
-    cancelled: ["cancelled"],
+    cancelled: ["cancelled", "rejected"],
   };
 
   const filteredBookings = bookings.filter((b) => statusMap[filter]?.includes(b.status) ?? true);
@@ -126,7 +153,7 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
   const selectedDateBookings = selectedDate ? bookingsByDate[selectedDate] || [] : [];
 
   const pendingCount = bookings.filter(
-    (b) => b.status === "pending" || b.status === "quote_pending",
+    (b) => b.status === "requested" || b.status === "quote_sent",
   ).length;
 
   return (
@@ -135,7 +162,7 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {pendingCount > 0
-            ? `You have ${pendingCount} pending booking${pendingCount > 1 ? "s" : ""}`
+            ? `You have ${pendingCount} new booking request${pendingCount > 1 ? "s" : ""}`
             : "All caught up!"}
         </p>
       </div>
@@ -174,7 +201,7 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             const dayBookings = bookingsByDate[dateStr] || [];
             const hasBookings = dayBookings.length > 0;
-            const hasPending = dayBookings.some((b) => b.status === "pending" || b.status === "quote_pending");
+            const hasPending = dayBookings.some((b) => b.status === "requested" || b.status === "quote_sent");
             const isToday = new Date().toISOString().split("T")[0] === dateStr;
             const isSelected = selectedDate === dateStr;
 
@@ -216,7 +243,16 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
           </h3>
           <div className="space-y-3">
             {selectedDateBookings.map((b) => (
-              <BookingCard key={b.id} booking={b} onConfirm={onConfirm} onReject={onReject} />
+              <BookingCard
+                key={b.id}
+                booking={b}
+                onConfirm={onConfirm}
+                onReject={onReject}
+                onSendQuote={onSendQuote}
+                onStartService={onStartService}
+                onCompleteService={onCompleteService}
+                isProvider={isProvider}
+              />
             ))}
           </div>
         </div>
@@ -247,7 +283,16 @@ export default function BookingsTab({ bookings, onConfirm, onReject }: BookingsT
             <div className="p-12 text-center text-gray-400 text-sm">No bookings found</div>
           ) : (
             filteredBookings.slice(0, 20).map((b) => (
-              <BookingCard key={b.id} booking={b} onConfirm={onConfirm} onReject={onReject} />
+              <BookingCard
+                key={b.id}
+                booking={b}
+                onConfirm={onConfirm}
+                onReject={onReject}
+                onSendQuote={onSendQuote}
+                onStartService={onStartService}
+                onCompleteService={onCompleteService}
+                isProvider={isProvider}
+              />
             ))
           )}
         </div>
@@ -260,10 +305,18 @@ function BookingCard({
   booking,
   onConfirm,
   onReject,
+  onSendQuote,
+  onStartService,
+  onCompleteService,
+  isProvider,
 }: {
   booking: Booking;
   onConfirm: (id: string) => void;
   onReject: (id: string) => void;
+  onSendQuote?: (booking: Booking) => void;
+  onStartService?: (id: string) => void;
+  onCompleteService?: (id: string) => void;
+  isProvider?: boolean;
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -308,19 +361,51 @@ function BookingCard({
             </span>
           )}
         </div>
-        {(booking.status === "pending" || booking.status === "quote_pending") && (
+
+        {/* Action buttons based on status */}
+        {isProvider && booking.status === "requested" && (
           <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => onConfirm(booking.id)}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
             >
-              <Check className="w-3.5 h-3.5" /> Confirm
+              <Check className="w-3.5 h-3.5" /> Accept
             </button>
+            {onSendQuote && (
+              <button
+                onClick={() => onSendQuote(booking)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> Send Quote
+              </button>
+            )}
             <button
               onClick={() => onReject(booking.id)}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
             >
               <X className="w-3.5 h-3.5" /> Reject
+            </button>
+          </div>
+        )}
+
+        {isProvider && booking.status === "confirmed" && onStartService && (
+          <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => onStartService(booking.id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
+            >
+              <Play className="w-3.5 h-3.5" /> Start Service
+            </button>
+          </div>
+        )}
+
+        {isProvider && booking.status === "in_progress" && onCompleteService && (
+          <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => onCompleteService(booking.id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Mark Completed
             </button>
           </div>
         )}
@@ -445,6 +530,54 @@ function BookingCard({
                   <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-xl">
                     <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{booking.notes}</p>
                   </div>
+                </div>
+              )}
+
+              {/* Action buttons in modal */}
+              {isProvider && booking.status === "requested" && (
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => { onConfirm(booking.id); setShowDetails(false); }}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+                  >
+                    <Check className="w-4 h-4" /> Accept Booking
+                  </button>
+                  {onSendQuote && (
+                    <button
+                      onClick={() => { onSendQuote(booking); setShowDetails(false); }}
+                      className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                    >
+                      <MessageSquare className="w-4 h-4" /> Send Quote
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { onReject(booking.id); setShowDetails(false); }}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" /> Reject
+                  </button>
+                </div>
+              )}
+
+              {isProvider && booking.status === "confirmed" && onStartService && (
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => { onStartService(booking.id); setShowDetails(false); }}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                  >
+                    <Play className="w-4 h-4" /> Start Service
+                  </button>
+                </div>
+              )}
+
+              {isProvider && booking.status === "in_progress" && onCompleteService && (
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => { onCompleteService(booking.id); setShowDetails(false); }}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Mark Completed
+                  </button>
                 </div>
               )}
 

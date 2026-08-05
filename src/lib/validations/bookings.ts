@@ -18,7 +18,7 @@ export const createBookingSchema = z.object({
 
 export const updateBookingSchema = z.object({
   id: z.number().positive(),
-  status: z.enum(["cancelled", "completed"]),
+  status: z.enum(["cancelled", "completed", "in_progress"]),
 });
 
 export const updateBookingPriceSchema = z.object({

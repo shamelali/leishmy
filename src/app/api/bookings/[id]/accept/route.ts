@@ -34,7 +34,7 @@ export async function POST(
       );
     }
 
-    // Verify booking exists and is in quote_sent status
+    // Verify booking exists and is in an acceptable status
     const [booking] = await db
       .select()
       .from(bookings)
@@ -45,7 +45,8 @@ export async function POST(
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    if (booking.status !== "quote_sent") {
+    // Allow acceptance from both "quote_sent" (quote flow) and "requested" (direct accept)
+    if (booking.status !== "quote_sent" && booking.status !== "requested") {
       return NextResponse.json(
         { error: "Booking is not awaiting acceptance" },
         { status: 400 },
@@ -57,16 +58,30 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Calculate total from quote columns (service_price + fees)
-    const quoteTotal =
-      (Number(booking.servicePrice) || 0) +
-      (Number(booking.accommodationFee) || 0) +
-      (Number(booking.travelSurcharge) || 0);
-    const totalPrice = quoteTotal || Number(booking.amount) || 0;
-    const depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
-    const depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
+    // Calculate total: for requested status use service price from DB, for quote_sent use quote columns
+    let totalPrice: number;
+    let depositPercentNum: number;
+    let depositAmount: number;
 
-    // Update booking: set amount to quote total, status to pending, milestone to deposit_{percent}
+    if (booking.status === "requested") {
+      // Direct accept at fixed service price
+      totalPrice = Number(booking.amount) || 0;
+      depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
+      depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
+    } else {
+      // Quote acceptance: use quote columns
+      const quoteTotal =
+        (Number(booking.servicePrice) || 0) +
+        (Number(booking.accommodationFee) || 0) +
+        (Number(booking.travelSurcharge) || 0);
+      totalPrice = quoteTotal || Number(booking.amount) || 0;
+      depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
+      depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
+    }
+
+    const previousStatus = booking.status;
+
+    // Update booking: set amount to total, status to pending, milestone to deposit_{percent}
     const [updated] = await db
       .update(bookings)
       .set({
@@ -80,10 +95,10 @@ export async function POST(
 
     logAudit(db, {
       actorId: session.id,
-      action: "booking.quote_accepted",
+      action: previousStatus === "requested" ? "booking.direct_accepted" : "booking.quote_accepted",
       entityType: "booking",
       entityId: String(bookingId),
-      meta: { previousStatus: "quote_sent", newStatus: "pending", totalPrice, depositAmount },
+      meta: { previousStatus, newStatus: "pending", totalPrice, depositAmount },
     }).catch(() => {});
 
     // Notify provider
@@ -98,16 +113,16 @@ export async function POST(
         await db.insert(notifications).values({
           userId: artist.userId,
           type: "booking_accepted",
-          title: "Quote Accepted",
-          body: `Customer accepted your quote for "${booking.service}". Payment pending.`,
-          data: { link: `/dashboard/bookings`, bookingId: String(booking.id) },
+          title: "Booking Accepted",
+          body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
+          data: { link: `/dashboard/artist/bookings`, bookingId: String(booking.id) },
         }).catch(() => {});
 
         // Send push notification
         sendPushNotification(artist.userId, {
-          title: "Quote Accepted",
-          body: `Customer accepted your quote for "${booking.service}". Payment pending.`,
-          url: "/dashboard/bookings",
+          title: "Booking Accepted",
+          body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
+          url: "/dashboard/artist/bookings",
         }).catch(() => {});
 
         const [providerUser] = await db

@@ -8,4 +8,5 @@ export const createReviewSchema = z.object({
   artistId: z.string().optional(),
   studioId: z.string().optional(),
   userId: z.string().optional(),
+  bookingId: z.number().positive().optional(),
 });

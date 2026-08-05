@@ -172,20 +172,19 @@ export default function DashboardArtist() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleConfirm = useCallback(async (bookingId: string) => {
     if (!user?.id) return;
-    await fetch("/api/user/confirm-booking", {
+    // Direct accept at fixed price
+    await fetch(`/api/bookings/${bookingId}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId, userId: user.id }),
+      body: JSON.stringify({ bookingId: Number(bookingId) }),
     });
     setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "confirmed" } : b)),
+      prev.map((b) => (b.id === bookingId ? { ...b, status: "pending" } : b)),
     );
   }, [user?.id]);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleReject = useCallback(async (bookingId: string) => {
     if (!user?.id) return;
     await fetch("/api/user/reject-booking", {
@@ -198,12 +197,34 @@ export default function DashboardArtist() {
     );
   }, [user?.id]);
 
+  const handleStartService = useCallback(async (bookingId: string) => {
+    await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: Number(bookingId), status: "in_progress" }),
+    });
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, status: "in_progress" } : b)),
+    );
+  }, []);
+
+  const handleCompleteService = useCallback(async (bookingId: string) => {
+    await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: Number(bookingId), status: "completed" }),
+    });
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, status: "completed" } : b)),
+    );
+  }, []);
+
   const pendingBookings = bookings.filter(
-    (b) => b.status === "pending" || b.status === "quote_pending",
+    (b) => b.status === "requested" || b.status === "quote_sent",
   ).length;
 
   const pendingQuotes = bookings.filter(
-    (b) => b.status === "quote_pending",
+    (b) => b.status === "quote_sent",
   ).length;
 
   const artistItems = [
@@ -262,6 +283,9 @@ export default function DashboardArtist() {
             bookings={bookings}
             onConfirm={handleConfirm}
             onReject={handleReject}
+            onStartService={handleStartService}
+            onCompleteService={handleCompleteService}
+            isProvider={true}
           />
         )}
 

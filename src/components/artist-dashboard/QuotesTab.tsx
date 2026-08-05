@@ -32,7 +32,6 @@ export default function QuotesTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quoteModal, setQuoteModal] = useState<Booking | null>(null);
-  const [filter, setFilter] = useState<"pending" | "sent">("pending");
   const [defaultDepositPercent, setDefaultDepositPercent] = useState(30);
   const [pricingRules, setPricingRules] = useState<PricingRules | undefined>(undefined);
 
@@ -57,9 +56,8 @@ export default function QuotesTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  const quotePending = bookings.filter((b) => b.status === "quote_pending");
   const quoteSent = bookings.filter((b) => b.status === "quote_sent");
-  const visible = filter === "pending" ? quotePending : quoteSent;
+  const visible = quoteSent;
 
   const handleQuoteSent = useCallback(() => {
     if (!quoteModal) return;
@@ -71,33 +69,10 @@ export default function QuotesTab() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quotes</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sent Quotes</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Send price quotes to customers who requested a booking
+          Custom quotes you&apos;ve sent to customers
         </p>
-      </div>
-
-      <div className="flex gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5 mb-6">
-        <button
-          onClick={() => setFilter("pending")}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            filter === "pending"
-              ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Pending ({quotePending.length})
-        </button>
-        <button
-          onClick={() => setFilter("sent")}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            filter === "sent"
-              ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Sent ({quoteSent.length})
-        </button>
       </div>
 
       {error ? (
@@ -115,9 +90,7 @@ export default function QuotesTab() {
         <div className="text-center py-16">
           <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-sm text-gray-500">
-            {filter === "pending"
-              ? "No pending quote requests"
-              : "No quotes sent yet"}
+            No quotes sent yet
           </p>
         </div>
       ) : (
@@ -133,15 +106,9 @@ export default function QuotesTab() {
                     <span className="font-semibold text-gray-900 dark:text-white">
                       {b.client || b.userName || "Anonymous"}
                     </span>
-                    {b.status === "quote_pending" ? (
-                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full">
-                        Awaiting Quote
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full">
-                        Quote Sent
-                      </span>
-                    )}
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-full">
+                      Quote Sent
+                    </span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                     {b.service || "Beauty Service"}
@@ -173,15 +140,12 @@ export default function QuotesTab() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {b.status === "quote_pending" && (
-                    <button
-                      onClick={() => setQuoteModal(b)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700 transition-all shadow-sm"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      Send Quote
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setQuoteModal(b)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700 transition-all shadow-sm"
+                  >
+                    View Quote
+                  </button>
                 </div>
               </div>
             </div>

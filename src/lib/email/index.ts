@@ -7,6 +7,7 @@ export {
   sendQuoteReadyEmail,
   sendQuoteRejectedEmail,
   sendRemainingPaymentReminderEmail,
+  sendBookingCompletedEmail,
 } from "./booking-confirmation";
 export { sendPaymentReceiptEmail } from "./payment-receipt";
 export { sendSubscriptionCreatedEmail } from "./subscription-created";
@@ -38,4 +39,5 @@ export {
   subscriptionCanceledTemplate,
   notificationEmailTemplate,
   payoutNotificationTemplate,
+  bookingCompletedTemplate,
 } from "./templates";

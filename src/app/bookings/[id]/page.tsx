@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Clock, User, ArrowLeft, Sparkles, XCircle, CheckCircle, AlertCircle, DollarSign, Car, Building, Save, Tag, FileText } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
+import ReviewSection from "@/components/ReviewSection";
 import { useAuth } from "@/context/AuthContext";
 
 interface BookingDetail {
@@ -136,8 +137,10 @@ export default function BookingDetailPage() {
   const statusIcon = (status: string) => {
     switch (status) {
       case "confirmed": return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case "cancelled": return <XCircle className="w-5 h-5 text-red-500" />;
-      case "completed": return <CheckCircle className="w-5 h-5 text-blue-500" />;
+      case "in_progress": return <AlertCircle className="w-5 h-5 text-orange-500" />;
+      case "completed": return <CheckCircle className="w-5 h-5 text-emerald-500" />;
+      case "cancelled":
+      case "rejected": return <XCircle className="w-5 h-5 text-red-500" />;
       default: return <AlertCircle className="w-5 h-5 text-amber-500" />;
     }
   };
@@ -145,9 +148,25 @@ export default function BookingDetailPage() {
   const statusColor = (status: string) => {
     switch (status) {
       case "confirmed": return "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400";
-      case "cancelled": return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400";
-      case "completed": return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400";
+      case "in_progress": return "bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400";
+      case "completed": return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400";
+      case "cancelled":
+      case "rejected": return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400";
       default: return "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400";
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "requested": return "New Request";
+      case "quote_sent": return "Quote Sent";
+      case "pending": return "Awaiting Payment";
+      case "confirmed": return "Confirmed";
+      case "in_progress": return "In Progress";
+      case "completed": return "Completed";
+      case "cancelled": return "Cancelled";
+      case "rejected": return "Rejected";
+      default: return status;
     }
   };
 
@@ -199,7 +218,7 @@ export default function BookingDetailPage() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Booking #{booking.id}</h1>
             <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${statusColor(booking.status)}`}>
               {statusIcon(booking.status)}
-              {booking.status}
+              {statusLabel(booking.status)}
             </span>
           </div>
         </div>
@@ -418,7 +437,7 @@ export default function BookingDetailPage() {
             </div>
           )}
 
-          {(booking.status === "confirmed" || booking.status === "completed") && (
+          {(booking.status === "confirmed" || booking.status === "in_progress" || booking.status === "completed") && (
             <div className="pt-2">
               <button
                 onClick={async () => {
@@ -440,6 +459,18 @@ export default function BookingDetailPage() {
               >
                 <FileText className="w-4 h-4 text-rose-500" /> Download Invoice
               </button>
+            </div>
+          )}
+
+          {/* Review section for completed bookings (customer only) */}
+          {booking.status === "completed" && !isProvider && user?.id === booking.userId && (
+            <div id="review" className="pt-4 border-t border-gray-100 dark:border-neutral-800">
+              <ReviewSection
+                bookingId={Number(booking.id)}
+                artistId={booking.artistId}
+                studioId={booking.studioId}
+                serviceName={booking.service || ""}
+              />
             </div>
           )}
         </div>

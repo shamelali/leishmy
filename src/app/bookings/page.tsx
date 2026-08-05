@@ -24,7 +24,7 @@ export default function BookingsPage() {
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "confirmed" | "cancelled">("all");
+  const [filter, setFilter] = useState<"all" | "requested" | "pending" | "in_progress" | "completed" | "cancelled">("all");
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -92,7 +92,7 @@ export default function BookingsPage() {
 
         {/* Filter Tabs */}
         <div className="flex items-center gap-2 mb-6 border-b border-gray-200 dark:border-neutral-800 pb-4">
-          {(["all", "confirmed", "cancelled"] as const).map((tab) => (
+          {(["all", "requested", "pending", "in_progress", "completed", "cancelled"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
@@ -102,7 +102,7 @@ export default function BookingsPage() {
                   : "bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-neutral-800 hover:border-rose-300"
               }`}
             >
-              {tab}
+              {tab === "in_progress" ? "In Progress" : tab}
             </button>
           ))}
         </div>
@@ -143,10 +143,16 @@ export default function BookingsPage() {
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         booking.status === "confirmed"
                           ? "bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400"
-                          : "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400"
+                          : booking.status === "in_progress"
+                          ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400"
+                          : booking.status === "completed"
+                          ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400"
+                          : booking.status === "cancelled"
+                          ? "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400"
+                          : "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400"
                       }`}
                     >
-                      {booking.status}
+                      {booking.status === "in_progress" ? "In Progress" : booking.status}
                     </span>
                     <span className="text-xs text-gray-400 font-mono">#{booking.id}</span>
                   </div>
@@ -183,7 +189,7 @@ export default function BookingsPage() {
                     View Artist
                   </Link>
 
-                  {booking.status === "confirmed" && (
+                  {(booking.status === "requested" || booking.status === "pending") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleCancel(booking.id); }}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-xs font-semibold text-red-600 dark:text-red-400 transition-colors"

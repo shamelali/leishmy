@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices, quoteOptions } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail } from "@/lib/email";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendBookingCompletedEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { sendPushNotification } from "@/lib/notifications/push";
 import { getAuthSession } from "@/lib/auth/server";
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create booking with quote_pending status
+    // Create booking with requested status
     const [booking] = await db
       .insert(bookings)
       .values({
@@ -156,8 +156,8 @@ export async function POST(request: NextRequest) {
         time: time || null,
         amount: servicePrice,
         depositAmount,
-        milestone: "quote_pending",
-        status: "quote_pending",
+        milestone: "requested",
+        status: "requested",
       })
       .returning();
 
@@ -179,35 +179,35 @@ export async function POST(request: NextRequest) {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
     });
 
-    // Notify MUA of new quote request
+    // Notify MUA of new booking request
     if (artist?.userId) {
       await db.insert(notifications).values({
         userId: artist.userId,
-        type: "quote_request",
-        title: "New Quote Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
-        data: { link: "/dashboard/artist/quotes", bookingId: String(booking.id) },
+        type: "booking_request",
+        title: "New Booking Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
+        data: { link: "/dashboard/artist/bookings", bookingId: String(booking.id) },
       }).catch(() => {});
       sendPushNotification(artist.userId, {
-        title: "New Quote Request",
+        title: "New Booking Request",
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
-        url: "/dashboard/artist/quotes",
+        url: "/dashboard/artist/bookings",
       }).catch(() => {});
     }
 
-    // Notify studio of new quote request
+    // Notify studio of new booking request
     if (studio?.userId) {
       await db.insert(notifications).values({
         userId: studio.userId,
-        type: "quote_request",
-        title: "New Quote Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Please review and provide a quote.`,
-        data: { link: "/dashboard/studio/quotes", bookingId: String(booking.id) },
+        type: "booking_request",
+        title: "New Booking Request",
+        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
+        data: { link: "/dashboard/studio/bookings", bookingId: String(booking.id) },
       }).catch(() => {});
       sendPushNotification(studio.userId, {
-        title: "New Quote Request",
+        title: "New Booking Request",
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
-        url: "/dashboard/studio/quotes",
+        url: "/dashboard/studio/bookings",
       }).catch(() => {});
     }
 
@@ -598,7 +598,7 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     const { id, status } = parsed.data;
 
-    const allowedStatuses = ["cancelled", "completed"];
+    const allowedStatuses = ["cancelled", "completed", "in_progress"];
     if (!allowedStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
@@ -615,25 +615,53 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     if (existing.status === "completed") {
       return NextResponse.json(
-        { error: "Cannot cancel a completed booking" },
+        { error: "Cannot modify a completed booking" },
         { status: 400 }
       );
     }
 
-    if (existing.userId !== session.id && existing.artistId !== session.id) {
+    if (existing.userId !== session.id && existing.artistId !== session.id && existing.studioId !== session.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Only provider can set in_progress
+    if (status === "in_progress" && existing.artistId !== session.id && existing.studioId !== session.id) {
+      return NextResponse.json({ error: "Only the provider can start a service" }, { status: 403 });
+    }
+
+    // Only provider can mark completed
+    if (status === "completed" && existing.artistId !== session.id && existing.studioId !== session.id) {
+      return NextResponse.json({ error: "Only the provider can complete a service" }, { status: 403 });
+    }
+
+    const updateData: Record<string, any> = { status };
+    if (status === "cancelled") {
+      updateData.lateFeeCharged =
+        existing.secondPaymentDueDate &&
+        existing.secondPaymentDueDate < new Date();
     }
 
     const [updated] = await db
       .update(bookings)
-      .set({
-        status,
-        lateFeeCharged:
-          existing.secondPaymentDueDate &&
-          existing.secondPaymentDueDate < new Date(),
-      })
+      .set(updateData)
       .where(eq(bookings.id, Number(id)))
       .returning();
+
+    // Notify customer when service starts
+    if (status === "in_progress" && existing.userId) {
+      await db.insert(notifications).values({
+        userId: existing.userId,
+        type: "service_started",
+        title: "Service In Progress",
+        body: `Your "${existing.service}" service with ${existing.artistId ? "your artist" : "your studio"} has started.`,
+        data: { link: `/bookings/${updated.id}`, bookingId: String(updated.id) },
+      }).catch(() => {});
+      sendPushNotification(existing.userId, {
+        title: "Service In Progress",
+        body: `Your "${existing.service}" service has started.`,
+        url: `/bookings/${updated.id}`,
+      }).catch(() => {});
+    }
 
     if (status === "cancelled" && existing.userId) {
       const isNoShow =
@@ -768,11 +796,43 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
             issuedAt: new Date(),
           });
         }
+
+        // Prompt customer to leave a review
+        await db.insert(notifications).values({
+          userId: existing.userId,
+          type: "review_prompt",
+          title: "How was your experience?",
+          body: `Your "${existing.service}" service is complete! Share your feedback and help others find great ${existing.artistId ? "artists" : "studios"}.`,
+          data: { link: `/bookings/${updated.id}#review`, bookingId: String(updated.id) },
+        }).catch(() => {});
+        sendPushNotification(existing.userId, {
+          title: "Leave a Review",
+          body: `Your "${existing.service}" service is complete! Rate your experience.`,
+          url: `/bookings/${updated.id}#review`,
+        }).catch(() => {});
+
+        // Send completion email with review link
+        const [customerUser] = await db
+          .select({ name: users.name, email: users.email })
+          .from(users)
+          .where(eq(users.id, existing.userId))
+          .limit(1);
+        const providerName = existing.artistId ? "your artist" : "your studio";
+        if (customerUser?.email) {
+          sendBookingCompletedEmail({
+            email: customerUser.email,
+            customerName: customerUser.name || "Customer",
+            bookingId: String(updated.id),
+            serviceName: existing.service || "Service",
+            providerName,
+          }).catch(() => {});
+        }
       }
     }
 
     revalidatePath("/bookings");
     revalidatePath("/dashboard/artist");
+    revalidatePath("/dashboard/studio");
     revalidatePath("/bookings/" + id);
 
     return NextResponse.json({ booking: updated });
