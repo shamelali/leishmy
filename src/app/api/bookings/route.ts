@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices, quoteOptions } from "@/db/schema";
-import { eq, and, count, inArray } from "drizzle-orm";
+import { eq, and, count, inArray, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendBookingCompletedEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       .values({
         userId: customer.id,
         artistId: artistIdStr,
-        studioId: studioId ? String(studioId) : null,
+        studioId: studioIdStr,
         serviceId: serviceId || null,
         service: serviceName,
         notes: body.notes || null,
@@ -636,9 +636,10 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     const updateData: Record<string, any> = { status };
     if (status === "cancelled") {
-      updateData.lateFeeCharged =
-        existing.secondPaymentDueDate &&
-        existing.secondPaymentDueDate < new Date();
+  updateData.lateFeeCharged =
+    existing.secondPaymentDueDate
+      ? existing.secondPaymentDueDate < new Date()
+      : false;
     }
 
     const [updated] = await db
@@ -749,8 +750,8 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
           const [lastInvoice] = await db
             .select({ invoiceNumber: invoices.invoiceNumber })
             .from(invoices)
-            .orderBy(invoices.id)
-            .limit(1);
+        .orderBy(desc(invoices.id))
+        .limit(1);
           let seq = 1;
           if (lastInvoice) {
             const match = lastInvoice.invoiceNumber.match(/-(\d{6})$/);
