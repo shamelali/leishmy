@@ -185,19 +185,19 @@ export default function DashboardArtist() {
     );
   }, [user?.id]);
 
-  const handleReject = useCallback(async (bookingId: string) => {
-    if (!user?.id) return;
-    await fetch("/api/user/reject-booking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId, userId: user.id }),
-    });
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b)),
-    );
-  }, [user?.id]);
+	const handleReject = useCallback(async (bookingId: string) => {
+		if (!user?.id) return;
+		await fetch("/api/user/reject-booking", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ bookingId, userId: user.id }),
+		});
+		setBookings((prev) =>
+			prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b)),
+		);
+	}, [user?.id]);
 
-  const handleStartService = useCallback(async (bookingId: string) => {
+	const handleStartService = useCallback(async (bookingId: string) => {
     await fetch("/api/bookings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

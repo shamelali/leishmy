@@ -1,11 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/db";
+import { Pool, PoolClient } from "pg";
 import { verifyCronSecret } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron-tracking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
+
+// Helper to lazily initialize a cached Pool for Neon Auth reads. This keeps the
+// pool alive across invocations similar to src/db/index.ts's cached pool.
+function getNeonAuthPool() {
+  const g = globalThis as typeof globalThis & { __neonAuthPool?: Pool };
+  if (!g.__neonAuthPool) {
+    const neonUrl = process.env.NEON_AUTH_URL;
+    if (!neonUrl) {
+      throw new Error("NEON_AUTH_URL must be set to read Neon Auth users");
+    }
+    g.__neonAuthPool = new Pool({
+      connectionString: neonUrl,
+      max: 2,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true,
+    });
+    g.__neonAuthPool.on("error", (err) => {
+      console.error("[neonAuthPool] idle client error:", err.message);
+      g.__neonAuthPool = undefined;
+    });
+  }
+  return g.__neonAuthPool;
+}
 
 /**
  * POST /api/cron/sync-auth-users
@@ -35,32 +60,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const client = await pool.connect();
+  let supClient: PoolClient | undefined;
+  let neonClient: PoolClient | undefined;
   try {
     const dryRun = new URL(request.url).searchParams.get("dryRun") === "true";
 
-    // Sync stale emails: neon_auth."user" is authoritative (Neon Auth). Every
-    // transactional emailer (booking confirmations, reminders cron, payment
-    // webhook) reads public."user".email, so a drifted row silently misroutes
-    // customer emails. Propagate any divergence for matched users.
-    const syncResult = await client.query(`
-      SELECT na.id, na.email AS new_email, pu.email AS current_email
-      FROM neon_auth."user" na
-      JOIN public."user" pu ON pu.id = na.id::text
-      WHERE na.email IS DISTINCT FROM pu.email
-    `);
-    const diverged = syncResult.rows;
+    const neonPool = getNeonAuthPool();
 
-    const orphanResult = await client.query(`
-      SELECT na.id, na.email, na.name
-      FROM neon_auth."user" na
-      LEFT JOIN public."user" pu ON pu.id = na.id::text
-      WHERE pu.id IS NULL
-    `);
-
-    const orphans = orphanResult.rows;
-
+    // Read the full user set from each DB separately (they are separate
+    // databases and cannot be JOINed in a single query), then reconcile
+    // in application code. In dry-run mode we use pool.query directly so
+    // no dedicated client connection is held for the duration.
     if (dryRun) {
+      const [neonRows, supRows] = await Promise.all([
+        neonPool.query('SELECT id, email, name FROM neon_auth."user"'),
+        pool.query('SELECT id, email FROM public."user"'),
+      ]);
+
+      const supByNeonId = new Map(
+        supRows.rows.map((r) => [String(r.id), r.email]),
+      );
+
+      const diverged: Array<{ id: string; current_email: string; new_email: string }> = [];
+      const orphans: Array<{ id: string; email: string; name?: string }> = [];
+
+      for (const na of neonRows.rows) {
+        const id = String(na.id);
+        const supEmail = supByNeonId.get(id);
+        if (supEmail === undefined) {
+          orphans.push({ id, email: na.email, name: na.name });
+        } else if (na.email !== supEmail) {
+          diverged.push({ id, current_email: supEmail, new_email: na.email });
+        }
+      }
+
       await recordCronRun(
         "sync-auth-users",
         "success",
@@ -80,15 +113,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Non-dry-run: acquire dedicated clients for the write phase.
+    supClient = await pool.connect();
+    neonClient = await neonPool.connect();
+
+    // Re-read inside the transaction context — both DBs read fresh so we
+    // reconcile against the latest state right before applying writes.
+    const [neonRows, supRows] = await Promise.all([
+      neonClient.query('SELECT id, email, name FROM neon_auth."user"'),
+      supClient.query('SELECT id, email FROM public."user"'),
+    ]);
+
+    const supByNeonId = new Map(
+      supRows.rows.map((r) => [String(r.id), r.email]),
+    );
+
+    const diverged: Array<{ id: string; current_email: string; new_email: string }> = [];
+    const orphans: Array<{ id: string; email: string; name?: string }> = [];
+
+    for (const na of neonRows.rows) {
+      const id = String(na.id);
+      const supEmail = supByNeonId.get(id);
+      if (supEmail === undefined) {
+        orphans.push({ id, email: na.email, name: na.name });
+      } else if (na.email !== supEmail) {
+        diverged.push({ id, current_email: supEmail, new_email: na.email });
+      }
+    }
+
     let synced = 0;
     for (const row of diverged) {
-      await client.query('UPDATE public."user" SET email = $1 WHERE id = $2', [row.new_email, row.id]);
+      await supClient.query('UPDATE public."user" SET email = $1 WHERE id = $2', [row.new_email, row.id]);
       synced++;
     }
 
     let deleted = 0;
     for (const orphan of orphans) {
-      await client.query('DELETE FROM neon_auth."user" WHERE id = $1', [orphan.id]);
+      await neonClient.query('DELETE FROM neon_auth."user" WHERE id = $1', [orphan.id]);
       deleted++;
     }
 
@@ -112,6 +173,7 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   } finally {
-    client.release();
+    if (supClient) try { await supClient.release(); } catch (e) { console.error("[cron/sync-auth-users] supClient.release failed:", e); }
+    if (neonClient) try { await neonClient.release(); } catch (e) { console.error("[cron/sync-auth-users] neonClient.release failed:", e); }
   }
 }

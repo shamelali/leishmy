@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, DollarSign, BarChart3, ArrowUp, ArrowDown, Calendar } from "lucide-react";
-import { StatCard } from "@/components/StatCard";
+import StatCard from "@/components/StatCard";
 import { DashboardLoading } from "@/components/DashboardLoading";
 
 type Period = "7d" | "30d" | "90d";
@@ -47,9 +47,9 @@ export default function AnalyticsPage() {
     return ((curr - prev) / prev) * 100;
   };
 
-  const gmvChange = change(data.gmvThisPeriod, data.gmvLastPeriod);
-  const usersChange = change(data.activeUsers, data.activeUsersLastPeriod);
-  const conversionChange = change(data.conversionRate, data.conversionRateLastPeriod);
+  const gmvChange = `${change(data.gmvThisPeriod, data.gmvLastPeriod).toFixed(1)}%`;
+  const usersChange = `${change(data.activeUsers, data.activeUsersLastPeriod).toFixed(1)}%`;
+  const conversionChange = `${change(data.conversionRate, data.conversionRateLastPeriod).toFixed(1)}%`;
 
   const maxRevenue = Math.max(...data.revenueByMonth.map((m) => m.revenue), 1);
   const maxBookings = Math.max(...data.bookingsByStatus.map((s) => s.count), 1);
@@ -97,27 +97,35 @@ export default function AnalyticsPage() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          title="GMV (MYR)"
+          icon={DollarSign}
+          label="GMV (MYR)"
           value={`RM ${data.gmv.toLocaleString()}`}
-          icon={<DollarSign className="w-5 h-5" />}
+          color="text-green-500"
+          bg="bg-green-50 dark:bg-green-950/30"
           change={gmvChange}
         />
         <StatCard
-          title="Active Users"
+          icon={Users}
+          label="Active Users"
           value={data.activeUsers.toLocaleString()}
-          icon={<Users className="w-5 h-5" />}
+          color="text-blue-500"
+          bg="bg-blue-50 dark:bg-blue-950/30"
           change={usersChange}
         />
         <StatCard
-          title="Conversion Rate"
+          icon={BarChart3}
+          label="Conversion Rate"
           value={`${data.conversionRate.toFixed(1)}%`}
-          icon={<BarChart3 className="w-5 h-5" />}
+          color="text-violet-500"
+          bg="bg-violet-50 dark:bg-violet-950/30"
           change={conversionChange}
         />
         <StatCard
-          title="Avg Order Value"
+          icon={DollarSign}
+          label="Avg Order Value"
           value={`RM ${data.avgOrderValue.toLocaleString()}`}
-          icon={<DollarSign className="w-5 h-5" />}
+          color="text-amber-500"
+          bg="bg-amber-50 dark:bg-amber-950/30"
         />
       </div>
 

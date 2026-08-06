@@ -47,3 +47,6 @@ opencode.json
 /playwright/.auth/
 .neon
 .aider*
+
+# migration artifacts (database dumps, logs)
+migration_artifacts_*

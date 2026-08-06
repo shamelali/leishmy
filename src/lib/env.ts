@@ -24,6 +24,10 @@ const envSchema = z.object({
   NEON_AUTH_BASE_URL: z.string().min(1, "NEON_AUTH_BASE_URL is required"),
   NEON_AUTH_COOKIE_SECRET: z.string().min(32, "NEON_AUTH_COOKIE_SECRET must be at least 32 characters"),
   NEXT_PUBLIC_NEON_AUTH_BASE_URL: z.string().optional(),
+  NEON_AUTH_URL: z.string().optional().describe(
+    "Neon Auth database connection string used by the sync-auth-users cron to read neon_auth.* tables. " +
+      "Only required when the sync-auth-users cron is enabled; omitting it makes the cron fail-fast at runtime if invoked.",
+  ),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).optional(),
