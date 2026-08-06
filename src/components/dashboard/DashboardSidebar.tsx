@@ -22,11 +22,6 @@ interface DashboardSidebarProps {
 }
 
 export default function DashboardSidebar({ items, activeId, onTabChange, children }: DashboardSidebarProps) {
-  const handleItemClick = (id: string, href?: string) => {
-    if (href) return;
-    onTabChange?.(id);
-  };
-
   return (
     <div className="min-h-[80vh]">
       <div className="hidden md:flex gap-6">

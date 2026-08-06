@@ -50,14 +50,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {gaId && (
             <>
               <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" nonce={nonce} />
-              <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
-                {`
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${gaId}');
-                `}
-              </Script>
+<Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
+{`
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}', { anonymize_ip: true });
+`}
+</Script>
             </>
           )}
           {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (

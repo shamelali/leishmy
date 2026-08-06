@@ -1,5 +1,6 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 
@@ -13,7 +14,7 @@ let iconReady = false;
 function ensureIcon() {
   if (iconReady || typeof window === "undefined") return;
   iconReady = true;
-  (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl = undefined;
+  delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl:
       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
