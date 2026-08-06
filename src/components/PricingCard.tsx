@@ -88,14 +88,14 @@ export function PricingCard({ tier }: PricingCardProps) {
           ))}
         </ul>
 
-        <Link
-          href={tier.price === 0 ? "/register" : "/leish-plus"}
-          className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-bold rounded-2xl transition-all text-sm ${
-            tier.popular
-              ? "bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 hover:from-amber-600 hover:to-rose-700 hover:scale-[1.02] active:scale-100"
-              : "bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-white border border-gray-200 dark:border-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-700"
-          }`}
-        >
+<Link
+  href="/register"
+  className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-bold rounded-2xl transition-all text-sm ${
+    tier.popular
+      ? "bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 hover:from-amber-600 hover:to-rose-700 hover:scale-[1.02] active:scale-100"
+      : "bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-white border border-gray-200 dark:border-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-700"
+  }`}
+>
           {tier.cta}
           <ArrowRight className="w-4 h-4" />
         </Link>

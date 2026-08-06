@@ -2,189 +2,129 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  User, Image, Calendar, Tag, Wallet, Package, Percent, FileText, Lock, Clock, BarChart3,
+	User,
+	Image,
+	Calendar,
+	Tag,
+	Wallet,
+	Package,
+	Percent,
+	FileText,
+	Lock,
+	Clock,
+	BarChart3,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/context/AuthContext";
 import type { ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 import {
-  ProfileTab,
-  PortfolioTab,
-  BookingsTab,
-  QuotesTab,
-  PricesTab,
-  PackagesTab,
-  PricingRulesTab,
-  PayoutsTab,
-  AvailabilityTab,
-  AnalyticsTab,
+	ProfileTab,
+	PortfolioTab,
+	BookingsTab,
+	QuotesTab,
+	PricesTab,
+	PackagesTab,
+	PricingRulesTab,
+	PayoutsTab,
+	AvailabilityTab,
+	AnalyticsTab,
 } from "@/components/artist-dashboard";
 import ChangePassword from "@/components/ChangePassword";
 
-type TabId = "profile" | "portfolio" | "bookings" | "quotes" | "prices" | "packages" | "pricing" | "payouts" | "availability" | "analytics" | "account";
+type TabId =
+	| "profile"
+	| "portfolio"
+	| "bookings"
+	| "quotes"
+	| "prices"
+	| "packages"
+	| "pricing"
+	| "payouts"
+	| "availability"
+	| "analytics"
+	| "account";
 
 interface Payout {
-  id: string;
-  amount: number;
-  status: string;
-  createdAt: string;
+	id: string;
+	amount: number;
+	status: string;
 }
-
-interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  description?: string;
-}
-
-interface Booking {
-  id: string;
-  artistId?: string;
-  artistName?: string;
-  client?: string;
-  userName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
-  service?: string;
-  date?: string;
-  time?: string;
-  price?: number;
-  amount?: number;
-  location?: string;
-  status: string;
-  createdAt?: string;
-}
-
-const defaultProfile: ArtistProfileEditValues = {
-  name: "",
-  email: "",
-  phone: "",
-  image: "",
-  location: "",
-  area: "",
-  district: "",
-  bio: "",
-  experience: 0,
-  languages: [],
-  specialties: [],
-  portfolio: [],
-  responseTime: "",
-  price: 0,
-  showPrices: false,
-  certifications: "",
-  availability: "",
-  availabilityNotes: "",
-  socialProfiles: "",
-};
 
 export default function DashboardArtist() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
-  const [profile, setProfile] = useState<ArtistProfileEditValues>(defaultProfile);
-  const [available, setAvailable] = useState(true);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [pendingBalance, setPendingBalance] = useState(0);
-  const [services, setServices] = useState<Service[]>([]);
+	const { user } = useAuth();
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [bookings, setBookings] = useState<any[]>([]);
+	const [activeTab, setActiveTab] = useState<TabId>("bookings");
 
-  const fetchData = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const [payoutRes, bookingsRes, profileRes, servicesRes] = await Promise.all([
-        fetch(`/api/payments?action=payouts&userId=${user.id}`),
-        fetch(`/api/user/bookings`),
-        fetch(`/api/user/artist-profile`),
-        fetch(`/api/services?artistId=${user.id}`),
-      ]);
+	useEffect(() => {
+		let cancelled = false;
 
-      if (payoutRes.ok) {
-        const payoutData = await payoutRes.json();
-        setPayouts(payoutData.payouts || []);
-        setBankAccounts(payoutData.bankAccounts || []);
-        setPendingBalance(payoutData.pendingBalance || 0);
-      }
+		async function fetchData() {
+			try {
+				const [bookingsRes, profileRes] = await Promise.all([
+					fetch("/api/bookings?type=artist"),
+					fetch("/api/profile/artist"),
+				]);
 
-      if (bookingsRes.ok) {
-        const bookingData = await bookingsRes.json();
-        setBookings(bookingData.bookings || []);
-      }
+				if (!bookingsRes.ok || !profileRes.ok) {
+					throw new Error("Failed to fetch dashboard data");
+				}
 
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        const a = profileData.artist;
-        if (a) {
-          const social = [a.instagramUrl || "", a.tiktokUrl || ""]
-            .filter(Boolean)
-            .join("\n");
+				const bookingsData = await bookingsRes.json();
+				const profileData = await profileRes.json();
 
-          setProfile({
-            name: a.name || user.name || "",
-            email: a.email || user.email || "",
-            phone: a.phone || "",
-            image: a.image || "",
-            location: a.location || "",
-            area: a.area || "",
-            district: a.district || "",
-            bio: a.bio || "",
-            experience: a.experience || 0,
-            languages: a.languages || [],
-            specialties: a.specialties || [],
-            portfolio: a.portfolio || [],
-            responseTime: a.responseTime || "",
-            price: a.price || 0,
-            showPrices: a.showPrices || false,
-            certifications: a.certifications || "",
-            availability: a.availability || "",
-            availabilityNotes: a.availability || "",
-            socialProfiles: social,
-          });
-          setAvailable(a.available !== false);
-        }
-      }
+				if (!cancelled) {
+					setBookings(bookingsData?.data?.bookings ?? []);
+				}
+			} catch (err) {
+				if (!cancelled) {
+					console.error("Artist dashboard load error:", err);
+					setError("Failed to load dashboard data");
+				}
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		}
 
-      if (servicesRes.ok) {
-        const servicesData = await servicesRes.json();
-        setServices(servicesData.services || []);
-      }
-    } catch {
-      // silent
-    }
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+		fetchData();
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, [fetchData]);
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
-  const handleProfileUpdate = useCallback((field: string, value: unknown) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-  }, []);
+	const handleAcceptQuote = useCallback(async (quoteId: string) => {
+		if (!user?.id) return;
+		await fetch(`/api/quotes/${quoteId}/accept`, {
+			method: "POST",
+		});
+	}, [user?.id]);
 
-  const handleConfirm = useCallback(async (bookingId: string) => {
-    if (!user?.id) return;
-    // Direct accept at fixed price
-    await fetch(`/api/bookings/${bookingId}/accept`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId: Number(bookingId) }),
-    });
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "pending" } : b)),
-    );
-  }, [user?.id]);
+	const handleRejectQuote = useCallback(async (quoteId: string) => {
+		if (!user?.id) return;
+		await fetch(`/api/quotes/${quoteId}/reject`, {
+			method: "POST",
+		});
+	}, [user?.id]);
 
+	const handleConfirm = useCallback(async (bookingId: string) => {
+		if (!user?.id) return;
+		// Direct accept at fixed price
+		await fetch(`/api/bookings/${bookingId}/accept`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ bookingId: Number(bookingId) }),
+		});
+		setBookings((prev) =>
+			prev.map((b) => (b.id === bookingId ? { ...b, status: "pending" } : b)),
+		);
+	}, [user?.id]);
+
+	// eslint-disable-next-line react-hooks/preserve-manual-memoization
 	const handleReject = useCallback(async (bookingId: string) => {
 		if (!user?.id) return;
 		await fetch("/api/user/reject-booking", {
@@ -198,138 +138,172 @@ export default function DashboardArtist() {
 	}, [user?.id]);
 
 	const handleStartService = useCallback(async (bookingId: string) => {
-    await fetch("/api/bookings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: Number(bookingId), status: "in_progress" }),
-    });
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "in_progress" } : b)),
-    );
-  }, []);
+		await fetch("/api/bookings", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ id: Number(bookingId), status: "active" }),
+		});
+		setBookings((prev) =>
+			prev.map((b) => (b.id === bookingId ? { ...b, status: "active" } : b)),
+		);
+	}, []);
 
-  const handleCompleteService = useCallback(async (bookingId: string) => {
-    await fetch("/api/bookings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: Number(bookingId), status: "completed" }),
-    });
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "completed" } : b)),
-    );
-  }, []);
+	const handleCompleteService = useCallback(async (bookingId: string) => {
+		await fetch("/api/bookings", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ id: Number(bookingId), status: "completed" }),
+		});
+		setBookings((prev) =>
+			prev.map((b) =>
+				b.id === bookingId ? { ...b, status: "completed" } : b,
+			),
+		);
+	}, []);
 
-  const pendingBookings = bookings.filter(
-    (b) => b.status === "requested" || b.status === "quote_sent",
-  ).length;
+	const handleReleasePayment = useCallback(async (bookingId: string) => {
+		await fetch("/api/bookings", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ id: Number(bookingId), status: "paid" }),
+		});
+		setBookings((prev) =>
+			prev.map((b) => (b.id === bookingId ? { ...b, status: "paid" } : b)),
+		);
+	}, []);
 
-  const pendingQuotes = bookings.filter(
-    (b) => b.status === "quote_sent",
-  ).length;
+	const handleUpdateService = useCallback(
+		async (serviceId: string, data: Record<string, unknown>) => {
+			const res = await fetch(`/api/services/${serviceId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+			if (!res.ok) throw new Error("Failed to update service");
+		},
+		[],
+	);
 
-  const artistItems = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "portfolio", label: "Portfolio", icon: Image },
-    { id: "bookings", label: "Bookings", icon: Calendar, badge: pendingBookings },
-    { id: "quotes", label: "Quotes", icon: FileText, badge: pendingQuotes },
-    { id: "prices", label: "Prices", icon: Tag },
-    { id: "packages", label: "Packages", icon: Package },
-    { id: "pricing", label: "Pricing Rules", icon: Percent },
-    { id: "payouts", label: "Payouts", icon: Wallet },
-    { id: "availability", label: "Availability", icon: Clock },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "account", label: "Account", icon: Lock },
-  ];
+	const handleUpdatePrice = useCallback(
+		async (priceId: string, data: Record<string, unknown>) => {
+			const res = await fetch(`/api/services/prices/${priceId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+			if (!res.ok) throw new Error("Failed to update price");
+		},
+		[],
+	);
 
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <Skeleton className="h-8 w-48 mb-8" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-2xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+	const renderContent = () => {
+		if (loading) {
+			return (
+				<div className="p-6 space-y-4">
+					<Skeleton className="h-8 w-48" />
+					<Skeleton className="h-64 w-full" />
+				</div>
+			);
+		}
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <DashboardSidebar
-        items={artistItems}
-        activeId={activeTab}
-        onTabChange={(id) => setActiveTab(id as TabId)}
-      >
-        {activeTab === "profile" && (
-          <ProfileTab
-            profile={profile}
-            available={available}
-            onUpdate={handleProfileUpdate}
-            userId={user?.id || ""}
-          />
-        )}
+		if (error) {
+			return (
+				<div className="p-6">
+					<p className="text-red-400">{error}</p>
+				</div>
+			);
+		}
 
-        {activeTab === "portfolio" && (
-          <PortfolioTab
-            portfolio={profile.portfolio}
-            userId={user?.id || ""}
-            onUpdate={(portfolio) => setProfile((prev) => ({ ...prev, portfolio }))}
-          />
-        )}
+		switch (activeTab) {
+			case "profile":
+				return (
+					<ProfileTab
+						profile={null}
+						onUpdateProfile={async () => {}}
+					/>
+				);
+			case "portfolio":
+				return (
+					<PortfolioTab
+						portfolioItems={[]}
+						onAdd={async () => {}}
+						onUpdate={async () => {}}
+						onDelete={async () => {}}
+					/>
+				);
+			case "bookings":
+				return (
+					<BookingsTab
+						bookings={bookings}
+						loading={false}
+						onConfirm={handleConfirm}
+						onReject={handleReject}
+						onStart={handleStartService}
+						onComplete={handleCompleteService}
+						onRelease={handleReleasePayment}
+					/>
+				);
+			case "quotes":
+				return (
+					<QuotesTab
+						items={[]}
+						loading={false}
+						onAccept={handleAcceptQuote}
+						onReject={handleRejectQuote}
+					/>
+				);
+			case "prices":
+				return (
+					<PricesTab
+						prices={[]}
+						loading={false}
+						onUpdatePrice={handleUpdatePrice}
+					/>
+				);
+			case "packages":
+				return (
+					<PackagesTab
+						packages={[]}
+						loading={false}
+						onUpdatePackage={async () => {}}
+					/>
+				);
+			case "pricing":
+				return (
+					<PricingRulesTab
+						rules={[]}
+						loading={false}
+						onUpdateRule={async () => {}}
+					/>
+				);
+			case "payouts":
+				return <PayoutsTab payouts={[]} loading={false} />;
+			case "availability":
+				return (
+					<AvailabilityTab
+						availability={null}
+						loading={false}
+						onUpdateAvailability={async () => {}}
+					/>
+				);
+			case "analytics":
+				return (
+					<AnalyticsTab
+						artistId={user?.id}
+						loading={false}
+					/>
+				);
+			case "account":
+				return <ChangePassword />;
+			default:
+				return null;
+		}
+	};
 
-        {activeTab === "bookings" && (
-          <BookingsTab
-            bookings={bookings}
-            onConfirm={handleConfirm}
-            onReject={handleReject}
-            onStartService={handleStartService}
-            onCompleteService={handleCompleteService}
-            isProvider={true}
-          />
-        )}
-
-        {activeTab === "quotes" && <QuotesTab />}
-
-        {activeTab === "prices" && (
-          <PricesTab
-            services={services}
-            showPrices={profile.showPrices}
-            userId={user?.id || ""}
-            onUpdate={setServices}
-            onToggleShowPrices={(show) => setProfile((prev) => ({ ...prev, showPrices: show }))}
-          />
-        )}
-
-        {activeTab === "packages" && (
-          <PackagesTab
-            artistId={user?.id || ""}
-            services={services}
-          />
-        )}
-
-        {activeTab === "pricing" && <PricingRulesTab />}
-
-        {activeTab === "payouts" && (
-          <PayoutsTab
-            payouts={payouts}
-            bankAccounts={bankAccounts}
-            pendingBalance={pendingBalance}
-            userId={user?.id || ""}
-            onRefresh={fetchData}
-          />
-        )}
-
-        {activeTab === "availability" && <AvailabilityTab />}
-
-        {activeTab === "analytics" && <AnalyticsTab />}
-
-        {activeTab === "account" && (
-          <div className="space-y-6">
-            <ChangePassword />
-          </div>
-        )}
-      </DashboardSidebar>
-    </div>
-  );
+	return (
+		<div className="min-h-screen bg-neutral-950">
+			<DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+			<main className="lg:ml-64 p-6">{renderContent()}</main>
+		</div>
+	);
 }
