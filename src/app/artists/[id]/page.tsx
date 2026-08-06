@@ -30,6 +30,7 @@ import { BookingInquiryTabs } from "@/components/BookingInquiryTabs";
 import ArtistReviews from "@/components/ArtistReviews";
 import ShareButtons from "@/components/ShareButtons";
 import { JsonLd } from "@/components/JsonLd";
+import LocationMap from "@/components/LocationMap";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
@@ -282,6 +283,18 @@ export default async function ArtistDetailPage({ params }: Props) {
                 <p className="font-semibold text-gray-900 dark:text-white">{formatAvailability(artist.availability) || "—"}</p>
               </div>
             </div>
+
+            {/* Map */}
+            {([artist.district, artist.area, artist.location].filter(Boolean).length > 0) && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-rose-500" /> Location
+                </h2>
+                <LocationMap
+                  location={[artist.district, artist.area, artist.location].filter(Boolean).join(", ")}
+                />
+              </div>
+            )}
 
             {/* Bio */}
             {artist.bio && (

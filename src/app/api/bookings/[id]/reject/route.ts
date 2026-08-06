@@ -86,7 +86,7 @@ export async function POST(
           type: "quote_rejected",
           title: "Quote Rejected",
           body: `Customer declined your quote for "${booking.service}".`,
-          data: { link: `/dashboard/bookings`, bookingId: String(booking.id) },
+          data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
         }).catch(() => {});
       }
     }

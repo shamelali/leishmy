@@ -22,6 +22,11 @@ Used for: booking confirmations, payment receipts, welcome emails, subscription 
 
 > Verified 2026-08-03: the API key authenticates to the Brevo **API** (`/v3/account` → `200`) but is **rejected by the SMTP relay** (`smtp-relay.brevo.com:587`) with `535 5.7.8 Authentication failed`. Use the relay login above + a dedicated SMTP key.
 
+### SMTP Env Vars
+
+- `BREVO_SMTP_LOGIN`: Brevo SMTP relay login (example `aa2b54001@smtp-brevo.com`).
+- `BREVO_SMTP_KEY`: Brevo **SMTP key** (generate under Settings → SMTP & API). Do NOT use `BREVO_API_KEY` for SMTP.
+
 ### DNS Authentication
 
 | Record | Value |

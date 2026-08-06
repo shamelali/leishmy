@@ -186,12 +186,12 @@ export async function POST(request: NextRequest) {
         type: "booking_request",
         title: "New Booking Request",
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
-        data: { link: "/dashboard/artist/bookings", bookingId: String(booking.id) },
+        data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
       }).catch(() => {});
       sendPushNotification(artist.userId, {
         title: "New Booking Request",
         body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
-        url: "/dashboard/artist/bookings",
+        url: `/bookings/${booking.id}`,
       }).catch(() => {});
     }
 
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Booking error:", error);
+    console.error("Booking error:", error, error instanceof Error ? error.stack : null);
     return NextResponse.json(
       { error: "Failed to create booking" },
       { status: 500 }

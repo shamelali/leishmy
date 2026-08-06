@@ -200,7 +200,9 @@ export default function BookingDetailPage() {
   const isProvider = user && (
     booking.artistId === user.id || booking.studioId === user.id
   );
-  const providerBackHref = isProvider ? "/dashboard/artist/bookings" : "/bookings";
+  const providerBackHref = isProvider
+    ? (booking.studioId === user?.id ? "/dashboard/studio/bookings" : "/dashboard/artist")
+    : "/bookings";
   const providerBackLabel = isProvider ? "Back to Dashboard" : "Back to Bookings";
 
   const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0);

@@ -7,6 +7,7 @@ export {
   sendQuoteReadyEmail,
   sendQuoteRejectedEmail,
   sendRemainingPaymentReminderEmail,
+  sendPaymentInstructionEmail,
   sendBookingCompletedEmail,
 } from "./booking-confirmation";
 export { sendPaymentReceiptEmail } from "./payment-receipt";

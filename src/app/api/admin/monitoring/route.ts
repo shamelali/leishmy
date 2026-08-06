@@ -122,6 +122,18 @@ export async function GET() {
         criticalLabel: "Transactional Email",
       },
       {
+        name: "Brevo SMTP Relay",
+        configured: !!process.env.BREVO_SMTP_LOGIN && !!process.env.BREVO_SMTP_KEY,
+        status:
+          process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY ? "ok" : "error",
+        detail: process.env.BREVO_SMTP_LOGIN
+          ? `Login: ${process.env.BREVO_SMTP_LOGIN}`
+          : "BREVO_SMTP_LOGIN and BREVO_SMTP_KEY are required for SMTP relay (Gmail Send-as)",
+        dashboardUrl: "https://app.brevo.com/",
+        criticalValue: process.env.BREVO_SMTP_LOGIN ? "Configured" : "Not Configured",
+        criticalLabel: "SMTP Relay",
+      },
+      {
         name: "Cloudinary",
         configured: !!process.env.CLOUDINARY_API_KEY,
         status: process.env.CLOUDINARY_API_KEY ? "ok" : "warning",

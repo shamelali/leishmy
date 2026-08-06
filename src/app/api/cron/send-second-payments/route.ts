@@ -209,7 +209,7 @@ export async function POST(request: Request) {
             type: "second_payment_due",
             title: "Second Payment Due",
             body: `Remaining balance of MYR ${remainingAmount.toFixed(2)} for booking #${booking.id} is due by ${dueDateStr}. Customer has been notified.`,
-            data: { link: "/dashboard/artist/bookings", bookingId: String(booking.id) },
+            data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
           }).catch(() => {});
         }
       }

@@ -18,6 +18,20 @@ export default function ContactPage() {
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             Have a question? We&apos;d love to hear from you.
           </p>
+          <div className="mt-8 rounded-3xl border border-rose-200/70 bg-rose-50/80 dark:border-rose-900/60 dark:bg-rose-950/30 p-6 max-w-3xl">
+            <p className="text-sm font-semibold text-rose-700 dark:text-rose-200">Need a faster response?</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">
+              Chat with our support team directly on WhatsApp for quick booking help, availability checks, or styling advice.
+            </p>
+            <a
+              href="https://wa.me/601137633788"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-4 rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 hover:bg-rose-700 transition"
+            >
+              Chat on WhatsApp
+            </a>
+          </div>
         </div>
       </section>
 

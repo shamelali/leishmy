@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
                   type: "booking_confirmed",
                   title: "Booking Confirmed",
                   body: `Your booking #${payment.bookingId} has been confirmed. Payment of MYR ${(Number(payment.amount) / 100).toLocaleString()} received.`,
-                  data: { link: "/dashboard/bookings", bookingId: String(payment.bookingId) },
+                  data: { link: `/bookings/${payment.bookingId}`, bookingId: String(payment.bookingId) },
                 }).catch(() => {});
 
                 if (booking.artistId) {
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
                     type: "booking_confirmed",
                     title: "Payment Received — Booking Confirmed",
                     body: `Payment received for booking #${payment.bookingId}. The appointment is now confirmed.`,
-                    data: { link: "/dashboard/artist", bookingId: String(payment.bookingId) },
+                    data: { link: `/bookings/${payment.bookingId}`, bookingId: String(payment.bookingId) },
                   }).catch(() => {});
                 }
 

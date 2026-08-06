@@ -324,7 +324,7 @@ export function artistWelcomeTemplate(params: { name: string }) {
       description:
         "Sync your calendar, set your availability and accept bookings in real time.",
       ctaLabel: "Manage your bookings",
-      ctaUrl: `${LEISH_BASE_URL()}/dashboard/artist/bookings`,
+      ctaUrl: `${LEISH_BASE_URL()}/bookings`,
     },
     {
       title: "Share & grow",

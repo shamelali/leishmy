@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
 import { acceptQuoteSchema } from "@/lib/validations/bookings";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail } from "@/lib/email";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendPaymentInstructionEmail } from "@/lib/email";
 import { createBillForBooking } from "@/lib/billplz-bill";
 import { logAudit } from "@/lib/audit";
 import { sendPushNotification } from "@/lib/notifications/push";
@@ -115,14 +115,14 @@ export async function POST(
           type: "booking_accepted",
           title: "Booking Accepted",
           body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
-          data: { link: `/dashboard/artist/bookings`, bookingId: String(booking.id) },
+          data: { link: `/bookings/${bookingId}`, bookingId: String(booking.id) },
         }).catch(() => {});
 
         // Send push notification
         sendPushNotification(artist.userId, {
           title: "Booking Accepted",
           body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
-          url: "/dashboard/artist/bookings",
+          url: `/bookings/${bookingId}`,
         }).catch(() => {});
 
         const [providerUser] = await db
@@ -188,6 +188,54 @@ export async function POST(
         totalPrice,
         billError: billResult.error,
       });
+    }
+
+    // Send payment instruction email to customer with deposit payment link
+    const bill = billResult.data.bill as { id: string; url?: string };
+    let paymentUrl: string | undefined = bill.url;
+    if (!paymentUrl && bill.id) {
+      const billplzApiUrl =
+        process.env.BILLPLZ_API_URL || "https://www.billplz-api.my/v4";
+      const billplzBaseUrl = billplzApiUrl.replace("/api/v3", "");
+      paymentUrl = `${billplzBaseUrl}/v4/bills/${bill.id}`;
+    }
+
+    if (customerUser?.email && paymentUrl) {
+      let providerName = "Your Provider";
+      if (booking.artistId) {
+        const [artistUser] = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, booking.artistId))
+          .limit(1);
+        providerName = artistUser?.name || providerName;
+      } else if (booking.studioId) {
+        const [studioUser] = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, booking.studioId))
+          .limit(1);
+        providerName = studioUser?.name || providerName;
+      }
+
+      sendPaymentInstructionEmail({
+        email: customerUser.email,
+        customerName: customerUser.name || "Valued Customer",
+        bookingId: String(booking.id),
+        serviceName: booking.service || "Service",
+        providerName,
+        date: new Date(booking.date).toLocaleDateString("en-MY", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        time: booking.time || "To be confirmed",
+        depositAmount,
+        totalPrice,
+        depositPercent: depositPercentNum,
+        paymentUrl,
+      }).catch((err) => console.error("sendPaymentInstructionEmail failed:", err));
     }
 
     return NextResponse.json({

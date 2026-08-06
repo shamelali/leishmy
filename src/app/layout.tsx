@@ -36,7 +36,6 @@ import Providers from "@/components/Providers";
 import ErrorState from "@/components/ErrorState";
 import BackToTop from "@/components/BackToTop";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
-import { WhatsAppChatbot } from "@/components/WhatsAppChatbot";
 import Script from "next/script";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -102,7 +101,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <Footer />
             <BackToTop />
             <AccessibilityMenu />
-            <WhatsAppChatbot />
           </Providers>
         </Sentry.ErrorBoundary>
         <SpeedInsights />

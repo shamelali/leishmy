@@ -8,6 +8,7 @@ import { alias } from "drizzle-orm/pg-core";
 
 import ShareButtons from "@/components/ShareButtons";
 import { JsonLd } from "@/components/JsonLd";
+import LocationMap from "@/components/LocationMap";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
@@ -179,6 +180,16 @@ export default async function StudioDetailPage({ params }: Props) {
                 <p className="font-semibold text-gray-900 dark:text-white">{studio.priceRange}</p>
               </div>
             </div>
+
+            {/* Map */}
+            {studio.location && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-rose-500" /> Location
+                </h2>
+                <LocationMap location={studio.location} />
+              </div>
+            )}
 
             {/* Description */}
             <div className="mb-8">

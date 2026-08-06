@@ -236,3 +236,55 @@ export async function sendBookingCompletedEmail(params: {
     from: getEmailAlias("notifications"),
   });
 }
+
+export async function sendPaymentInstructionEmail(params: {
+  email: string;
+  customerName: string;
+  bookingId: string;
+  serviceName: string;
+  providerName: string;
+  date: string;
+  time: string;
+  depositAmount: number;
+  totalPrice: number;
+  depositPercent: number;
+  paymentUrl: string;
+  dueDate?: string;
+}) {
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://leish.my";
+  const bookingUrl = `${baseUrl}/bookings/${params.bookingId}`;
+  const subject = `Payment Instructions — Booking #${params.bookingId}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Payment Instructions</h2>
+      <p>Hi ${params.customerName},</p>
+      <p>${params.providerName} has confirmed your booking for <strong>${params.serviceName}</strong> on <strong>${params.date}</strong> at <strong>${params.time}</strong>.</p>
+      <p>To secure your appointment, please complete the deposit payment below.</p>
+      <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Payment Summary</h3>
+        <p><strong>Total:</strong> MYR ${params.totalPrice.toFixed(2)}</p>
+        <p><strong>Deposit (${params.depositPercent}%):</strong> MYR ${params.depositAmount.toFixed(2)}</p>
+        ${params.dueDate ? `<p><strong>Due:</strong> ${params.dueDate}</p>` : ""}
+      </div>
+      <p style="text-align: center;">
+        <a href="${params.paymentUrl}" style="display: inline-block; background: #e91e63; color: white; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: bold;">Pay Deposit Now</a>
+      </p>
+      <p style="color: #666; font-size: 14px; text-align: center;">
+        You will receive a receipt via email once payment is complete.<br>
+        <a href="${bookingUrl}" style="color: #e91e63; text-decoration: none;">View your booking details</a>
+      </p>
+      <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h4 style="margin-top: 0; font-size: 14px; color: #666;">Bank Transfer (alternative)</h4>
+        <p style="font-size: 13px; color: #666;">If the payment button above does not work, you may transfer directly to our account. Please contact your provider for bank details.</p>
+      </div>
+      <p style="color: #999; font-size: 12px; text-align: center;">Leish! — Malaysia's premier beauty marketplace</p>
+    </div>
+  `;
+  return sendEmail({
+    to: params.email,
+    subject,
+    html,
+    text: `Payment instructions for booking #${params.bookingId}. Deposit: MYR ${params.depositAmount.toFixed(2)} of MYR ${params.totalPrice.toFixed(2)}. Pay here: ${params.paymentUrl}. Booking details: ${bookingUrl}`,
+    from: getEmailAlias("notifications"),
+  });
+}
