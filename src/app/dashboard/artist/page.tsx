@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { artistItems } from "@/components/dashboard/artistNav";
 import { useAuth } from "@/context/AuthContext";
 import type { ArtistProfileEditValues } from "@/components/ArtistProfileEditForm";
 import {
@@ -214,96 +215,91 @@ export default function DashboardArtist() {
 			);
 		}
 
-		switch (activeTab) {
-			case "profile":
-				return (
-					<ProfileTab
-						profile={null}
-						onUpdateProfile={async () => {}}
-					/>
-				);
-			case "portfolio":
-				return (
-					<PortfolioTab
-						portfolioItems={[]}
-						onAdd={async () => {}}
-						onUpdate={async () => {}}
-						onDelete={async () => {}}
-					/>
-				);
-			case "bookings":
-				return (
-					<BookingsTab
-						bookings={bookings}
-						loading={false}
-						onConfirm={handleConfirm}
-						onReject={handleReject}
-						onStart={handleStartService}
-						onComplete={handleCompleteService}
-						onRelease={handleReleasePayment}
-					/>
-				);
-			case "quotes":
-				return (
-					<QuotesTab
-						items={[]}
-						loading={false}
-						onAccept={handleAcceptQuote}
-						onReject={handleRejectQuote}
-					/>
-				);
-			case "prices":
-				return (
-					<PricesTab
-						prices={[]}
-						loading={false}
-						onUpdatePrice={handleUpdatePrice}
-					/>
-				);
-			case "packages":
-				return (
-					<PackagesTab
-						packages={[]}
-						loading={false}
-						onUpdatePackage={async () => {}}
-					/>
-				);
-			case "pricing":
-				return (
-					<PricingRulesTab
-						rules={[]}
-						loading={false}
-						onUpdateRule={async () => {}}
-					/>
-				);
-			case "payouts":
-				return <PayoutsTab payouts={[]} loading={false} />;
-			case "availability":
-				return (
-					<AvailabilityTab
-						availability={null}
-						loading={false}
-						onUpdateAvailability={async () => {}}
-					/>
-				);
-			case "analytics":
-				return (
-					<AnalyticsTab
-						artistId={user?.id}
-						loading={false}
-					/>
-				);
-			case "account":
-				return <ChangePassword />;
-			default:
-				return null;
-		}
+  switch (activeTab) {
+    case "profile":
+      return (
+        <ProfileTab
+          profile={{
+            name: user?.name ?? "",
+            email: user?.email ?? "",
+            phone: "",
+            location: "",
+            area: "",
+            district: "",
+            bio: "",
+            experience: 0,
+            languages: [],
+            specialties: [],
+            portfolio: [],
+            responseTime: "",
+            price: 0,
+            showPrices: true,
+            certifications: "",
+            availability: "",
+            availabilityNotes: "",
+            socialProfiles: "",
+            image: "",
+          }}
+          available
+          onUpdate={async () => {}}
+          userId={user?.id ?? ""}
+        />
+      );
+    case "portfolio":
+      return (
+        <PortfolioTab
+          portfolio={[]}
+          userId={user?.id ?? ""}
+          onUpdate={async () => {}}
+        />
+      );
+    case "bookings":
+      return (
+        <BookingsTab
+          bookings={bookings}
+          onConfirm={handleConfirm}
+          onReject={handleReject}
+        />
+      );
+    case "quotes":
+      return <QuotesTab />;
+    case "prices":
+      return (
+        <PricesTab
+          services={[]}
+          showPrices
+          userId={user?.id ?? ""}
+          onUpdate={async () => {}}
+          onToggleShowPrices={() => {}}
+        />
+      );
+    case "packages":
+      return (
+        <PackagesTab
+          artistId={user?.id ?? ""}
+          services={[]}
+        />
+      );
+    case "pricing":
+      return <PricingRulesTab />;
+    case "payouts":
+      return <PayoutsTab payouts={[]} bankAccounts={[]} pendingBalance={0} userId={user?.id ?? ""} onRefresh={() => {}} />;
+    case "availability":
+      return <AvailabilityTab />;
+    case "analytics":
+      return <AnalyticsTab />;
+    case "account":
+      return <ChangePassword />;
+    default:
+      return null;
+  }
 	};
 
-	return (
-		<div className="min-h-screen bg-neutral-950">
-			<DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-			<main className="lg:ml-64 p-6">{renderContent()}</main>
-		</div>
-	);
+  return (
+    <DashboardSidebar items={artistItems} activeId={activeTab} onTabChange={(id) => setActiveTab(id as TabId)}>
+      <div className="min-h-screen bg-neutral-950">
+        <main className="lg:ml-64 p-6">{renderContent()}</main>
+      </div>
+    </DashboardSidebar>
+  );
 }

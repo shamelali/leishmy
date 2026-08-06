@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import {
-  ClipboardList, Calendar, Clock, User, DollarSign, Filter,
-  ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRight,
+import { ClipboardList, Calendar, Clock, User, DollarSign, Filter,
+ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRight,
 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -35,14 +34,14 @@ interface Staff {
 }
 
 const statusColors: Record<string, string> = {
-  requested: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50",
-  quote_pending: "bg-purple-50 text-purple-600 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/50",
-  quote_sent: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50",
-  pending: "bg-orange-50 text-orange-600 dark:bg-orange-950/30 border-orange-100 dark:border-orange-900/50",
-  confirmed: "bg-green-50 text-green-600 dark:bg-green-950/30 border-green-100 dark:border-green-900/50",
-  in_progress: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50",
-  completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50",
-  cancelled: "bg-red-50 text-red-600 dark:bg-red-950/30 border-red-100 dark:border-red-900/50",
+requested: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50",
+quote_pending: "bg-purple-50 text-purple-600 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/50",
+quote_sent: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50",
+pending: "bg-orange-50 text-orange-600 dark:bg-orange-950/30 border-orange-100 dark:border-orange-900/50",
+confirmed: "bg-green-50 text-green-600 dark:bg-green-950/30 border-green-100 dark:border-green-900/50",
+in_progress: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50",
+completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50",
+cancelled: "bg-red-50 text-red-600 dark:bg-red-950/30 border-red-100 dark:border-red-900/50",
 };
 
 const statusIcons: Record<string, typeof Clock> = {
@@ -80,15 +79,13 @@ export default function StudioBookings() {
       setError("Failed to load bookings");
     }
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, loadData]);
 
   const handleAssignArtist = async (bookingId: string, artistId: string) => {
     setAssigningId(bookingId);
@@ -111,7 +108,6 @@ export default function StudioBookings() {
   };
 
   const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
-
   const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
   return (
@@ -134,10 +130,10 @@ export default function StudioBookings() {
               key={tab}
               onClick={() => setFilter(tab)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                filter === tab
-                  ? "bg-rose-500 text-white"
-                  : "text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"
-              }`}
+                  filter === tab
+                    ? "bg-rose-500 text-white"
+                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"
+                }`}
             >
               {tab === "all" ? "All" : tab.replace("_", " ")}
             </button>

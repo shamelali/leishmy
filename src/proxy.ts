@@ -72,7 +72,7 @@ function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("x-nonce", nonce);
   res.headers.set(
     "Content-Security-Policy",
-    `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://mcp.cloudflare.com https://docs.mcp.cloudflare.com https://mcp.neon.tech https://mcp.github.com https://mcp.facebook.com; frame-src 'none'; object-src 'none'`,
+    `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://www.google.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://mcp.cloudflare.com https://docs.mcp.cloudflare.com https://mcp.neon.tech https://mcp.github.com https://mcp.facebook.com; frame-src 'none'; object-src 'none'`,
   );
   return res;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { CreditCard, DollarSign, Search, CheckCircle, RefreshCw } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import { DashboardLoading } from "@/components/DashboardLoading";
@@ -58,60 +58,74 @@ export default function PaymentMonitoringPage() {
     totalTransactions: 0,
   });
 
-  const fetchStats = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatsLoading(true);
-    try {
-      const res = await fetch("/api/admin?action=payments&page=1&pageSize=1");
-      if (res.ok) {
-        const data = await res.json();
-        setStats({
-          totalRevenue: data.totalRevenue || 0,
-          pendingPayouts: data.pendingPayouts || 0,
-          totalTransactions: data.totalTransactions || 0,
-        });
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setStatsLoading(false);
-    }
+    fetch("/api/admin?action=payments&page=1&pageSize=1")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setStats({
+            totalRevenue: data.totalRevenue || 0,
+            pendingPayouts: data.pendingPayouts || 0,
+            totalTransactions: data.totalTransactions || 0,
+          });
+          setStatsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStatsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+     
   }, []);
 
-  const fetchPayments = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingPayments(true);
-    try {
-      const res = await fetch(`/api/admin?action=payments&page=${paymentsPage}&pageSize=20`);
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(data.payments || []);
-        setPaymentsTotalPages(data.totalPages || 1);
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setLoadingPayments(false);
-    }
+    fetch(`/api/admin?action=payments&page=${paymentsPage}&pageSize=20`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setPayments(data.payments || []);
+          setPaymentsTotalPages(data.totalPages || 1);
+          setLoadingPayments(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadingPayments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+     
   }, [paymentsPage]);
 
-  const fetchPayouts = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingPayouts(true);
-    try {
-      const res = await fetch(`/api/admin?action=pending-payouts&page=${payoutsPage}&pageSize=20`);
-      if (res.ok) {
-        const data = await res.json();
-        setPayouts(data.payouts || []);
-        setPayoutsTotalPages(data.totalPages || 1);
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setLoadingPayouts(false);
-    }
+    fetch(`/api/admin?action=pending-payouts&page=${payoutsPage}&pageSize=20`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setPayouts(data.payouts || []);
+          setPayoutsTotalPages(data.totalPages || 1);
+          setLoadingPayouts(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadingPayouts(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+     
   }, [payoutsPage]);
-
-  useEffect(() => { fetchStats(); }, [fetchStats]);
-  useEffect(() => { fetchPayments(); }, [fetchPayments]);
-  useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
   const handleMarkPaid = async (payoutIds: number[]) => {
     if (payoutIds.length === 0 || markingPaid) return;
@@ -131,6 +145,41 @@ export default function PaymentMonitoringPage() {
       // silently fail
     } finally {
       setMarkingPaid(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/admin?action=payments&page=1&pageSize=1");
+      if (res.ok) {
+        const data = await res.json();
+        setStats({
+          totalRevenue: data.totalRevenue || 0,
+          pendingPayouts: data.pendingPayouts || 0,
+          totalTransactions: data.totalTransactions || 0,
+        });
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchPayouts = async () => {
+    setLoadingPayouts(true);
+    try {
+      const res = await fetch(`/api/admin?action=pending-payouts&page=${payoutsPage}&pageSize=20`);
+      if (res.ok) {
+        const data = await res.json();
+        setPayouts(data.payouts || []);
+        setPayoutsTotalPages(data.totalPages || 1);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingPayouts(false);
     }
   };
 

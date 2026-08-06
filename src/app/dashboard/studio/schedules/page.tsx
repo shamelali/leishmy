@@ -53,23 +53,19 @@ export default function StudioSchedules() {
       setError("Failed to load staff");
     }
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStaff();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, loadStaff]);
 
-  const loadRules = useCallback(async (staffId: string) => {
+  const loadRules = async (staffId: string) => {
     try {
       const res = await fetch(`/api/availability?userId=${staffId}`);
       const data = await res.json();
       const existing: AvailabilityRule[] = data.rules || [];
-
-      // Ensure all 7 days are present
       const allDays: AvailabilityRule[] = Array.from({ length: 7 }, (_, i) => {
         const found = existing.find((r) => r.dayOfWeek === i);
         return found || { dayOfWeek: i, ...defaultRule, active: false };
@@ -78,7 +74,7 @@ export default function StudioSchedules() {
     } catch {
       setError("Failed to load schedule");
     }
-  }, []);
+  };
 
   const handleSelectStaff = async (staffId: string) => {
     setSelectedStaff(staffId);
@@ -112,9 +108,6 @@ export default function StudioSchedules() {
           endTime,
           slotDurationMinutes,
         }));
-
-      // We need to save as the staff member — since availability is per-user,
-      // we call the API with the staff member's session. For now, save as studio owner.
       const res = await fetch("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -190,7 +183,8 @@ export default function StudioSchedules() {
                     disabled={saving}
                     className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-400 text-white text-sm font-medium rounded-xl transition-colors"
                   >
-                    <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save"}
+                    <Save className="w-4 h-4" />
+                    {saving ? "Saving..." : "Save"}
                   </button>
                 </div>
 

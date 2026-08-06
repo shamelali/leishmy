@@ -60,37 +60,36 @@ export default function DisputesPage() {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolutionText, setResolutionText] = useState("");
 
-  const fetchDisputes = useCallback(async () => {
+const handleStatusChange = (status: string) => {
+  setActiveStatus(status);
+  setPage(1);
+};
+
+  const fetchDisputes = useCallback(() => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: "20",
-      });
-      if (activeStatus !== "all") {
-        params.set("status", activeStatus);
-      }
-      const res = await fetch(`/api/admin/disputes?${params}`);
-      if (res.ok) {
-        const data = await res.json();
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: "20",
+    });
+    if (activeStatus !== "all") {
+      params.set("status", activeStatus);
+    }
+    fetch(`/api/admin/disputes?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
         setDisputes(data.disputes || []);
         setTotal(data.total || 0);
-      }
-    } catch (e) {
-      console.error("Failed to fetch disputes:", e);
-    } finally {
-      setLoading(false);
-    }
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [page, activeStatus]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDisputes();
   }, [fetchDisputes]);
-
-  const handleStatusChange = (status: string) => {
-    setActiveStatus(status);
-    setPage(1);
-  };
 
   const handleResolve = async (disputeId: string) => {
     if (!resolutionText.trim()) return;
