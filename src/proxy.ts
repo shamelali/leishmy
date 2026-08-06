@@ -60,6 +60,17 @@ function generateNonce(): string {
 
 // --- Proxy (formerly Middleware) ---
 
+function deriveConnectSrc(): string {
+  const neAuthBase = process.env.NEON_AUTH_BASE_URL?.replace(/\/+$/, "");
+  try {
+    const neAuthOrigin = neAuthBase ? new URL(neAuthBase).origin : "";
+    const extra = neAuthOrigin ? ` ${neAuthOrigin}` : "";
+    return `'self' https://cloudflareinsights.com https://api.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://www.google.com https://nominatim.openstreetmap.org https://tile.openstreetmap.org https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://mcp.cloudflare.com https://docs.mcp.cloudflare.com https://mcp.neon.tech https://mcp.github.com https://mcp.facebook.com${extra}`;
+  } catch {
+    return `'self' https://cloudflareinsights.com https://api.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://www.google.com https://nominatim.openstreetmap.org https://tile.openstreetmap.org https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://mcp.cloudflare.com https://docs.mcp.cloudflare.com https://mcp.neon.tech https://mcp.github.com https://mcp.facebook.com`;
+  }
+}
+
 function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
@@ -72,7 +83,7 @@ function withSecurityHeaders(res: NextResponse, nonce: string) {
   res.headers.set("x-nonce", nonce);
   res.headers.set(
     "Content-Security-Policy",
-    `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://api.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://www.google.com https://nominatim.openstreetmap.org https://tile.openstreetmap.org https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://mcp.cloudflare.com https://docs.mcp.cloudflare.com https://mcp.neon.tech https://mcp.github.com https://mcp.facebook.com; frame-src 'none'; object-src 'none'`,
+    `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src ${deriveConnectSrc()}; frame-src 'none'; object-src 'none'`,
   );
   return res;
 }
