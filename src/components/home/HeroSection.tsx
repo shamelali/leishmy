@@ -6,8 +6,6 @@ import { adminSettings, profiles, users } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { cldImage } from "@/lib/cloudinary-url-gen";
 
-const HERO_BG_IMAGE = "/images/artfulcolorworks-ai-generated-9159114.jpg";
-
 function getCloudinaryUrl(publicId: string): string {
   return cldImage(publicId, { width: 1920, crop: "fill", quality: "auto", format: "auto" });
 }
@@ -21,7 +19,7 @@ async function getHeroBgImage(): Promise<string> {
   if (cloudName) {
     return getCloudinaryUrl("artfulcolorworks-ai-generated-9159114");
   }
-  return HERO_BG_IMAGE;
+  return "";
 }
 
 async function getFeaturedArtist() {
@@ -77,19 +75,21 @@ export async function HeroSection({ stats }: { stats?: HeroStats[] }) {
     <section className="relative min-h-[calc(100vh-4rem)] flex items-center overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src={heroBg}
-          alt=""
-          fill
-          className="w-full h-full object-cover animate-ken-burns"
-          aria-hidden="true"
-          priority
-        />
-        {/* Dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30 dark:from-black/90 dark:via-black/60 dark:to-black/40" />
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
-      </div>
+{heroBg && (
+  <Image
+    src={heroBg}
+    alt=""
+    fill
+    className="w-full h-full object-cover animate-ken-burns"
+    aria-hidden="true"
+    priority
+  />
+)}
+{/* Dark gradient overlay */}
+<div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30 dark:from-black/90 dark:via-black/60 dark:to-black/40" />
+{/* Bottom fade */}
+<div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+</div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center w-full">
         {/* Left Content - Glassmorphism Card */}
