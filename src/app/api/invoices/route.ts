@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { invoices, bookings, users, services, quoteOptions } from "@/db/schema";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, desc, like } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
+import { hasAdminAccess } from "@/lib/auth/admin";
 
 async function generateInvoiceNumber(): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
+  const prefix = `INV-${year}${month}-`;
   const [last] = await db
     .select({ invoiceNumber: invoices.invoiceNumber })
     .from(invoices)
-    .where(eq(invoices.invoiceNumber, `INV-${year}${month}-000000`))
-    .orderBy(desc(invoices.id))
+    .where(like(invoices.invoiceNumber, `${prefix}%`))
+    .orderBy(desc(invoices.invoiceNumber))
     .limit(1);
 
   let seq = 1;
@@ -20,7 +22,7 @@ async function generateInvoiceNumber(): Promise<string> {
     const match = last.invoiceNumber.match(/-(\d{6})$/);
     if (match) seq = parseInt(match[1], 10) + 1;
   }
-  return `INV-${year}${month}-${String(seq).padStart(6, "0")}`;
+  return `${prefix}${String(seq).padStart(6, "0")}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -116,12 +118,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    const providerId = booking.artistId || booking.studioId;
-    if (!providerId) {
-      return NextResponse.json({ error: "No provider on booking" }, { status: 400 });
-    }
+  const providerId = booking.artistId || booking.studioId;
+  if (!providerId) {
+    return NextResponse.json({ error: "No provider on booking" }, { status: 400 });
+  }
 
-    const [provider] = await db
+  if (!hasAdminAccess(session) && providerId !== session.id && booking.userId !== session.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const [provider] = await db
       .select({ name: users.name })
       .from(users)
       .where(eq(users.id, providerId))

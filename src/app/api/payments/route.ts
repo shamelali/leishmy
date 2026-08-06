@@ -8,8 +8,9 @@ import { getAuthSession } from "@/lib/auth/server";
 import { hasAdminAccess } from "@/lib/auth/admin";
 import { rateLimitApi } from "@/lib/rate-limit-api";
 import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
-import { createBillSchema, registerBankSchema, qrPaymentSchema, releasePaymentSchema, refundPaymentSchema } from "@/lib/validations/payments";
+import { createBillSchema, registerBankSchema, createRemainingBillSchema, qrPaymentSchema, releasePaymentSchema, refundPaymentSchema } from "@/lib/validations/payments";
 import { createBillForBooking } from "@/lib/billplz-bill";
+import { reconcilePayment } from "@/lib/payment-reconcile";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -23,13 +24,13 @@ function billplzAuth() {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getAuthSession();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const userId = searchParams.get("userId");
     const paymentId = searchParams.get("paymentId");
 
     if (action === "history" && userId) {
-      const session = await getAuthSession();
       if (!session || session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -106,51 +107,60 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (action === "status" && paymentId) {
-      const [payment] = await db
-        .select()
-        .from(payments)
-        .where(eq(payments.id, Number(paymentId)))
-        .limit(1);
+  if (action === "status" && paymentId) {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, Number(paymentId)))
+      .limit(1);
 
-      if (!payment) {
-        return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-      }
-
-      const result: any = { payment };
-
-      if (payment.billplzId) {
-        try {
-          const billplzResponse = await fetch(
-            `${BILLPLZ_API}/bills/${payment.billplzId}`,
-            { headers: { Authorization: billplzAuth() } },
-          );
-          const billplzData = await billplzResponse.json();
-
-          if (billplzData.paid_at) {
-            await db
-              .update(payments)
-              .set({ status: "paid", updatedAt: new Date() })
-              .where(eq(payments.id, Number(paymentId)));
-            result.payment.status = "paid";
-
-            if (payment.bookingId) {
-              await db
-                .update(bookings)
-                .set({ status: "confirmed", updatedAt: new Date() })
-                .where(eq(bookings.id, payment.bookingId));
-              result.payment.bookingStatus = "confirmed";
-            }
-          }
-
-          result.billplz = billplzData;
-        } catch {
-          console.error("Billplz check failed for payment", paymentId);
-        }
-      }
-
-      return NextResponse.json(result);
+    if (!payment) {
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasAdminAccess(session) && payment.bookingId) {
+      const [owner] = await db
+        .select({ userId: bookings.userId })
+        .from(bookings)
+        .where(eq(bookings.id, payment.bookingId))
+        .limit(1);
+      if (owner && owner.userId !== session.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    if (!hasAdminAccess(session) && !payment.bookingId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const result = await reconcilePayment(Number(paymentId));
+    const { billplzId } = result;
+    const billplzData = billplzId
+      ? (async () => {
+          try {
+            const res = await fetch(`${BILLPLZ_API}/bills/${billplzId}`, {
+              headers: { Authorization: billplzAuth() },
+            });
+            return await res.json();
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+
+    return NextResponse.json({
+      payment: {
+        ...payment,
+        status: result.localStatus,
+        bookingStatus: result.updated ? "confirmed" : undefined,
+      },
+      billplz: billplzData,
+    });
+  }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
@@ -248,17 +258,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, bank });
     }
 
-    if (action === "create-remaining-bill") {
-      const session = await getAuthSession();
+  if (action === "create-remaining-bill") {
+    const session = await getAuthSession();
+    const parsed = createRemainingBillSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const { bookingId, idempotencyKey } = parsed.data;
 
-      const { bookingId, idempotencyKey } = body;
-
-      if (!bookingId) {
-        return NextResponse.json(
-          { error: "bookingId is required" },
-          { status: 400 },
-        );
-      }
+    if (!bookingId) {
+      return NextResponse.json(
+        { error: "bookingId is required" },
+        { status: 400 },
+      );
+    }
 
       const [booking] = await db
         .select()
@@ -409,25 +425,24 @@ export async function POST(request: NextRequest) {
         .set({ status: "confirmed", updatedAt: new Date() })
         .where(eq(bookings.id, Number(bookingId)));
 
-      if (booking.artistId) {
-        const [artistUser] = await db
-          .select({ name: users.name, phone: users.phone })
-          .from(users)
-          .where(eq(users.id, booking.artistId))
-          .limit(1);
-        if (artistUser?.phone) {
-          await sendPaymentConfirmation({
-            customerName: "Customer",
-            bookingId: String(bookingId),
-            amount: remainingAmount,
-            phone: artistUser.phone,
-          }).catch((err: unknown) =>
-            console.error("QR payment WhatsApp failed:", err)
-          );
-        }
-      }
+if (booking.userId) {
+  const [customerUser] = await db
+    .select({ name: users.name, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, booking.userId))
+    .limit(1);
+  if (customerUser?.phone) {
+    const customerName = customerUser.name || "Customer";
+    await sendPaymentConfirmation({
+      customerName,
+      bookingId: String(bookingId),
+      amount: remainingAmount,
+      phone: customerUser.phone,
+    }).catch((err: unknown) => console.error("QR payment WhatsApp failed:", err));
+  }
+}
 
-      return NextResponse.json({ success: true, payment });
+return NextResponse.json({ success: true, payment });
     }
 
     if (action === "release") {
@@ -494,38 +509,56 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (payment.billplzId) {
-        const billplzResponse = await fetch(
-          `${BILLPLZ_API}/bills/${payment.billplzId}/refund`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: billplzAuth(),
-            },
-            body: JSON.stringify({ amount: payment.amount }),
-          },
-        );
+if (payment.billplzId) {
+  let billplzData: { ok: boolean; status: number; body: unknown };
+  try {
+    const billplzResponse = await fetch(
+      `${BILLPLZ_API}/bills/${payment.billplzId}/refund`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: billplzAuth(),
+        },
+        body: JSON.stringify({ amount: payment.amount }),
+      },
+    );
+    const parsed = await billplzResponse.json().catch(() => billplzResponse.text());
+    billplzData = {
+      ok: billplzResponse.ok,
+      status: billplzResponse.status,
+      body: parsed,
+    };
+  } catch (err) {
+    console.error("[refund] Billplz refund call failed:", err);
+    await db
+      .update(payments)
+      .set({ status: "refund_pending", updatedAt: new Date() })
+      .where(eq(payments.id, Number(paymentId)));
+    return NextResponse.json(
+      { error: "Refund initiated locally. Billplz refund request failed." },
+      { status: 202 },
+    );
+  }
+  if (!billplzData.ok) {
+    const body = billplzData.body;
+    const msg =
+      typeof body === "string"
+        ? body
+        : (body as Record<string, unknown>)?.error
+          ? typeof (body as Record<string, { message?: string }>).error === "string"
+            ? ((body as Record<string, { message?: string }>).error as string)
+            : ((body as Record<string, { message?: string }>).error as Record<string, string>)?.message
+          : (body as Record<string, string>)?.message ?? JSON.stringify(body);
+    return NextResponse.json({ error: msg ?? "Billplz refund failed" }, { status: billplzData.status });
+  }
+}
 
-        const billplzData = await billplzResponse.json();
-      if (!billplzResponse.ok) {
-        const msg =
-          typeof billplzData === "string"
-            ? billplzData
-            : billplzData?.error?.message
-              ?? billplzData?.message
-              ?? billplzData?.error
-              ?? JSON.stringify(billplzData);
-        return NextResponse.json({ error: msg }, { status: billplzResponse.status });
-      }
-      }
-
-      await db
-        .update(payments)
-        .set({ status: "refunded", updatedAt: new Date() })
-        .where(eq(payments.id, Number(paymentId)));
-
-      return NextResponse.json({ success: true });
+await db
+  .update(payments)
+  .set({ status: "refunded", updatedAt: new Date() })
+  .where(eq(payments.id, Number(paymentId)));
+return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
