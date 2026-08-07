@@ -6,12 +6,15 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 import { sendPaymentReceiptEmail } from "@/lib/email";
 import { sendPaymentConfirmation } from "@/lib/notifications/whatsapp";
+import { PaymentAnalytics } from "@/lib/payment-analytics";
+import { WebhookRetryService } from "@/lib/webhook-retry";
 
 export const runtime = "nodejs";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   const rawBody = await request.text();
   const signatureKey = billplz.get("SIGNATURE_KEY");
 
@@ -38,13 +41,22 @@ export async function POST(request: NextRequest) {
         status: "rejected",
       })
       .catch(() => {});
+    
+    // Track webhook failure
+    await PaymentAnalytics.trackPaymentEvent("webhook_signature_failed", 0, {
+      signatureHeader,
+      bodyPreviewLength: bodyPreview.length
+    });
+    
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
+
+  let body: Record<string, any> = {};
+  let webhookEventId: number | null = null;
 
   try {
     // Billplz delivers webhooks as application/x-www-form-urlencoded, but we
     // also accept JSON for local/testing. Normalize to an object either way.
-    let body: Record<string, any>;
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       body = JSON.parse(rawBody);
@@ -53,11 +65,17 @@ export async function POST(request: NextRequest) {
       body = Object.fromEntries(params.entries());
     }
 
-    await db.insert(webhookEvents).values({
-      event: "billplz.payment",
-      payload: body,
-      status: "received",
-    });
+    // Insert webhook event and get its ID for retry tracking
+    const [webhookEvent] = await db
+      .insert(webhookEvents)
+      .values({
+        event: "billplz.payment",
+        payload: body,
+        status: "received",
+      })
+      .returning({ id: webhookEvents.id });
+
+    webhookEventId = webhookEvent.id;
 
     if (body.id && body.paid_at) {
       const [payment] = await db
@@ -97,8 +115,22 @@ export async function POST(request: NextRequest) {
 
         if (alreadyPaid) {
           console.log(`[webhook] payment ${payment.id} already paid — skipping duplicate side effects`);
+          
+          // Track duplicate webhook
+          await PaymentAnalytics.trackPaymentEvent("webhook_duplicate", payment.id, {
+            alreadyPaid: true
+          });
+          
           return NextResponse.json({ success: true, duplicate: true });
         }
+
+        // Track successful payment processing
+        await PaymentAnalytics.trackPaymentEvent("payment_processed_via_webhook", payment.id, {
+          paymentAmount: payment.amount,
+          paymentMethod: payment.method,
+          bookingId: payment.bookingId,
+          processingTimeMs: Date.now() - startTime
+        });
 
         if (payment.bookingId) {
           const [booking] = await db
@@ -198,10 +230,37 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true });
+        // Track successful webhook processing
+        await PaymentAnalytics.trackPaymentEvent("webhook_processed_success", webhookEventId ?? 0, {
+          webhookEventId,
+          paymentId: payment.id,
+          processingTimeMs: Date.now() - startTime
+        });
+        
+        return NextResponse.json({ success: true });
+      }
+     // Track webhook receipt without payment match
+     await PaymentAnalytics.trackPaymentEvent("webhook_received_no_match", 0, {
+       bodyId: body.id,
+       hasPaidAt: !!body.paid_at
+     });
+     } catch (err) {
+     console.error("Webhook error:", err);
+     
+     // Track webhook error
+     await PaymentAnalytics.trackPaymentEvent("webhook_error", 0, {
+       error: err instanceof Error ? err.message : String(err)
+     });
+     
+     // If we have a webhook event ID from the database insert, enqueue for retry
+     // Note: We don't have the event ID here because the insert happened before the try block
+     // In a more sophisticated implementation, we would track the event ID
+     
+      // If we have a webhook event ID, enqueue for retry
+      if (webhookEventId !== null) {
+        await WebhookRetryService.enqueueForRetry(webhookEventId, err instanceof Error ? err.message : String(err));
+      }
+      
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-    } catch (err) {
-    console.error("Webhook error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
 }
