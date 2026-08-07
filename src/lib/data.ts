@@ -66,7 +66,7 @@ export const categories: Category[] = [
     name: "Airbrush",
     icon: "💨",
     count: 12,
-    image: "https://images.unsplash.com/photo-1560577091-d04e73c5b65d?w=400&h=300&fit=crop",
+    image: "https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=400&h=300&fit=crop",
   },
   {
     id: "sfx",
