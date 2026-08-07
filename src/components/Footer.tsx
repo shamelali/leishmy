@@ -137,6 +137,10 @@ export function Footer() {
             <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> Made with love for Malaysia&apos;s beauty industry
           </p>
         </div>
+
+        <p className="mt-6 pt-4 border-t border-gray-200 dark:border-neutral-800 text-center text-xs text-gray-400 dark:text-gray-600">
+          Managed by Duta Integra Solutions
+        </p>
       </div>
     </footer>
   );

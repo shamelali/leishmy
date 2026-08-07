@@ -31,9 +31,6 @@ async function main() {
 
   const server = createServer();
   server.listen(REDIRECT_PORT, "127.0.0.1");
-  const portOk = await new Promise((res) =>
-    once(server, "listening").then(() => res(true as unknown), () => res(false)),
-  );
   await once(server, "listening");
 
   const authUrl = `${AUTH_URL}?client_id=${CLIENT_ID}` +
@@ -43,9 +40,17 @@ async function main() {
     `&state=${state}` +
     `&code_challenge=${challenge}&code_challenge_method=S256`;
 
-  console.log("\n👉 Open this URL and sign in + Authorize with the BUSINESS account:\n");
-  console.log(authUrl + "\n");
-  console.log(`(Waiting for the callback on ${REDIRECT_URI} ...)`);
+  const log = (...args: unknown[]) => {
+    const line = args.map(String).join(" ");
+    try {
+      require("node:fs").appendFileSync("/tmp/opencode/auth-url.txt", line + "\n");
+    } catch {}
+    process.stdout.write(line + "\n");
+  };
+  log("\n👉 Open this URL and sign in + Authorize with the BUSINESS account:\n");
+  log(authUrl);
+  log("");
+  log(`Waiting for the callback on ${REDIRECT_URI} ...`);
 
   const gotCode = new Promise<string>((resolve, reject) => {
     server.on("request", async (req, res) => {
@@ -81,7 +86,7 @@ async function main() {
     code_verifier: verifier,
     grant_type: "authorization_code",
   });
-  console.log("\n🔐 Exchanging code for token...");
+  log("\n🔐 Exchanging code for token...");
   const tokRes = await fetch(`${TOKEN_URL}?${qs}`);
   const tokJson = await tokRes.json();
   const accessToken = tokJson.access_token;
