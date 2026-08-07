@@ -25,7 +25,7 @@ const sections = [
   {
     title: "Who We Share Data With",
     content:
-      "We do not sell personal data. We share limited data only where necessary:\n\n\u2022 Between client and MUA/studio: contact and booking details needed to fulfil a confirmed booking\n\u2022 Payment processors: Billplz and HitPay, to process transactions\n\u2022 Infrastructure providers: Supabase (database/auth), Vercel (hosting), Cloudflare (DNS/security), Brevo (email), Sentry (error monitoring)\n\u2022 Legal or regulatory authorities, where required by Malaysian law",
+      "We do not sell personal data. We share limited data only where necessary:\n\n\u2022 Between client and MUA/studio: contact and booking details needed to fulfil a confirmed booking\n\u2022 Payment processors: Billplz and HitPay, to process transactions\n\u2022 Infrastructure providers: Neon (database/auth), Vercel (hosting), Cloudflare (DNS/security), Brevo (email), Sentry (error monitoring)\n\u2022 Legal or regulatory authorities, where required by Malaysian law",
   },
   {
     title: "Data Retention",
