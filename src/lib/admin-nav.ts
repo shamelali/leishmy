@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { type ForwardRefExoticComponent, type RefAttributes, type SVGProps } from "react";
 
@@ -28,6 +29,7 @@ export const adminNavItems: AdminNavItem[] = [
   { id: "content", label: "Content", icon: ImageIcon, href: "/dashboard/admin/content" },
   { id: "bookings", label: "Bookings", icon: BookOpen, href: "/dashboard/admin/bookings" },
   { id: "payments", label: "Payments", icon: CreditCard, href: "/dashboard/admin/payments" },
+  { id: "webhook-retries", label: "Webhook Retries", icon: Loader2, href: "/dashboard/admin/webhook-retries" },
   { id: "disputes", label: "Disputes", icon: AlertTriangle, href: "/dashboard/admin/disputes" },
   { id: "analytics", label: "Analytics", icon: TrendingUp, href: "/dashboard/admin/analytics" },
   { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/admin/settings" },
