@@ -113,6 +113,17 @@ const nonce = hdrs.get("x-nonce") || undefined;
 
 `src/lib/env.ts` validates required env vars at startup using Zod. Required vars: `DATABASE_URL`, `NEXT_PUBLIC_URL`, `CRON_SECRET`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`. Additional vars like `BREVO_API_KEY`, `BILLPLZ_*`, `CLOUDINARY_*` are optional in the schema but may be needed for full functionality in production.
 
+### Payout Disbursement (Billplz V5 Payment Orders)
+
+Real money transfers use the Billplz **V5** `payment_orders` API (`src/lib/billplz-payout.ts`), NOT the v3 collection API used for collecting customer bills.
+
+- **Env**: `BILLPLZ_PAYMENT_ORDER_COLLECTION_ID` (the Payment Order Collection id, distinct from `BILLPLZ_COLLECTION_ID`). If unset, `createPayoutOrder` throws → auto-release keeps the payout `pending` for admin retry instead of transferring money.
+- **Flow**: `auto-release-payments` cron resolves the recipient's bank details from `profiles` (`bankCode`, `accountNumber`, `accountHolder`), computes net (gross − commission), and dispatches a Payment Order with `total` = net in cents.
+- **Idempotency**: `reference_id` = `payout-{paymentId}`, which Billplz dedupes per Payment Order Collection, so retries reuse the same key.
+- **Bank code**: `resolveBankCode` accepts a SWIFT `bankCode` (preferred) or maps free-text `bankName` (e.g. Maybank → MBBEMYKL). Profiles capture `bankCode` via the register-bank forms/API.
+- **Tracking**: `payouts` records `payoutOrderId`, `billplzPayoutStatus`, `dispatchedAmount` (net), `dispatchedAt`.
+- **Failure handling**: missing bank details or a failed dispatch do NOT block escrow release — the payment is released and the payout stays `pending` for the admin `mark-payouts-paid` flow to handle.
+
 ### Vercel Cron Jobs
 
 Defined in `vercel.json` — 9 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC).

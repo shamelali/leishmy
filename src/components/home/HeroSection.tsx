@@ -4,22 +4,16 @@ import { ArrowRight, Sparkles, Star, Clock } from "lucide-react";
 import { db } from "@/db";
 import { adminSettings, profiles, users } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { cldImage } from "@/lib/cloudinary-url-gen";
-
-function getCloudinaryUrl(publicId: string): string {
-  return cldImage(publicId, { width: 1920, crop: "fill", quality: "auto", format: "auto" });
-}
 
 async function getHeroBgImage(): Promise<string> {
   try {
     const rows = await db.select().from(adminSettings).where(eq(adminSettings.key, "hero_bg_image")).limit(1);
     if (rows[0]?.value) return rows[0].value;
   } catch {}
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  if (cloudName) {
-    return getCloudinaryUrl("artfulcolorworks-ai-generated-9159114");
-  }
-  return "";
+  // No admin-set hero image and the local asset is bundled, so serve it
+  // directly rather than pointing at a Cloudinary public id that may not
+  // be uploaded to the configured cloud.
+  return "/images/artfulcolorworks-ai-generated-9159114.jpg";
 }
 
 async function getFeaturedArtist() {

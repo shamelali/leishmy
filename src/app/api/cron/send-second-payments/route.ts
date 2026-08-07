@@ -92,10 +92,13 @@ export async function POST(request: Request) {
         Number(booking.amount) - (Number(booking.depositAmount) || 0);
       if (remainingAmount <= 0) continue;
 
-      // Create a Billplz bill for the second payment
+      // Create a Billplz bill for the second payment (remaining balance).
+      // Passing `amount` explicitly is critical — createBillForBooking would
+      // otherwise bill the deposit amount again instead of the balance left.
       const idempotencyKey = `second-payment-${booking.id}`;
       const billResult = await createBillForBooking({
         bookingId: booking.id,
+        amount: remainingAmount,
         description: `Remaining payment for booking #${booking.id}`,
         name: user.name || "Customer",
         email: user.email || "",

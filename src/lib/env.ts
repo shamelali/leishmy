@@ -10,6 +10,7 @@ const envSchema = z.object({
   BILLPLZ_COLLECTION_ID: z.string().optional(),
   BILLPLZ_SIGNATURE_KEY: z.string().optional(),
   BILLPLZ_API_URL: z.string().optional(),
+  BILLPLZ_PAYMENT_ORDER_COLLECTION_ID: z.string().optional(),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
@@ -53,6 +54,7 @@ if (parsed.success && parsed.data.NODE_ENV === "production") {
     "BILLPLZ_API_KEY",
     "BILLPLZ_COLLECTION_ID",
     "BILLPLZ_API_URL",
+    "BILLPLZ_PAYMENT_ORDER_COLLECTION_ID",
   ] as const;
   const missing = requiredInProduction.filter(
     (k) => !parsed.data[k as keyof typeof parsed.data],

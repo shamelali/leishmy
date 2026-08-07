@@ -90,7 +90,7 @@ test.describe("E2E Payment Flow", () => {
     // Step 4: Simulate Billplz webhook callback with valid signature
     const webhookPayload = {
       id: acceptBody.bill.id,
-      collection_id: process.env.BILLPLZ_COLLECTION_ID || "o_505qjy",
+      collection_id: process.env.BILLPLZ_COLLECTION_ID || "8sij1nzh",
       paid: "true",
       state: "paid",
       amount: String(Number(acceptBody.payment.amount)),

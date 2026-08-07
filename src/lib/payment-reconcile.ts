@@ -72,13 +72,52 @@ export async function reconcilePayment(
   if (billplzPaid && payment.status !== "paid" && !dryRun) {
     await db
       .update(payments)
-      .set({ status: "paid", updatedAt: new Date() })
+      .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
       .where(eq(payments.id, payment.id));
     if (payment.bookingId) {
-      await db
-        .update(bookings)
-        .set({ status: "confirmed", updatedAt: new Date() })
-        .where(eq(bookings.id, payment.bookingId));
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, payment.bookingId))
+        .limit(1);
+
+      if (booking) {
+        // Mirror the webhook's side effects so a payment recovered via the
+        // reconcile cron (missed webhook) is kept consistent: set the second
+        // payment due date for deposits and track remaining-payment receipt.
+        const remainingAmount =
+          Number(booking.amount) - (Number(booking.depositAmount) || 0);
+        const depositCents = Math.round((Number(booking.depositAmount) || 0) * 100);
+        const remainingCents = Math.round(remainingAmount * 100);
+        const isDepositPayment = Number(payment.amount) === depositCents;
+        const isRemainingPayment =
+          remainingCents > 0 && Number(payment.amount) === remainingCents;
+
+        const updateData: {
+          status: string;
+          secondPaymentDueDate?: Date;
+          remainingPaymentSent?: boolean;
+          updatedAt: Date;
+        } = {
+          status: "confirmed",
+          updatedAt: new Date(),
+        };
+
+        if (isDepositPayment && !booking.secondPaymentDueDate) {
+          const secondPaymentDate = new Date(booking.date);
+          secondPaymentDate.setDate(secondPaymentDate.getDate() + 14);
+          updateData.secondPaymentDueDate = secondPaymentDate;
+        }
+
+        if (isRemainingPayment) {
+          updateData.remainingPaymentSent = true;
+        }
+
+        await db
+          .update(bookings)
+          .set(updateData)
+          .where(eq(bookings.id, payment.bookingId));
+      }
     }
     updated = true;
   }

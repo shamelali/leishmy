@@ -64,20 +64,19 @@ export default function DashboardArtist() {
 
 		async function fetchData() {
 			try {
-				const [bookingsRes, profileRes] = await Promise.all([
-					fetch("/api/bookings?type=artist"),
-					fetch("/api/profile/artist"),
-				]);
+				if (!user?.id) {
+					throw new Error("No session");
+				}
+				const bookingsRes = await fetch(`/api/bookings?artistId=${encodeURIComponent(user.id)}&limit=50`);
 
-				if (!bookingsRes.ok || !profileRes.ok) {
+				if (!bookingsRes.ok) {
 					throw new Error("Failed to fetch dashboard data");
 				}
 
 				const bookingsData = await bookingsRes.json();
-				const profileData = await profileRes.json();
 
 				if (!cancelled) {
-					setBookings(bookingsData?.data?.bookings ?? []);
+					setBookings(bookingsData.bookings ?? []);
 				}
 			} catch (err) {
 				if (!cancelled) {
@@ -96,7 +95,7 @@ export default function DashboardArtist() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [user?.id]);
 
 	const handleAcceptQuote = useCallback(async (quoteId: string) => {
 		if (!user?.id) return;

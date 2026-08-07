@@ -341,6 +341,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const userId = searchParams.get("userId");
+    const artistId = searchParams.get("artistId");
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(Number(searchParams.get("limit")) || 20, 100);
     const offset = (page - 1) * pageSize;
@@ -445,6 +446,61 @@ export async function GET(request: NextRequest) {
         .offset(offset);
       return NextResponse.json({
         bookings: userBookings.map(b => ({
+          ...b,
+          id: String(b.id),
+          artistId: b.artistId ? String(b.artistId) : null,
+        })),
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize) || 1,
+      });
+    }
+
+    if (artistId) {
+      if (!hasAdminAccess(session) && session?.id !== artistId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      const [totalResult] = await db
+        .select({ count: count() })
+        .from(bookings)
+        .where(eq(bookings.artistId, artistId));
+      const total = totalResult?.count ?? 0;
+      const artistBookings = await db
+        .select({
+          id: bookings.id,
+          userId: bookings.userId,
+          artistId: bookings.artistId,
+          studioId: bookings.studioId,
+          serviceId: bookings.serviceId,
+          service: bookings.service,
+          notes: bookings.notes,
+          location: bookings.location,
+          placeId: bookings.placeId,
+          date: bookings.date,
+          time: bookings.time,
+          amount: bookings.amount,
+          depositAmount: bookings.depositAmount,
+          milestone: bookings.milestone,
+          secondPaymentDueDate: bookings.secondPaymentDueDate,
+          lateFeeCharged: bookings.lateFeeCharged,
+          noShow: bookings.noShow,
+          travelSurcharge: bookings.travelSurcharge,
+          accommodationFee: bookings.accommodationFee,
+          remainingPaymentSent: bookings.remainingPaymentSent,
+          status: bookings.status,
+          createdAt: bookings.createdAt,
+          updatedAt: bookings.updatedAt,
+          clientName: artistUsers.name,
+        })
+        .from(bookings)
+        .leftJoin(artistUsers, eq(bookings.userId, artistUsers.id))
+        .where(eq(bookings.artistId, artistId))
+        .orderBy(desc(bookings.createdAt))
+        .limit(pageSize)
+        .offset(offset);
+      return NextResponse.json({
+        bookings: artistBookings.map(b => ({
           ...b,
           id: String(b.id),
           artistId: b.artistId ? String(b.artistId) : null,

@@ -67,6 +67,27 @@ export async function POST(request: NextRequest) {
       if (payment) {
         const alreadyPaid = payment.status === "paid";
 
+        // Verify the billed/captured amount matches what we recorded locally.
+        // Billplz sends `amount`/`paid_amount` in the smallest currency unit
+        // (cents), matching how we store `payments.amount`. If they diverge,
+        // record an explicit event so it's visible in the webhook log instead
+        // of silently confirming a booking for the wrong amount.
+        const webhookAmount = body.paid_amount ?? body.amount;
+        const amountMatches =
+          webhookAmount == null ||
+          Number(webhookAmount) === Number(payment.amount);
+
+        if (!amountMatches) {
+          await db
+            .insert(webhookEvents)
+            .values({
+              event: "billplz.payment.amount_mismatch",
+              payload: { ...body, localPaymentAmount: payment.amount },
+              status: "mismatch",
+            })
+            .catch(() => {});
+        }
+
         await db
           .update(payments)
           .set({ status: "paid", paidAt: new Date(body.paid_at), updatedAt: new Date() })
@@ -87,11 +108,15 @@ export async function POST(request: NextRequest) {
           if (booking) {
             const remainingAmount =
               Number(booking.amount) - (Number(booking.depositAmount) || 0);
+            // payment.amount is stored in cents; booking.depositAmount and
+            // remainingAmount are in MYR. Convert MYR to cents for comparison.
+            const depositCents = Math.round((Number(booking.depositAmount) || 0) * 100);
+            const remainingCents = Math.round(remainingAmount * 100);
             const isDepositPayment =
-              Number(payment.amount) === Number(booking.depositAmount);
+              Number(payment.amount) === depositCents;
             const isRemainingPayment =
-              remainingAmount > 0 &&
-              Number(payment.amount) === remainingAmount;
+              remainingCents > 0 &&
+              Number(payment.amount) === remainingCents;
 
             const updateData: {
               status: string;

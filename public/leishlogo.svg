@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <defs>
+    <style>
+      .text-lei {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        fill: #f5f2eb;
+        font-size: 72px;
+      }
+      .text-sh {
+        font-family: "Playfair Display", Georgia, serif;
+        font-style: italic;
+        font-weight: 600;
+        fill: #c83733;
+        font-size: 72px;
+      }
+      .dot {
+        fill: #c83733;
+      }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#000000" rx="12"/>
+  <g transform="translate(40, 82)">
+    <text x="0" y="0">
+      <tspan class="text-lei">Lei</tspan>
+      <tspan class="text-sh">sh</tspan>
+    </text>
+    <circle class="dot" cx="245" cy="-8" r="5"/>
+  </g>
+</svg>

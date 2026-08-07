@@ -239,6 +239,13 @@
       "when": 1784331360000,
       "tag": "0033_add_bookings_promo_code",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1784331361000,
+      "tag": "0034_real_billplz_payouts_and_bank_code",
+      "breakpoints": true
     }
   ]
 }

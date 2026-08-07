@@ -17,6 +17,7 @@ export const createRemainingBillSchema = z.object({
 export const registerBankSchema = z.object({
   userId: z.string().min(1),
   bankName: z.string().min(1, "Bank name is required").max(255),
+  bankCode: z.string().max(20).optional(),
   accountNumber: z.string().min(1, "Account number is required").max(100),
   accountHolder: z.string().min(1, "Account holder is required").max(255),
 });

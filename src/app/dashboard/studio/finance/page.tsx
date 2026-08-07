@@ -44,7 +44,7 @@ export default function StudioFinance() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [showBankForm, setShowBankForm] = useState(false);
-  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountHolder: "" });
+  const [bankForm, setBankForm] = useState({ bankName: "", bankCode: "", accountNumber: "", accountHolder: "" });
   const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function StudioFinance() {
       body: JSON.stringify({ userId: user.id, ...bankForm }),
     });
     setShowBankForm(false);
-    setBankForm({ bankName: "", accountNumber: "", accountHolder: "" });
+    setBankForm({ bankName: "", bankCode: "", accountNumber: "", accountHolder: "" });
     const res = await fetch(`/api/payments?action=payouts&userId=${user.id}`);
     if (res.ok) {
       const data = await res.json();
@@ -133,6 +133,7 @@ export default function StudioFinance() {
               {showBankForm && (
                 <form onSubmit={handleRegisterBank} className="mb-6 p-4 bg-gray-50 dark:bg-neutral-800 rounded-xl space-y-3">
                   <input placeholder="Bank Name (e.g. Maybank, CIMB)" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
+                  <input placeholder="Bank Code / SWIFT (e.g. MBBEMYKL) - optional" value={bankForm.bankCode} onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" />
                   <input placeholder="Account Number" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
                   <input placeholder="Account Holder Name" value={bankForm.accountHolder} onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" required />
                   <div className="flex gap-2">

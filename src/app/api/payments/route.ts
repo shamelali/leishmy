@@ -239,18 +239,19 @@ export async function POST(request: NextRequest) {
       }
 
       const session = await getAuthSession();
-      const { userId, bankName, accountNumber, accountHolder } = parsed.data;
+      const { userId, bankName, bankCode, accountNumber, accountHolder } = parsed.data;
       if (!session || session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
       const [bank] = await db
         .update(profiles)
-        .set({ bankName, accountNumber, accountHolder })
+        .set({ bankName, bankCode: bankCode ?? null, accountNumber, accountHolder })
         .where(eq(profiles.userId, userId))
         .returning({
           id: profiles.userId,
           bankName: profiles.bankName,
+          bankCode: profiles.bankCode,
           accountNumber: profiles.accountNumber,
           accountHolder: profiles.accountHolder,
         });
@@ -540,7 +541,19 @@ if (payment.billplzId) {
       { status: 202 },
     );
   }
+
   if (!billplzData.ok) {
+    // Billplz's public API does not expose a bill-level refund endpoint
+    // (verified against the current API reference — V3 bills only support
+    // Create/Get/Delete/Transactions). A 404/422 here therefore means the
+    // refund must be carried out manually from the Billplz dashboard. Mark
+    // the payment refund_pending so it is surfaced to admins for handling
+    // instead of erroring and leaving the payment stuck in paid state.
+    await db
+      .update(payments)
+      .set({ status: "refund_pending", updatedAt: new Date() })
+      .where(eq(payments.id, Number(paymentId)));
+
     const body = billplzData.body;
     const msg =
       typeof body === "string"
@@ -550,7 +563,16 @@ if (payment.billplzId) {
             ? ((body as Record<string, { message?: string }>).error as string)
             : ((body as Record<string, { message?: string }>).error as Record<string, string>)?.message
           : (body as Record<string, string>)?.message ?? JSON.stringify(body);
-    return NextResponse.json({ error: msg ?? "Billplz refund failed" }, { status: billplzData.status });
+
+    return NextResponse.json(
+      {
+        error:
+          msg ||
+          "Billplz refund request failed. Payment marked refund_pending — complete the refund manually from the Billplz dashboard.",
+        status: "refund_pending",
+      },
+      { status: 202 },
+    );
   }
 }
 

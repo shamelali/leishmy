@@ -21,6 +21,8 @@ export interface CreateBillOptions {
   phone?: string;
   idempotencyKey?: string;
   redirectUrl?: string;
+  /** Amount in MYR. Defaults to the booking deposit (or full amount). */
+  amount?: number;
 }
 
 export interface CreateBillResult {
@@ -37,7 +39,7 @@ export interface CreateBillResult {
 export async function createBillForBooking(
   opts: CreateBillOptions,
 ): Promise<{ ok: true; data: CreateBillResult } | { ok: false; status: number; error: string }> {
-  const { bookingId, description, name, email, phone, idempotencyKey, redirectUrl } = opts;
+  const { bookingId, description, name, email, phone, idempotencyKey, redirectUrl, amount } = opts;
 
   // Idempotency: prevent duplicate bill creation on retry
   if (idempotencyKey) {
@@ -119,7 +121,7 @@ export async function createBillForBooking(
   const depositAmount = booking.depositAmount
     ? Number(booking.depositAmount)
     : Number(booking.amount);
-  const realAmount = depositAmount;
+  const realAmount = amount ?? depositAmount;
   if (!realAmount || realAmount < 1 || isNaN(realAmount)) {
     return { ok: false, status: 400, error: "Booking amount is invalid" };
   }

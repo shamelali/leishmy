@@ -44,9 +44,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const nonce = hdrs.get("x-nonce") || undefined;
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <ThemeScript nonce={nonce} />
-        <link rel="manifest" href="/manifest.json" />
+<head>
+  <link rel="icon" href="/leishlogo.svg" type="image/svg+xml" />
+  <ThemeScript nonce={nonce} />
+  <link rel="manifest" href="/manifest.json" />
           {gaId && (
             <>
               <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" nonce={nonce} />

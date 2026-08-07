@@ -39,7 +39,7 @@ export default function PayoutsTab({
   onRefresh,
 }: PayoutsTabProps) {
   const [showBankForm, setShowBankForm] = useState(false);
-  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountHolder: "" });
+  const [bankForm, setBankForm] = useState({ bankName: "", bankCode: "", accountNumber: "", accountHolder: "" });
   const [saving, setSaving] = useState(false);
 
   const totalEarned = payouts
@@ -54,7 +54,7 @@ export default function PayoutsTab({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, ...bankForm }),
     });
-    setBankForm({ bankName: "", accountNumber: "", accountHolder: "" });
+    setBankForm({ bankName: "", bankCode: "", accountNumber: "", accountHolder: "" });
     setShowBankForm(false);
     setSaving(false);
     onRefresh();
@@ -131,6 +131,12 @@ export default function PayoutsTab({
               onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
               required
+            />
+            <input
+              placeholder="Bank Code / SWIFT (e.g. MBBEMYKL, CIBBMYKL) — optional"
+              value={bankForm.bankCode}
+              onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
             />
             <input
               placeholder="Account Number"

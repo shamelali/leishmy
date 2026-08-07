@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, payouts, bookings, notifications, adminSettings } from "@/db/schema";
+import { payments, payouts, bookings, notifications, adminSettings, profiles, users } from "@/db/schema";
 import { awardPoints } from "@/lib/loyalty";
-import { eq, sql, and, lte } from "drizzle-orm";
+import { eq, sql, and, lte, inArray } from "drizzle-orm";
 import { Redis } from "@upstash/redis";
 import { verifyCronSecret } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron-tracking";
 import { logAudit } from "@/lib/audit";
+import { createPayoutOrder, resolveBankCode, type PayoutOrderResult } from "@/lib/billplz-payout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -156,10 +157,40 @@ export async function POST(request: NextRequest) {
         const commissionAmt = Math.round(row.paymentAmount * commissionRate);
         const netAmount = row.paymentAmount - commissionAmt;
 
+        // Resolve the recipient's bank details so we can dispatch a real Payment Order.
+        const [recipientProfile] = await db
+          .select({
+            bankCode: profiles.bankCode,
+            bankName: profiles.bankName,
+            accountNumber: profiles.accountNumber,
+            accountHolder: profiles.accountHolder,
+            email: users.email,
+          })
+          .from(profiles)
+          .innerJoin(users, eq(users.id, recipientId))
+          .where(eq(profiles.userId, recipientId))
+          .limit(1);
+
+        const bankCode = resolveBankCode(
+          recipientProfile?.bankCode,
+          recipientProfile?.bankName,
+        );
+        const accountNumber = recipientProfile?.accountNumber ?? null;
+        const accountHolder = recipientProfile?.accountHolder ?? null;
+        const recipientEmail = recipientProfile?.email ?? null;
+
+        const referenceId = `payout-${row.paymentId}`;
+
+        // Commit local escrow release FIRST (payment released, booking
+        // completed, payout row created as pending). Only after this commit
+        // succeeds do we dispatch the real Payment Order — so we never send
+        // money when the local transaction fails. If dispatch subsequently
+        // fails or is missing bank details, the payout row stays `pending`
+        // for the admin `mark-payouts-paid` flow, matching intended behavior.
         await db.transaction(async (tx) => {
           await tx
             .update(payments)
-            .set({ status: "released", updatedAt: new Date() })
+            .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
             .where(eq(payments.id, row.paymentId));
 
           if (row.bookingId) {
@@ -186,29 +217,74 @@ export async function POST(request: NextRequest) {
               paymentId: row.paymentId,
             });
           }
+        });
 
-          await tx.insert(notifications).values({
-            userId: recipientId,
-            type: "payout_released",
-            title: "Payment Released from Escrow",
-            body: `MYR ${(netAmount / 100).toLocaleString()} has been released (commission: MYR ${(commissionAmt / 100).toLocaleString()}). It is now pending payout to your bank account.`,
-            data: { link: "/dashboard/artist", bookingId: row.bookingId },
-          });
+        // Dispatch the real money movement to the recipient's bank now that
+        // local state is committed. Reference id is stable per payment so a
+        // retry reuses the same idempotency key (Billplz dedupes per Payment
+        // Order Collection).
+        let order: PayoutOrderResult | null = null;
+        let dispatchError: string | null = null;
 
-          await logAudit(tx, {
-            actorId: "system",
-            action: "payment.released",
-            entityType: "payment",
-            entityId: String(row.paymentId),
-            meta: {
-              bookingId: row.bookingId,
-              recipientId,
-              grossAmount: row.paymentAmount,
-              commissionRate,
-              commissionAmount: commissionAmt,
-              netAmount,
-            },
-          });
+        if (bankCode && accountNumber && accountHolder) {
+          try {
+            order = await createPayoutOrder({
+              referenceId,
+              bankCode,
+              bankAccountNumber: accountNumber,
+              accountName: accountHolder,
+              description: `Payout for booking #${row.bookingId ?? row.paymentId}`,
+              total: netAmount,
+              email: recipientEmail ?? undefined,
+            });
+          } catch (err) {
+            dispatchError =
+              err instanceof Error ? err.message : "payout dispatch failed";
+          }
+        } else {
+          dispatchError = "missing bank details";
+        }
+
+        // Record the dispatch result on the payout row.
+        if (order?.id) {
+          await db
+            .update(payouts)
+            .set({
+              payoutOrderId: order.id,
+              billplzPayoutStatus: order.status,
+              dispatchedAmount: netAmount,
+              dispatchedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(payouts.paymentId, row.paymentId));
+        }
+
+        await db.insert(notifications).values({
+          userId: recipientId,
+          type: "payout_released",
+          title: "Payment Released from Escrow",
+          body: order
+            ? `MYR ${(netAmount / 100).toLocaleString()} has been released and a payout order (${order.status}) was dispatched to your bank account.`
+            : `MYR ${(netAmount / 100).toLocaleString()} has been released (commission: MYR ${(commissionAmt / 100).toLocaleString()}). Payout pending — your bank details ${dispatchError}.`,
+          data: { link: "/dashboard/artist", bookingId: row.bookingId },
+        });
+
+        await logAudit(db, {
+          actorId: "system",
+          action: "payment.released",
+          entityType: "payment",
+          entityId: String(row.paymentId),
+          meta: {
+            bookingId: row.bookingId,
+            recipientId,
+            grossAmount: row.paymentAmount,
+            commissionRate,
+            commissionAmount: commissionAmt,
+            netAmount,
+            payoutOrderId: order?.id ?? null,
+            billplzPayoutStatus: order?.status ?? null,
+            dispatchError,
+          },
         });
 
         if (row.userId) {
@@ -225,7 +301,7 @@ export async function POST(request: NextRequest) {
           commissionAmount: commissionAmt,
           netAmount,
           released: true,
-          reason: "released",
+          reason: order ? `released, order ${order.status}` : `released (${dispatchError})`,
         });
       } catch (err) {
         errors += 1;

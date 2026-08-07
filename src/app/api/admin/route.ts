@@ -324,6 +324,7 @@ export async function GET(request: NextRequest) {
           amount: payments.amount,
           status: payments.status,
           method: payments.method,
+          billplzId: payments.billplzId,
           createdAt: payments.createdAt,
           updatedAt: payments.updatedAt,
           paidAt: payments.paidAt,
@@ -345,6 +346,7 @@ export async function GET(request: NextRequest) {
           amount: String((p.amount || 0) / 100),
           status: p.status || "pending",
           paymentMethod: p.method || "billplz",
+          billplzId: p.billplzId || "",
           createdAt: p.createdAt?.toISOString() || "",
           paidAt: p.paidAt?.toISOString() || "",
           releasedAt: p.releasedAt?.toISOString() || "",
@@ -501,11 +503,20 @@ export async function GET(request: NextRequest) {
             createdAt: payouts.createdAt,
             updatedAt: payouts.updatedAt,
             paymentId: payouts.paymentId,
+            payoutOrderId: payouts.payoutOrderId,
+            billplzPayoutStatus: payouts.billplzPayoutStatus,
+            netAmount: payouts.netAmount,
+            dispatchedAmount: payouts.dispatchedAmount,
             userName: payoutUsers.name,
             userEmail: payoutUsers.email,
+            bankName: profiles.bankName,
+            bankCode: profiles.bankCode,
+            accountNumber: profiles.accountNumber,
+            accountHolder: profiles.accountHolder,
           })
           .from(payouts)
           .innerJoin(payoutUsers, eq(payoutUsers.id, payouts.userId))
+          .leftJoin(profiles, eq(profiles.userId, payouts.userId))
           .where(eq(payouts.status, "pending"))
           .orderBy(desc(payouts.createdAt))
           .limit(pageSize).offset(offset),
@@ -523,8 +534,16 @@ export async function GET(request: NextRequest) {
           createdAt: r.createdAt?.toISOString() || "",
           updatedAt: r.updatedAt?.toISOString() || "",
           paymentId: r.paymentId,
+          payoutOrderId: r.payoutOrderId || "",
+          billplzPayoutStatus: r.billplzPayoutStatus || "",
+          netAmount: r.netAmount,
+          dispatchedAmount: r.dispatchedAmount,
           userName: r.userName || "",
           userEmail: r.userEmail || "",
+          bankName: r.bankName || "",
+          bankCode: r.bankCode || "",
+          accountNumber: r.accountNumber || "",
+          accountHolder: r.accountHolder || "",
         })),
         total, page, pageSize,
       });
@@ -851,7 +870,7 @@ export async function POST(request: NextRequest) {
             await sendPayoutNotificationEmail({
               email: payoutUser.email,
               name: payoutUser.name || "Valued Partner",
-              amount: payout.amount,
+              amount: payout.netAmount ?? payout.amount,
               date: dateStr,
             });
             results.push({ id: payout.id, notified: true });

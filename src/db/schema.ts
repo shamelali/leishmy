@@ -85,6 +85,7 @@ export const profiles = pgTable(
       peakMonths?: number[];
     }>().default({}),
     bankName: varchar("bank_name", { length: 255 }),
+    bankCode: varchar("bank_code", { length: 20 }),
     accountNumber: varchar("account_number", { length: 100 }),
     accountHolder: varchar("account_holder", { length: 255 }),
     onboardingStep: integer("onboarding_step").default(0).notNull(),
@@ -368,6 +369,10 @@ export const payouts = pgTable("payouts", {
   commissionAmount: integer("commission_amount").default(0),
   netAmount: integer("net_amount"),
   status: varchar("status", { length: 50 }).default("pending"),
+  payoutOrderId: varchar("payout_order_id", { length: 255 }),
+  billplzPayoutStatus: varchar("billplz_payout_status", { length: 50 }),
+  dispatchedAmount: integer("dispatched_amount"),
+  dispatchedAt: timestamp("dispatched_at", { mode: "date" }),
   paymentId: integer("payment_id").references(() => payments.id, {
     onDelete: "set null",
   }),

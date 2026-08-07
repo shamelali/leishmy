@@ -13,6 +13,7 @@ interface Payment {
   amount: number;
   status: string;
   paymentMethod: string;
+  billplzId: string;
   createdAt: string;
 }
 
@@ -24,6 +25,13 @@ interface Payout {
   commission: number;
   netAmount: number;
   status: string;
+  payoutOrderId: string;
+  billplzPayoutStatus: string;
+  dispatchedAmount: number;
+  bankName: string;
+  bankCode: string;
+  accountNumber: string;
+  accountHolder: string;
   createdAt: string;
 }
 
@@ -330,6 +338,7 @@ export default function PaymentMonitoringPage() {
                         <th className="text-left font-medium px-4 py-3">Amount (MYR)</th>
                         <th className="text-left font-medium px-4 py-3">Status</th>
                         <th className="text-left font-medium px-4 py-3">Method</th>
+                        <th className="text-left font-medium px-4 py-3">Bill</th>
                         <th className="text-left font-medium px-4 py-3">Date</th>
                       </tr>
                     </thead>
@@ -359,6 +368,20 @@ export default function PaymentMonitoringPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">
                             {p.paymentMethod || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.billplzId ? (
+                              <a
+                                href={`https://www.billplz.com/${p.billplzId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                              >
+                                View Bill
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                             {p.createdAt
@@ -462,7 +485,9 @@ export default function PaymentMonitoringPage() {
                         <th className="text-left font-medium px-4 py-3">Amount</th>
                         <th className="text-left font-medium px-4 py-3">Commission</th>
                         <th className="text-left font-medium px-4 py-3">Net Amount</th>
+                        <th className="text-left font-medium px-4 py-3">Bank</th>
                         <th className="text-left font-medium px-4 py-3">Status</th>
+                        <th className="text-left font-medium px-4 py-3">Payout Order</th>
                         <th className="text-left font-medium px-4 py-3">Date</th>
                         <th className="text-left font-medium px-4 py-3">Action</th>
                       </tr>
@@ -499,6 +524,21 @@ export default function PaymentMonitoringPage() {
                             MYR {Number(p.netAmount).toFixed(2)}
                           </td>
                           <td className="px-4 py-3">
+                            {p.accountNumber ? (
+                              <div className="text-xs">
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {p.accountHolder || "—"}
+                                </p>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                  {p.bankName || p.bankCode || "—"} ·{" "}
+                                  <span className="font-mono">{p.accountNumber}</span>
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-amber-500">No bank details</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                 STATUS_STYLES[p.status] || STATUS_STYLES.pending
@@ -506,6 +546,25 @@ export default function PaymentMonitoringPage() {
                             >
                               {p.status}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.payoutOrderId ? (
+                              <a
+                                href={`https://www.billplz.com/payment-orders/${p.payoutOrderId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                              >
+                                <span className="font-mono">
+                                  {String(p.payoutOrderId).slice(0, 8)}
+                                </span>
+                                <span className="text-gray-400 capitalize">
+                                  {p.billplzPayoutStatus || "dispatched"}
+                                </span>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                             {p.createdAt
