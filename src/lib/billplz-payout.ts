@@ -1,6 +1,7 @@
 import "server-only";
 import crypto from "crypto";
 import { prefixedEnvReader } from "@/lib/env-prefix";
+import { bankCodeForName } from "@/lib/malaysian-banks";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 
@@ -41,29 +42,12 @@ export interface PayoutOrderResult {
 }
 
 const SWIFT_BY_NAME: Record<string, string> = {
-  maybank: "MBBEMYKL",
   "malayan banking": "MBBEMYKL",
-  cimb: "CIBBMYKL",
   "cimb bank": "CIBBMYKL",
   "public bank": "PBBEMYKL",
   pbb: "PBBEMYKL",
-  rhb: "RHBAMYKL",
-  "hong leong": "HLBBMYKL",
-  hongleong: "HLBBMYKL",
-  "bank islam": "BIMBMYKL",
-  "islamic bank": "BIMBMYKL",
-  "bank rakyat": "BKRMMYKL",
-  rakyat: "BKRMMYKL",
-  ambank: "ARBKMYKL",
   "am bank": "ARBKMYKL",
-  affin: "PHBMMYKL",
-  alliance: "ABMBMYKL",
-  muamalat: "BMMBMYKL",
-  ocbc: "OCBCMYKL",
-  uob: "UOVBMYKL",
   "standard chartered": "SCBLMYKX",
-  hsbc: "HMBMYKL",
-  bsn: "BJBBMYKL",
 };
 
 /**
@@ -85,6 +69,8 @@ export function resolveBankCode(
     }
   }
   if (bankName) {
+    const resolved = bankCodeForName(bankName);
+    if (resolved) return resolved;
     const name = bankName.trim().toLowerCase();
     for (const [key, code] of Object.entries(SWIFT_BY_NAME)) {
       if (name.includes(key)) return code;
