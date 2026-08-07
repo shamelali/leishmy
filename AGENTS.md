@@ -140,6 +140,7 @@ Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instr
 - **HeroSection** uses Cloudinary URLs when `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` is set; falls back to local `/images/` paths.
 - **E2E tests** need a real Neon preview branch DB (dummy env causes ECONNREFUSED but fallback works).
 - **Public/images** (9.4MB) should be served via Cloudinary, not Vercel static — verify Cloudinary upload configuration for hero images.
+- **Invoice PDF** relies on `html-pdf-node` (bundles old Chromium), which can fail on serverless. `html-pdf-node` is in `serverExternalPackages` and the route falls back to HTML on PDF failure. Long-term, replace with a pure-JS PDF generator. Subscriptions callbacks use the dedicated `/api/subscriptions/webhook` route (legacy `?action=webhook` still handled for backward compat).
 
 ## MCP Config
 

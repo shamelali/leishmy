@@ -197,17 +197,27 @@ ${rowsHtml}
 </html>`;
 
   if (format === "pdf") {
-    const htmlPdfNode = (await import("html-pdf-node")).default;
-    const pdfBuffer = await htmlPdfNode.generatePdf(
-      { content: html },
-      { format: "A4", printBackground: true },
-    );
-    return new Response(pdfBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${escapeHtml(invoice.invoiceNumber)}.pdf"`,
-      },
-    });
+    try {
+      const htmlPdfNode = (await import("html-pdf-node")).default;
+      const pdfBuffer = await htmlPdfNode.generatePdf(
+        { content: html },
+        { format: "A4", printBackground: true },
+      );
+      return new Response(pdfBuffer, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${escapeHtml(invoice.invoiceNumber)}.pdf"`,
+        },
+      });
+    } catch (error) {
+      console.error("Invoice PDF generation failed, falling back to HTML:", error);
+      return new Response(html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Disposition": `inline; filename="${escapeHtml(invoice.invoiceNumber)}.html"`,
+        },
+      });
+    }
   }
 
   return new Response(html, {

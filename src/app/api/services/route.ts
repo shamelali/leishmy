@@ -21,6 +21,42 @@ async function syncProviderPrice(providerId: string) {
     .where(eq(profiles.userId, providerId));
 }
 
+// Verify the requested provider belongs to the authenticated user. artistId is
+// only valid against an "artist" profile, studioId only against a "studio"
+// profile, and both must belong to `userId`. Returns an error message or null
+// when ownership is confirmed.
+async function ownershipError(
+  sessionId: string,
+  artistId?: string | null,
+  studioId?: string | null,
+): Promise<string | null> {
+  if (artistId) {
+    const [profile] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, String(artistId)), eq(profiles.role, "artist")))
+      .limit(1);
+    if (!profile || profile.userId !== sessionId) return "Forbidden";
+  }
+  if (studioId) {
+    const [profile] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(and(eq(profiles.userId, String(studioId)), eq(profiles.role, "studio")))
+      .limit(1);
+    if (!profile || profile.userId !== sessionId) return "Forbidden";
+  }
+  return null;
+}
+
+async function ownershipErrorForService(
+  sessionId: string,
+  service: { artistId: string | null; studioId: string | null } | null,
+): Promise<string | null> {
+  if (!service) return "Service not found";
+  return ownershipError(sessionId, service.artistId ?? undefined, service.studioId ?? undefined);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -54,6 +90,11 @@ export async function POST(request: NextRequest) {
 
     if (!name || (!artistId && !studioId)) {
       return NextResponse.json({ error: "name and artistId or studioId required" }, { status: 400 });
+    }
+
+    const forbidden = await ownershipError(session.id, artistId, studioId);
+    if (forbidden) {
+      return NextResponse.json({ error: forbidden }, { status: 403 });
     }
 
     const [service] = await db
@@ -107,24 +148,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify ownership
-    if (existing.artistId) {
-      const [profile] = await db
-        .select({ userId: profiles.userId })
-        .from(profiles)
-        .where(and(eq(profiles.userId, existing.artistId), eq(profiles.role, "artist")))
-        .limit(1);
-      if (!profile || profile.userId !== session.id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-    } else if (existing.studioId) {
-      const [profile] = await db
-        .select({ userId: profiles.userId })
-        .from(profiles)
-        .where(and(eq(profiles.userId, existing.studioId), eq(profiles.role, "studio")))
-        .limit(1);
-      if (!profile || profile.userId !== session.id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
+    const forbidden = await ownershipErrorForService(session.id, existing);
+    if (forbidden) {
+      return NextResponse.json({ error: forbidden }, { status: forbidden === "Service not found" ? 404 : 403 });
     }
 
     const [updated] = await db
@@ -175,6 +201,12 @@ export async function DELETE(request: NextRequest) {
       .where(eq(services.id, Number(id)))
       .limit(1);
 
+    // Verify ownership before deleting
+    const forbidden = await ownershipErrorForService(session.id, service);
+    if (forbidden) {
+      return NextResponse.json({ error: forbidden }, { status: forbidden === "Service not found" ? 404 : 403 });
+    }
+
     await db.delete(services).where(eq(services.id, Number(id)));
 
     // Sync provider's starting price to minimum service price
@@ -184,6 +216,8 @@ export async function DELETE(request: NextRequest) {
       await syncProviderPrice(service.studioId);
     }
 
+    revalidatePath("/dashboard/artist/services");
+    revalidatePath("/dashboard/studio/services");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Services DELETE error:", error);

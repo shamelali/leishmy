@@ -20,10 +20,6 @@ const PROTECTED_ROUTES = [
   "/bookings",
 ];
 
-const PROTECTED_API_PREFIXES = [
-  "/api/user",
-];
-
 const PUBLIC_API_PATHS = [
   "/api/auth",
   "/api/health",
@@ -42,10 +38,6 @@ function isProtectedRoute(pathname: string): boolean {
     if (route === "/bookings" && /^\/bookings\/[^/]+$/.test(pathname)) return false;
     return true;
   });
-}
-
-function isProtectedApi(pathname: string): boolean {
-  return PROTECTED_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 function isPublicApiPath(pathname: string): boolean {

@@ -28,11 +28,13 @@ export async function POST(request: NextRequest) {
 
   if (computedBuf.length !== headerBuf.length || !timingSafeEqual(computedBuf, headerBuf)) {
     // Log rejected attempts so missed deliveries are visible instead of silent.
+    // Truncate and strip PII (name/email/phone) before persisting.
+    const bodyPreview = rawBody.slice(0, 150).replace(/email=[^&]*/gi, "email=redacted").replace(/name=[^&]*/gi, "name=redacted").replace(/phone=[^&]*/gi, "phone=redacted");
     await db
       .insert(webhookEvents)
       .values({
         event: "billplz.payment.rejected",
-        payload: { reason: "invalid_signature", signatureHeader, body: rawBody.slice(0, 500) },
+        payload: { reason: "invalid_signature", body: bodyPreview },
         status: "rejected",
       })
       .catch(() => {});

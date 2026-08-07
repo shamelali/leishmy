@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { subscriptions, subscriptionPlans, users, webhookEvents } from "@/db/schema";
+import { subscriptions, subscriptionPlans, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
-import { sendSubscriptionCreatedEmail, sendSubscriptionCanceledEmail } from "@/lib/email";
+import { sendSubscriptionCanceledEmail } from "@/lib/email";
 import { prefixedEnvReader } from "@/lib/env-prefix";
-import { createHmac, timingSafeEqual } from "crypto";
+import { handleSubscriptionWebhook } from "@/lib/billplz/subscription-webhook";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -98,13 +98,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+
+    // Payment callbacks carry no session cookie and must not consume the raw
+    // body via request.json() before HMAC verification. Handle the webhook
+    // first, delegating to the shared handler used by the dedicated route.
+    if (action === "webhook") {
+      const rawBody = await request.text();
+      const signatureHeader = request.headers.get("x-signature") || "";
+      const { status, body } = await handleSubscriptionWebhook(rawBody, signatureHeader);
+      return NextResponse.json(body, { status });
+    }
+
     const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
     const body = await request.json();
 
     if (action === "create") {
@@ -164,7 +175,7 @@ export async function POST(request: NextRequest) {
         name: user?.name || "Customer",
         email: user?.email || session.email,
         phone: user?.phone || "",
-        callback_url: `${BASE_URL}/api/subscriptions?action=webhook`,
+        callback_url: `${BASE_URL}/api/subscriptions/webhook`,
         redirect_url: `${BASE_URL}/leish-plus/success`,
       });
 
@@ -267,87 +278,6 @@ export async function POST(request: NextRequest) {
           planName: plan.name,
           cancelDate,
         }).catch((err) => console.error("sendSubscriptionCanceledEmail failed:", err));
-      }
-
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "webhook") {
-      const rawBody = await request.text();
-      const signatureKey = billplz.get("SIGNATURE_KEY");
-
-      if (!signatureKey) {
-        return NextResponse.json(
-          { error: "Signature key not configured" },
-          { status: 500 },
-        );
-      }
-
-      const signatureHeader = request.headers.get("x-signature") || "";
-      const computedSignature = createHmac("sha256", signatureKey)
-        .update(rawBody)
-        .digest("hex");
-
-      if (
-        computedSignature.length !== signatureHeader.length ||
-        !timingSafeEqual(
-          Buffer.from(computedSignature, "utf-8"),
-          Buffer.from(signatureHeader, "utf-8"),
-        )
-      ) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-      }
-
-      const webhookBody = JSON.parse(rawBody);
-
-      await db.insert(webhookEvents).values({
-        event: "subscription.payment",
-        payload: webhookBody,
-      });
-
-      if (webhookBody.id && webhookBody.paid_at) {
-        const [subscription] = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.billplzBillId, webhookBody.id))
-          .limit(1);
-
-        if (subscription) {
-          const now = new Date();
-          const periodEnd = new Date(now);
-          periodEnd.setDate(periodEnd.getDate() + 30);
-
-          await db
-            .update(subscriptions)
-            .set({
-              status: "active",
-              currentPeriodStart: now,
-              currentPeriodEnd: periodEnd,
-              updatedAt: now,
-            })
-            .where(eq(subscriptions.id, subscription.id));
-
-          const [plan] = await db
-            .select()
-            .from(subscriptionPlans)
-            .where(eq(subscriptionPlans.id, subscription.planId))
-            .limit(1);
-
-          const [user] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, subscription.userId))
-            .limit(1);
-
-          if (user && plan) {
-            sendSubscriptionCreatedEmail({
-              email: user.email,
-              customerName: user.name || "Valued Customer",
-              planName: plan.name,
-              amount: plan.price / 100,
-            }).catch((err) => console.error("sendSubscriptionCreatedEmail failed:", err));
-          }
-        }
       }
 
       return NextResponse.json({ success: true });
