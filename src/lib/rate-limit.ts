@@ -25,7 +25,13 @@ if (typeof cleanupTimer.unref === "function") cleanupTimer.unref();
 
 let lookupsSinceCleanup = 0;
 
-async function limit(identifier: string): Promise<RateLimitResult> {
+async function limit(
+  identifier: string,
+  options: { max?: number; window?: number } = {}
+): Promise<RateLimitResult> {
+  const max = options.max ?? 60;
+  const window = options.window ?? 60;
+
   if (!redis) {
     lookupsSinceCleanup++;
     if (lookupsSinceCleanup >= 100) {
@@ -39,22 +45,20 @@ async function limit(identifier: string): Promise<RateLimitResult> {
     const now = Date.now();
     const record = inMemory.get(identifier);
     if (record && record.resetAt > now) {
-      const success = record.count <= 60;
+      const success = record.count <= max;
       record.count++;
       return {
         success,
-        remaining: Math.max(0, 60 - record.count),
+        remaining: Math.max(0, max - record.count),
         reset: record.resetAt,
       };
     }
-    inMemory.set(identifier, { count: 1, resetAt: now + 60_000 });
-    return { success: true, remaining: 59, reset: now + 60_000 };
+    inMemory.set(identifier, { count: 1, resetAt: now + window * 1000 });
+    return { success: true, remaining: Math.max(0, max - 1), reset: now + window * 1000 };
   }
 
   try {
     const key = `leish:rl:${identifier}`;
-    const max = 60;
-    const window = 60;
 
     const count = await redis.incr(key);
     if (count === 1) {
@@ -72,16 +76,16 @@ async function limit(identifier: string): Promise<RateLimitResult> {
     const now = Date.now();
     const record = inMemory.get(identifier);
     if (record && record.resetAt > now) {
-      const success = record.count <= 60;
+      const success = record.count <= max;
       record.count++;
       return {
         success,
-        remaining: Math.max(0, 60 - record.count),
+        remaining: Math.max(0, max - record.count),
         reset: record.resetAt,
       };
     }
-    inMemory.set(identifier, { count: 1, resetAt: now + 60_000 });
-    return { success: true, remaining: 59, reset: now + 60_000 };
+    inMemory.set(identifier, { count: 1, resetAt: now + window * 1000 });
+    return { success: true, remaining: Math.max(0, max - 1), reset: now + window * 1000 };
   }
 }
 

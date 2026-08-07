@@ -30,7 +30,7 @@ This project does NOT use `next-intl` or any server-side i18n framework. The `ne
 ## Architecture
 
 ### Stack
-- **Framework**: Next.js 16.2.6 (App Router, Turbopack)
+- **Framework**: Next.js 16.2.12 (App Router, Turbopack)
 - **Language**: TypeScript 5.9.3 (strict mode)
 - **Package manager**: pnpm 11.15.1
 - **Database**: Neon (serverless Postgres) + Drizzle ORM 0.45.2
@@ -51,7 +51,7 @@ This project does NOT use `next-intl` or any server-side i18n framework. The `ne
 | `src/app/api/` | REST API endpoints (~30 routes) |
 | `src/app/dashboard/` | 3 dashboards: `admin/`, `artist/`, `studio/` |
 | `src/app/api/auth/[...path]/` | Neon Auth handler (catch-all) |
-| `src/app/api/cron/` | Vercel cron jobs (6 daily jobs) |
+| `src/app/api/cron/` | Vercel cron jobs (9 daily/weekly jobs) |
 | `src/components/` | Shared React components |
 | `src/components/home/` | Homepage section components |
 | `src/lib/` | Business logic, utilities, integrations |
@@ -137,10 +137,11 @@ Sentry is initialized in `src/instrumentation-client.ts` (client) and `src/instr
 - **ESLint is clean** — all previous errors resolved.
 - **Sitemap** now includes DB-driven dynamic routes (artists, studios, services, categories) — falls back to static routes if DB is unavailable at build time.
 - **Manifest icons** compressed to WebP (<50K) with maskable icon added.
-- **HeroSection** uses Cloudinary URLs when `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` is set; falls back to local `/images/` paths.
+- **HeroSection** uses Cloudinary URL stored in admin setting `hero_bg_image` (no fallback).
+- **Public/images** directory is now empty; images are served via Cloudinary.
+- **Dashboard routes** use `cookies()` and required `export const dynamic = 'force-dynamic'` in layout files to avoid static generation errors (already applied to admin, artist, studio layouts).
+- **Invoice PDF** now uses `@react-pdf/renderer` (pure-JS, serverless-safe) with legacy HTML fallback.
 - **E2E tests** need a real Neon preview branch DB (dummy env causes ECONNREFUSED but fallback works).
-- **Public/images** (9.4MB) should be served via Cloudinary, not Vercel static — verify Cloudinary upload configuration for hero images.
-- **Invoice PDF** relies on `html-pdf-node` (bundles old Chromium), which can fail on serverless. `html-pdf-node` is in `serverExternalPackages` and the route falls back to HTML on PDF failure. Long-term, replace with a pure-JS PDF generator. Subscriptions callbacks use the dedicated `/api/subscriptions/webhook` route (legacy `?action=webhook` still handled for backward compat).
 
 ## MCP Config
 

@@ -1,7 +1,9 @@
 import { defineConfig } from "@playwright/test";
 import { config } from "dotenv";
+import { existsSync } from "fs";
 
-config({ path: ".env" });
+const envPath = existsSync(".env.test") ? ".env.test" : ".env";
+config({ path: envPath });
 
 export default defineConfig({
   testDir: "./e2e",

@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Platform administration, moderation, reports, and settings.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardLayout({ children }: { children: ReactNode }) {
   const session = await getAuthSession();
   if (!session) redirect("/login");

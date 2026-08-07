@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Manage your bookings, services, portfolio, and analytics.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ArtistDashboardLayout({ children }: { children: ReactNode }) {
   const session = await getAuthSession();
   if (!session) redirect("/login");

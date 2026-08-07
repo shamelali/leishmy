@@ -1,3 +1,4 @@
+import "dotenv/config";
 import cloudinary from "@/lib/cloudinary";
 import { prefixedEnvReader } from "@/lib/env-prefix";
 

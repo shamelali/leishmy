@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Manage your studio inventory, staff, calendar, and finances.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function StudioDashboardLayout({ children }: { children: ReactNode }) {
   const session = await getAuthSession();
   if (!session) redirect("/login");
