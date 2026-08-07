@@ -57,7 +57,18 @@ export default function DashboardArtist() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [bookings, setBookings] = useState<any[]>([]);
-	const [activeTab, setActiveTab] = useState<TabId>("bookings");
+	const [activeTab, setActiveTab] = useState<TabId>(() => {
+		if (typeof window === "undefined") return "bookings";
+		const fromHash = window.location.hash.replace(/^#\/?/, "") as TabId;
+		return fromHash || "bookings";
+	});
+
+	const handleTabChange = useCallback((id: string) => {
+		setActiveTab(id as TabId);
+		if (typeof window !== "undefined") {
+			history.replaceState(null, "", `#/${id}`);
+		}
+	}, []);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -295,7 +306,7 @@ export default function DashboardArtist() {
 	};
 
   return (
-    <DashboardSidebar items={artistItems} activeId={activeTab} onTabChange={(id) => setActiveTab(id as TabId)}>
+    <DashboardSidebar items={artistItems} activeId={activeTab} onTabChange={handleTabChange}>
       <div className="min-h-screen bg-neutral-950">
         <main className="lg:ml-64 p-6">{renderContent()}</main>
       </div>
