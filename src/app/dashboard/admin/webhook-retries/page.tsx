@@ -12,9 +12,8 @@ import { useState, useEffect } from "react";
 
 export const revalidate = 0; // Always fresh data
 
-type WebhookEventWithPayload = typeof webhookEvents.$inferSelect & {
-  payload: any;
-};
+// Using the inferred select type from drizzle-orm
+type WebhookEventWithPayload = typeof webhookEvents.$inferSelect;
 
 export default async function WebhookRetriesPage() {
   const [retryEvents, setRetryEvents] = useState<WebhookEventWithPayload[]>([]);
