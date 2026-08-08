@@ -251,7 +251,7 @@ export function StepProfessional({
               }
             }}
             className="form-input flex-1"
-            placeholder="e.g. Soft Glam, Airbrush, Bridal"
+            placeholder="e.g. Soft Glam, Bridal, Groom"
           />
           <button
             type="button"

@@ -25,11 +25,9 @@ const MAX_URL_LENGTH = 500;
 const specialtyToSlug: Record<string, string> = {
   "Bridal Makeup": "bridal",
   "Soft Glam": "event",
-  "Editorial / Photoshoot": "editorial",
   "Hijab Styling": "hijab",
-  "Airbrush Makeup": "airbrush",
-  "SFX / Creative": "sfx",
   Hairstyling: "hair",
+  "Groom": "groom",
 };
 
 export async function GET(

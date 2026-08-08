@@ -25,11 +25,11 @@ const phases = [
         title: "High-Resolution Portfolio",
         content:
           "In the luxury segment, your portfolio is your most valuable asset.",
-        details: [
-          "Hero Image: Your primary photo must be a professional, high-resolution shot. Avoid heavy filters; focus on clean skin and technical precision.",
-          "Gallery Variety: Upload 6-10 distinct looks — Natural/Clean Beauty, Full Glam/Evening, Bridal (Traditional & Modern), Editorial/Creative (if applicable).",
-          "Consistency: Use consistent lighting (Natural or Ring Light) for all shots to maintain a cohesive brand look on your profile.",
-        ],
+              details: [
+                "Hero Image: Your primary photo must be a professional, high-resolution shot. Avoid heavy filters; focus on clean skin and technical precision.",
+                "Gallery Variety: Upload 6-10 distinct looks — Natural/Clean Beauty, Full Glam/Evening, Bridal (Traditional & Modern), Groom (if applicable).",
+                "Consistency: Use consistent lighting (Natural or Ring Light) for all shots to maintain a cohesive brand look on your profile.",
+              ],
       },
       {
         title: "Crafting a High-Conversion Bio",
