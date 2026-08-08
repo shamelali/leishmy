@@ -99,13 +99,13 @@ export default function LocationSelector({
       setLoading(true);
       setError(null);
       
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lng=${lng}`,
-          {
-            headers: { "User-Agent": "leish.my/1.0 (contact@leish.my)" },
-          }
-        );
+       try {
+         const response = await fetch(
+           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+           {
+             headers: { "User-Agent": "leish.my/1.0 (contact@leish.my)" },
+           }
+         );
 
         if (!response.ok) {
           throw new Error("Reverse geocode failed");
