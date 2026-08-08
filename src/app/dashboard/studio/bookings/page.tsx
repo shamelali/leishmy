@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { ClipboardList, Calendar, Clock, User, DollarSign, Filter,
-ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRight,
+ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRight, Search,
+CalendarCheck, Export
 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -61,14 +62,33 @@ export default function StudioBookings() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
     try {
+      // Build query parameters for filtering
+      const queryParams = new URLSearchParams();
+      queryParams.append('userId', user.id);
+      
+      if (search) {
+        queryParams.append('search', search);
+      }
+      
+      if (startDate) {
+        queryParams.append('startDate', startDate);
+      }
+      
+      if (endDate) {
+        queryParams.append('endDate', endDate);
+      }
+      
       const [bookingsRes, staffRes] = await Promise.all([
-        fetch(`/api/bookings?userId=${user.id}`),
+        fetch(`/api/bookings?${queryParams.toString()}`),
         fetch(`/api/user/studio-staff?studioId=${user.id}`),
       ]);
       const bookingsData = await bookingsRes.json();
@@ -79,7 +99,7 @@ export default function StudioBookings() {
       setError("Failed to load bookings");
     }
     setLoading(false);
-  }, [user]);
+  }, [user, search, startDate, endDate]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -107,14 +127,30 @@ export default function StudioBookings() {
     setAssigningId(null);
   };
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  // Apply status filter to the bookings fetched from server
+  const filteredBookings = filter === "all" 
+    ? bookings 
+    : bookings.filter((b) => b.status === filter);
+    
   const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
   return (
     <DashboardSidebar items={studioItems} activeId={activeId}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings</h1>
+            <button
+              onClick={() => {
+                // TODO: Implement export functionality (CSV/PDF)
+                // For now, we'll just show a placeholder
+                alert('Export functionality would be implemented here');
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              <Export className="w-4 h-4" /> Export
+            </button>
+          </div>
           <span className="text-sm text-gray-400">{bookings.length} total</span>
         </div>
 
@@ -130,28 +166,83 @@ export default function StudioBookings() {
               key={tab}
               onClick={() => setFilter(tab)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                  filter === tab
-                    ? "bg-rose-500 text-white"
-                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"
-                }`}
+                filter === tab
+                  ? "bg-rose-500 text-white"
+                  : "text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"
+              }`}
             >
               {tab === "all" ? "All" : tab.replace("_", " ")}
             </button>
           ))}
         </div>
 
+        {/* Advanced Filters */}
+        <div className="mb-6 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">
+          <div className="mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Filters</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+                <input
+                  type="text"
+                  placeholder="Client name, artist name, or service"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm"
+                />
+              </div>
+              <div className="space-x-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-3">
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="text-sm font-medium text-gray-500 hover:text-gray-700"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <DashboardLoading />
-        ) : filtered.length === 0 ? (
+        ) : filteredBookings.length === 0 ? (
           <div className="text-center py-16">
             <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-sm text-gray-500">
-              {filter === "all" ? "No bookings yet." : `No ${filter} bookings.`}
+              {filter === "all" 
+                ? (search || startDate || endDate 
+                  ? "No bookings match your filters." 
+                  : "No bookings yet.") 
+                : `No ${filter} bookings.`}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((b) => {
+            {filteredBookings.map((b) => {
               const StatusIcon = statusIcons[b.status] || Clock;
               return (
                 <div key={b.id} className="p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800">

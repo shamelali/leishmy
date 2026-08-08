@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices, quoteOptions } from "@/db/schema";
-import { eq, and, count, inArray, desc } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray, desc, gte, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendBookingCompletedEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
@@ -338,13 +338,16 @@ export async function GET(request: NextRequest) {
     const session = await getAuthSession();
     const artistUsers = alias(users, "artist_users");
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-    const userId = searchParams.get("userId");
-    const artistId = searchParams.get("artistId");
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const pageSize = Math.min(Number(searchParams.get("limit")) || 20, 100);
-    const offset = (page - 1) * pageSize;
+     const { searchParams } = new URL(request.url);
+     const id = searchParams.get("id");
+     const userId = searchParams.get("userId");
+     const artistId = searchParams.get("artistId");
+     const page = Math.max(1, Number(searchParams.get("page")) || 1);
+     const pageSize = Math.min(Number(searchParams.get("limit")) || 20, 100);
+     const offset = (page - 1) * pageSize;
+     const search = searchParams.get("search") || "";
+     const startDate = searchParams.get("startDate") || "";
+     const endDate = searchParams.get("endDate") || "";
 
     if (id) {
       const [booking] = await db
@@ -406,11 +409,62 @@ export async function GET(request: NextRequest) {
       if (!hasAdminAccess(session) && session.id !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+      
+      // Build where conditions for filtering
+      const whereConditions = [eq(bookings.userId, userId)];
+      
+      // Add search filter if provided
+      if (search) {
+        const searchTerm = `%${search}%`;
+        whereConditions.push(
+          or(
+            ilike(users.name, searchTerm),
+            ilike(artistUsers.name, searchTerm),
+            ilike(bookings.service, searchTerm)
+          )
+        );
+      }
+      
+      // Add date range filters if provided
+      if (startDate) {
+        whereConditions.push(gte(bookings.date, startDate));
+      }
+      
+      if (endDate) {
+        whereConditions.push(lte(bookings.date, endDate));
+      }
+      
       const [totalResult] = await db
         .select({ count: count() })
         .from(bookings)
-        .where(eq(bookings.userId, userId));
+        .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+        .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
+        .where(and(...whereConditions));
       const total = totalResult?.count ?? 0;
+      // Build where conditions for filtering
+      const whereConditions = [eq(bookings.userId, userId)];
+      
+      // Add search filter if provided
+      if (search) {
+        const searchTerm = `%${search}%`;
+        whereConditions.push(
+          or(
+            ilike(users.name, searchTerm),
+            ilike(artistUsers.name, searchTerm),
+            ilike(bookings.service, searchTerm)
+          )
+        );
+      }
+      
+      // Add date range filters if provided
+      if (startDate) {
+        whereConditions.push(gte(bookings.date, startDate));
+      }
+      
+      if (endDate) {
+        whereConditions.push(lte(bookings.date, endDate));
+      }
+      
       const userBookings = await db
         .select({
           id: bookings.id,
@@ -441,7 +495,7 @@ export async function GET(request: NextRequest) {
         .from(bookings)
         .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
         .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
-        .where(eq(bookings.userId, userId))
+        .where(and(...whereConditions))
         .limit(pageSize)
         .offset(offset);
       return NextResponse.json({
@@ -461,10 +515,35 @@ export async function GET(request: NextRequest) {
       if (!hasAdminAccess(session) && session?.id !== artistId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+      
+      // Build where conditions for filtering
+      const whereConditions = [eq(bookings.artistId, artistId)];
+      
+      // Add search filter if provided
+      if (search) {
+        const searchTerm = `%${search}%`;
+        whereConditions.push(
+          or(
+            ilike(users.name, searchTerm),
+            ilike(bookings.service, searchTerm)
+          )
+        );
+      }
+      
+      // Add date range filters if provided
+      if (startDate) {
+        whereConditions.push(gte(bookings.date, startDate));
+      }
+      
+      if (endDate) {
+        whereConditions.push(lte(bookings.date, endDate));
+      }
+      
       const [totalResult] = await db
         .select({ count: count() })
         .from(bookings)
-        .where(eq(bookings.artistId, artistId));
+        .leftJoin(artistUsers, eq(bookings.userId, artistUsers.id))
+        .where(and(...whereConditions));
       const total = totalResult?.count ?? 0;
       const artistBookings = await db
         .select({
@@ -495,7 +574,7 @@ export async function GET(request: NextRequest) {
         })
         .from(bookings)
         .leftJoin(artistUsers, eq(bookings.userId, artistUsers.id))
-        .where(eq(bookings.artistId, artistId))
+        .where(and(...whereConditions))
         .orderBy(desc(bookings.createdAt))
         .limit(pageSize)
         .offset(offset);
@@ -516,11 +595,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const [totalResult] = await db.select({ count: count() }).from(bookings);
+    // Build where conditions for filtering
+    const whereConditions = [];
+    
+    // Add search filter if provided
+    if (search) {
+      const searchTerm = `%${search}%`;
+      whereConditions.push(
+        or(
+          ilike(users.name, searchTerm),
+          ilike(bookings.service, searchTerm)
+        )
+      );
+    }
+    
+    // Add date range filters if provided
+    if (startDate) {
+      whereConditions.push(gte(bookings.date, startDate));
+    }
+    
+    if (endDate) {
+      whereConditions.push(lte(bookings.date, endDate));
+    }
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(bookings)
+      .leftJoin(users, eq(bookings.userId, users.id))
+      .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+      .leftJoin(users, eq(profiles.userId, users.id), alias(users, "artist_users"))
+      .where(and(...whereConditions));
     const total = totalResult?.count ?? 0;
     const rawBookings = await db
       .select()
       .from(bookings)
+      .leftJoin(users, eq(bookings.userId, users.id))
+      .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
+      .leftJoin(users, eq(profiles.userId, users.id), alias(users, "artist_users"))
+      .where(and(...whereConditions))
       .limit(pageSize)
       .offset(offset);
 
