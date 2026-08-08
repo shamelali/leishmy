@@ -106,6 +106,19 @@ export async function POST(request: NextRequest) {
               status: "mismatch",
             })
             .catch(() => {});
+          
+          // Track amount mismatch for alerting
+          await PaymentAnalytics.trackPaymentEvent("webhook_amount_mismatch", payment.id, {
+            webhookAmount: webhookAmount ?? 0,
+            localPaymentAmount: payment.amount,
+            bookingId: payment.bookingId
+          });
+          
+          return NextResponse.json({ 
+            success: false, 
+            error: "Amount mismatch", 
+            amountMismatch: true 
+          });
         }
 
         await db
