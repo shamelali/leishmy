@@ -267,48 +267,42 @@ export default function LocationSelector({
             <MapContainer
               ref={leafletMapRef}
               center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : MALAYSIA_CENTER}
-              zoom={selectedLocation ? 13 : 8}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={!disabled}
-              doubleClickZoom={!disabled}
-              dragging={!disabled}
-              whenCreated={!disabled ? (map) => { /* Enable interactions */ } : undefined}
-              whenCreated={disabled ? (map) => {
-                map.dragging.disable();
-                map.touchZoom.disable();
-                map.doubleClickZoom.disable();
-                map.scrollWheelZoom.disable();
-                map.boxZoom.disable();
-                map.keyboard.disable();
-                if (map.tap) map.tap.disable();
-              } : undefined}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {selectedLocation && (
-                <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
-                  {selectedLocation.address && (
-                    <Popup>
-                      <span className="text-sm">{selectedLocation.address}</span>
-                    </Popup>
-                  )}
-                </Marker>
-              )}
-              {!disabled && (
-                <MapContainer
-                  // This is a workaround to enable click detection on the map
-                  // We'll use a transparent layer that captures clicks
-                  whenCreated={(map) => {
-                    map.on('click', handleMapClick);
-                    return () => {
-                      map.off('click', handleMapClick);
-                    };
-                  }}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}
-                >
-                  {/* Transparent layer to capture clicks - using a div instead of TileLayer to avoid visual interference */}
-                </MapContainer>
-              )}
-            </MapContainer>
+               zoom={selectedLocation ? 13 : 8}
+               style={{ height: "100%", width: "100%" }}
+               scrollWheelZoom={!disabled}
+               doubleClickZoom={!disabled}
+               dragging={!disabled}
+               whenCreated={(map) => {
+                 if (!disabled) {
+                   // Enable map click handling for location selection
+                   map.on('click', handleMapClick);
+                   // Return cleanup function
+                   return () => {
+                     map.off('click', handleMapClick);
+                   };
+                 } else {
+                   // Disable all interactions when disabled
+                   map.dragging.disable();
+                   map.touchZoom.disable();
+                   map.doubleClickZoom.disable();
+                   map.scrollWheelZoom.disable();
+                   map.boxZoom.disable();
+                   map.keyboard.disable();
+                   if (map.tap) map.tap.disable();
+                 }
+               }}
+             >
+               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+               {selectedLocation && (
+                 <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
+                   {selectedLocation.address && (
+                     <Popup>
+                       <span className="text-sm">{selectedLocation.address}</span>
+                     </Popup>
+                   )}
+                 </Marker>
+               )}
+             </MapContainer>
           </div>
         </div>
         
