@@ -153,7 +153,7 @@ export function BookingForm({
            service: serviceDesc,
            date,
            time,
-           location: location ? `${location.address} (${location.lat.toFixed(4)}, ${location.lng.toFixed(4)})` : "",
+           location: location ? `${location.address.length > 200 ? location.address.substring(0, 200) : location.address} (${location.lat.toFixed(4)}, ${location.lng.toFixed(4)})` : "",
            notes,
            // No fees - MUA will add them
          }),
