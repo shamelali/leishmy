@@ -155,9 +155,8 @@ export async function POST(request: NextRequest) {
         date: new Date(date),
         time: time || null,
         amount: servicePrice,
-        depositAmount,
-        milestone: "requested",
-        status: "requested",
+        milestone: servicePrice === "0" ? null : `deposit_${depositPercent}`,
+        status: servicePrice === "0" ? "quote_pending" : "requested",
       })
       .returning();
 
@@ -987,4 +986,4 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
     console.error("Update booking error:", error);
     return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });
   }
-
+}

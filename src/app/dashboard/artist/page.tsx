@@ -159,6 +159,31 @@ export default function DashboardArtist() {
 		);
 	}, []);
 
+const handleSendQuote = useCallback(async (bookingId: string, customAmount: number | null) => {
+  if (!user?.id) return;
+  
+  // Send a custom quote for this booking
+  await fetch("/api/quotes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bookingId: Number(bookingId),
+      amount: customAmount ? String(customAmount) : undefined,
+      notes: "Custom quote sent from artist dashboard",
+    }),
+  });
+  
+  // Update booking status to quote_pending if it was requested
+  setBookings((prev) =>
+    prev.map((b) => (
+      b.id === bookingId && b.status === "requested"
+        ? { ...b, status: "quote_pending" }
+        : b
+    ))
+  );
+}, [user?.id]);
+
+
 	const handleCompleteService = useCallback(async (bookingId: string) => {
 		await fetch("/api/bookings", {
 			method: "PATCH",
@@ -269,10 +294,11 @@ export default function DashboardArtist() {
           bookings={bookings}
           onConfirm={handleConfirm}
           onReject={handleReject}
-        />
+          onSendQuote={handleSendQuote}
+          onStartService={handleStartService}
+          isProvider={true}
+          onCompleteService={handleCompleteService}
       );
-    case "quotes":
-      return <QuotesTab />;
     case "prices":
       return (
         <PricesTab
