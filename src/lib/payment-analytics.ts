@@ -134,47 +134,111 @@ export class PaymentAnalytics {
     return results;
   }
 
-  /**
-   * Get webhook processing metrics
-   */
-  static async getWebhookMetrics(
-    startDate: Date,
-    endDate: Date = new Date()
-  ) {
-    const [result] = await db
-      .select({
-        total: count(webhookEvents.id),
-        successful: count(sql`CASE WHEN ${webhookEvents.status} = 'processed' THEN 1 ELSE NULL END`),
-        failed: count(sql`CASE WHEN ${webhookEvents.status} = 'rejected' THEN 1 ELSE NULL END`),
-        retryQueued: count(sql`CASE WHEN ${webhookEvents.status} = 'retry_queued' THEN 1 ELSE NULL END`),
-        retryScheduled: count(sql`CASE WHEN ${webhookEvents.status} = 'retry_scheduled' THEN 1 ELSE NULL END`),
-        deadLetter: count(sql`CASE WHEN ${webhookEvents.status} = 'dead_letter' THEN 1 ELSE NULL END`),
-        // Note: webhookEvents table doesn't have updatedAt column, so we can't calculate processing time
-        avgProcessingTimeMs: sql<number>`0`
-      })
-      .from(webhookEvents)
-      .where(
-        and(
+    /**
+     * Get webhook processing metrics
+     */
+    static async getWebhookMetrics(
+      startDate: Date,
+      endDate: Date = new Date()
+    ) {
+      const [result] = await db
+        .select({
+          total: count(webhookEvents.id),
+          successful: count(sql`CASE WHEN ${webhookEvents.status} = 'processed' THEN 1 ELSE NULL END`),
+          failed: count(sql`CASE WHEN ${webhookEvents.status} = 'rejected' THEN 1 ELSE NULL END`),
+          retryQueued: count(sql`CASE WHEN ${webhookEvents.status} = 'retry_queued' THEN 1 ELSE NULL END`),
+          retryScheduled: count(sql`CASE WHEN ${webhookEvents.status} = 'retry_scheduled' THEN 1 ELSE NULL END`),
+          deadLetter: count(sql`CASE WHEN ${webhookEvents.status} = 'dead_letter' THEN 1 ELSE NULL END`),
+          // Note: webhookEvents table doesn't have updatedAt column, so we can't calculate processing time
+          avgProcessingTimeMs: sql<number>`0`
+        })
+        .from(webhookEvents)
+        .where(
+          and(
+            gte(webhookEvents.createdAt, startDate),
+            lte(webhookEvents.createdAt, endDate)
+          )
+        );
+
+      const total = Number(result.total) || 0;
+      const failed = Number(result.failed) || 0;
+      const retryRate = total > 0 ? (Number(result.retryQueued) + Number(result.retryScheduled)) / total * 100 : 0;
+
+      return {
+        totalWebhooks: total,
+        successfulWebhooks: Number(result.successful) || 0,
+        failedWebhooks: failed,
+        retryQueued: Number(result.retryQueued) || 0,
+        retryScheduled: Number(result.retryScheduled) || 0,
+        deadLetter: Number(result.deadLetter) || 0,
+        avgProcessingTimeMs: 0, // Placeholder since webhookEvents doesn't have updatedAt
+        retryRate: Number(retryRate.toFixed(2))
+      };
+    }
+
+    /**
+     * Get detailed webhook retry metrics including retry count breakdown
+     */
+    static async getWebhookRetryDetails(
+      startDate: Date,
+      endDate: Date = new Date()
+    ) {
+      // Get retry count breakdown for events in retry_scheduled status
+      const retryBreakdown = await db
+        .select({
+          retryCount: sql<number>`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`,
+          count: count(webhookEvents.id)
+        })
+        .from(webhookEvents)
+        .where(and(
+          eq(webhookEvents.status, "retry_scheduled"),
           gte(webhookEvents.createdAt, startDate),
           lte(webhookEvents.createdAt, endDate)
-        )
-      );
+        ))
+        .groupBy(sql`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`)
+        .orderBy(sql`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`);
 
-    const total = Number(result.total) || 0;
-    const failed = Number(result.failed) || 0;
-    const retryRate = total > 0 ? (Number(result.retryQueued) + Number(result.retryScheduled)) / total * 100 : 0;
+      // Get dead letter count breakdown
+      const deadLetterBreakdown = await db
+        .select({
+          retryCount: sql<number>`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`,
+          count: count(webhookEvents.id)
+        })
+        .from(webhookEvents)
+        .where(and(
+          eq(webhookEvents.status, "dead_letter"),
+          gte(webhookEvents.createdAt, startDate),
+          lte(webhookEvents.createdAt, endDate)
+        ))
+        .groupBy(sql`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`)
+        .orderBy(sql`COALESCE(((${webhookEvents.payload}->>'retryCount')::int), 0)`);
 
-    return {
-      totalWebhooks: total,
-      successfulWebhooks: Number(result.successful) || 0,
-      failedWebhooks: failed,
-      retryQueued: Number(result.retryQueued) || 0,
-      retryScheduled: Number(result.retryScheduled) || 0,
-      deadLetter: Number(result.deadLetter) || 0,
-      avgProcessingTimeMs: 0, // Placeholder since webhookEvents doesn't have updatedAt
-      retryRate: Number(retryRate.toFixed(2))
-    };
-  }
+      // Get average time in retry queue (approximate)
+      const avgTimeInRetryQueue = await db
+        .select({
+          avgTimeMs: avg(
+            sql<number>`EXTRACT(EPOCH FROM (NOW() - ${webhookEvents.createdAt})) * 1000`
+          )
+        })
+        .from(webhookEvents)
+        .where(and(
+          eq(webhookEvents.status, "retry_scheduled"),
+          gte(webhookEvents.createdAt, startDate),
+          lte(webhookEvents.createdAt, endDate)
+        ));
+
+      return {
+        retryScheduledBreakdown: retryBreakdown.map(row => ({
+          retryCount: Number(row.retryCount) || 0,
+          count: Number(row.count) || 0
+        })),
+        deadLetterBreakdown: deadLetterBreakdown.map(row => ({
+          retryCount: Number(row.retryCount) || 0,
+          count: Number(row.count) || 0
+        })),
+        avgTimeInRetryQueueMs: Number(avgTimeInRetryQueue[0]?.avgTimeMs || 0)
+      };
+    }
 
   /**
    * Get payment failure analysis
@@ -269,6 +333,18 @@ export type WebhookMetrics = {
   failedWebhooks: number;
   avgProcessingTimeMs: number;
   retryRate: number;
+};
+
+export type WebhookRetryDetails = {
+  retryScheduledBreakdown: Array<{
+    retryCount: number;
+    count: number;
+  }>;
+  deadLetterBreakdown: Array<{
+    retryCount: number;
+    count: number;
+  }>;
+  avgTimeInRetryQueueMs: number;
 };
 
 export type FailureAnalysis = {
