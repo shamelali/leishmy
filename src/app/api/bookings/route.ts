@@ -987,4 +987,4 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
     console.error("Update booking error:", error);
     return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });
   }
-}
+
