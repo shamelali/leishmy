@@ -10,6 +10,7 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 interface Booking {
   id: string;
@@ -57,6 +58,7 @@ const filterTabs = ["all", "requested", "confirmed", "in_progress", "completed",
 
 export default function StudioBookings() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -108,6 +110,12 @@ export default function StudioBookings() {
   }, [user?.id, loadData]);
 
   const handleAssignArtist = async (bookingId: string, artistId: string) => {
+    // Check if user has permission to assign bookings
+    if (!can("bookings:assign")) {
+      setError("You don't have permission to assign bookings");
+      return;
+    }
+    
     setAssigningId(bookingId);
     try {
       const res = await fetch(`/api/bookings/${bookingId}/assign`, {
@@ -140,16 +148,18 @@ export default function StudioBookings() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings</h1>
-            <button
-              onClick={() => {
-                // TODO: Implement export functionality (CSV/PDF)
-                // For now, we'll just show a placeholder
-                alert('Export functionality would be implemented here');
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              <Export className="w-4 h-4" /> Export
-            </button>
+            {can("bookings:export") && (
+              <button
+                onClick={() => {
+                  // TODO: Implement export functionality (CSV/PDF)
+                  // For now, we'll just show a placeholder
+                  alert('Export functionality would be implemented here');
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                <Export className="w-4 h-4" /> Export
+              </button>
+            )}
           </div>
           <span className="text-sm text-gray-400">{bookings.length} total</span>
         </div>

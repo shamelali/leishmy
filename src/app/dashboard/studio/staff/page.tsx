@@ -7,9 +7,11 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 export default function StudioStaff() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,13 @@ export default function StudioStaff() {
 
   const handleAdd = async () => {
     if (!addEmail.trim()) return;
+    
+    // Check if user has permission to add staff
+    if (!can("staff:create")) {
+      setError("You don't have permission to add staff");
+      return;
+    }
+    
     setAdding(true);
     setError("");
     try {
@@ -62,6 +71,12 @@ export default function StudioStaff() {
   };
 
   const handleRemove = async (artistId: string) => {
+    // Check if user has permission to remove staff
+    if (!can("staff:delete")) {
+      setError("You don't have permission to remove staff");
+      return;
+    }
+    
     try {
       const res = await fetch("/api/user/remove-staff", {
         method: "POST",

@@ -7,9 +7,11 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 export default function StudioInventory() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,14 @@ export default function StudioInventory() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) return;
+    
+    // Check if user has permission to add inventory items
+    if (!can("inventory:create")) {
+      setFetchError("You don't have permission to add inventory items");
+      return;
+    }
+    
     const profileRes = await fetch(`/api/user/studio-profile`);
     const profile = await profileRes.json();
     if (!profile?.studio?.id) return;
@@ -60,6 +70,12 @@ export default function StudioInventory() {
   };
 
   const handleDelete = async (id: number) => {
+    // Check if user has permission to delete inventory items
+    if (!can("inventory:delete")) {
+      setFetchError("You don't have permission to delete inventory items");
+      return;
+    }
+    
     await fetch(`/api/inventory?id=${id}`, { method: "DELETE" });
     setItems(items.filter((i) => i.id !== id));
   };

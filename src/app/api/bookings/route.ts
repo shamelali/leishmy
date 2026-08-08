@@ -411,7 +411,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Build where conditions for filtering
-      const whereConditions = [eq(bookings.userId, userId)];
+      let whereConditions = [eq(bookings.userId, userId)];
       
       // Add search filter if provided
       if (search) {
@@ -442,28 +442,6 @@ export async function GET(request: NextRequest) {
         .where(and(...whereConditions));
       const total = totalResult?.count ?? 0;
       // Build where conditions for filtering
-      const whereConditions = [eq(bookings.userId, userId)];
-      
-      // Add search filter if provided
-      if (search) {
-        const searchTerm = `%${search}%`;
-        whereConditions.push(
-          or(
-            ilike(users.name, searchTerm),
-            ilike(artistUsers.name, searchTerm),
-            ilike(bookings.service, searchTerm)
-          )
-        );
-      }
-      
-      // Add date range filters if provided
-      if (startDate) {
-        whereConditions.push(gte(bookings.date, startDate));
-      }
-      
-      if (endDate) {
-        whereConditions.push(lte(bookings.date, endDate));
-      }
       
       const userBookings = await db
         .select({

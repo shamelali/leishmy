@@ -7,6 +7,7 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 interface Payout {
   id: string;
@@ -37,7 +38,7 @@ const payoutStatusColor: Record<string, string> = {
 
 export default function StudioFinance() {
   const { user } = useAuth();
-  const pathname = usePathname();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
@@ -70,6 +71,13 @@ export default function StudioFinance() {
   const handleRegisterBank = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    
+    // Check if user has permission to register bank accounts
+    if (!can("finance:create")) {
+      setFetchError("You don't have permission to register bank accounts");
+      return;
+    }
+    
     await fetch("/api/payments?action=register-bank", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

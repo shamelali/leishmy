@@ -7,6 +7,7 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 interface Service {
   id: number;
@@ -35,6 +36,7 @@ const emptyForm = { name: "", description: "", duration: "", price: "", category
 
 export default function StudioServices() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [services, setServices] = useState<Service[]>([]);
   const [packages, setPackages] = useState<ServicePackage[]>([]);
@@ -69,43 +71,61 @@ export default function StudioServices() {
     loadData();
   }, [user?.id, loadData]);
 
-  const handleSave = async () => {
-    if (!form.name.trim() || !user?.id) return;
-    setSaving(true);
-    setError("");
-    try {
-      if (editingId) {
-        await fetch("/api/services", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editingId, ...form, price: form.price || "0" }),
-        });
-      } else {
-        await fetch("/api/services", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studioId: user.id, ...form, price: form.price || "0" }),
-        });
+    const handleSave = async () => {
+      if (!form.name.trim() || !user?.id) return;
+      
+      // Check permissions based on action
+      const isUpdate = !!editingId;
+      if (isUpdate && !can("services:update")) {
+        setError("You don't have permission to update services");
+        return;
       }
-      setForm(emptyForm);
-      setEditingId(null);
-      setShowForm(false);
-      await loadData();
-    } catch {
-      setError("Failed to save service");
-    }
-    setSaving(false);
-  };
+      
+      if (!isUpdate && !can("services:create")) {
+        setError("You don't have permission to create services");
+        return;
+      }
+      
+      setSaving(true);
+      setError("");
+      try {
+        if (editingId) {
+          await fetch("/api/services", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editingId, ...form, price: form.price || "0" }),
+          });
+        } else {
+          await fetch("/api/services", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studioId: user.id, ...form, price: form.price || "0" }),
+          });
+        }
+        setForm(emptyForm);
+        setEditingId(null);
+        setShowForm(false);
+        await loadData();
+      } catch {
+        setError("Failed to save service");
+      }
+      setSaving(false);
+    };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this service?")) return;
-    try {
-      await fetch(`/api/services?id=${id}`, { method: "DELETE" });
-      await loadData();
-    } catch {
-      setError("Failed to delete service");
-    }
-  };
+    const handleDelete = async (id: number) => {
+      if (!can("services:delete")) {
+        setError("You don't have permission to delete services");
+        return;
+      }
+      
+      if (!confirm("Delete this service?")) return;
+      try {
+        await fetch(`/api/services?id=${id}`, { method: "DELETE" });
+        await loadData();
+      } catch {
+        setError("Failed to delete service");
+      }
+    };
 
   const handleEdit = (svc: Service) => {
     setForm({
@@ -119,38 +139,48 @@ export default function StudioServices() {
     setShowForm(true);
   };
 
-  const handleAddPackage = async (serviceId: number) => {
-    if (!pkgForm.name.trim() || !pkgForm.price) return;
-    setSavingPkg(true);
-    try {
-      await fetch("/api/services/packages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          serviceId,
-          name: pkgForm.name,
-          price: pkgForm.price,
-          includes: pkgForm.includes ? pkgForm.includes.split(",").map((s) => s.trim()) : [],
-        }),
-      });
-      setPkgForm({ name: "", price: "", includes: "" });
-      setShowPkgForm(null);
-      await loadData();
-    } catch {
-      setError("Failed to save package");
-    }
-    setSavingPkg(false);
-  };
+    const handleAddPackage = async (serviceId: number) => {
+      if (!can("services:create")) {
+        setError("You don't have permission to create service packages");
+        return;
+      }
+      
+      if (!pkgForm.name.trim() || !pkgForm.price) return;
+      setSavingPkg(true);
+      try {
+        await fetch("/api/services/packages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            serviceId,
+            name: pkgForm.name,
+            price: pkgForm.price,
+            includes: pkgForm.includes ? pkgForm.includes.split(",").map((s) => s.trim()) : [],
+          }),
+        });
+        setPkgForm({ name: "", price: "", includes: "" });
+        setShowPkgForm(null);
+        await loadData();
+      } catch {
+        setError("Failed to save package");
+      }
+      setSavingPkg(false);
+    };
 
-  const handleDeletePackage = async (id: number) => {
-    if (!confirm("Delete this package?")) return;
-    try {
-      await fetch(`/api/services/packages?id=${id}`, { method: "DELETE" });
-      await loadData();
-    } catch {
-      setError("Failed to delete package");
-    }
-  };
+    const handleDeletePackage = async (id: number) => {
+      if (!can("services:delete")) {
+        setError("You don't have permission to delete service packages");
+        return;
+      }
+      
+      if (!confirm("Delete this package?")) return;
+      try {
+        await fetch(`/api/services/packages?id=${id}`, { method: "DELETE" });
+        await loadData();
+      } catch {
+        setError("Failed to delete package");
+      }
+    };
 
   const activeId = studioItems.find((item) => pathname === item.href)?.id || "overview";
 
@@ -159,17 +189,19 @@ export default function StudioServices() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Services</h1>
-          <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setEditingId(null);
-              setForm(emptyForm);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Service
-          </button>
+          {can("services:create") && (
+            <button
+              onClick={() => {
+                setShowForm(!showForm);
+                setEditingId(null);
+                setForm(emptyForm);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Service
+            </button>
+          )}
         </div>
 
         {error && (

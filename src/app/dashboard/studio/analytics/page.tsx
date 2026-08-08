@@ -9,6 +9,7 @@ import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 import StatCard from "@/components/StatCard";
 
 interface Analytics {
@@ -28,6 +29,7 @@ interface Analytics {
 
 export default function StudioAnalytics() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);

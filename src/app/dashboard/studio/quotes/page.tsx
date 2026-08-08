@@ -8,6 +8,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { studioItems } from "@/components/dashboard/studioNav";
 import { QuoteModal } from "@/components/QuoteModal";
 import { useAuth } from "@/context/AuthContext";
+import { useStudioAuth } from "@/lib/auth/studio";
 
 interface Booking {
   id: string;
@@ -34,6 +35,7 @@ interface PricingRules {
 
 export default function StudioQuotes() {
   const { user } = useAuth();
+  const { studioRole, isStudioUser, can } = useStudioAuth();
   const pathname = usePathname();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,13 @@ export default function StudioQuotes() {
 
   const handleQuoteSent = () => {
     if (!quoteModal) return;
+    
+    // Check if user has permission to update booking status (specifically to send quotes)
+    if (!can("bookings:update")) {
+      setError("You don't have permission to send quotes");
+      return;
+    }
+    
     setBookings((prev) =>
       prev.map((b) => (b.id === quoteModal.id ? { ...b, status: "quote_sent" } : b))
     );
