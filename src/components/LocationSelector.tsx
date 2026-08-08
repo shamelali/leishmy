@@ -52,9 +52,16 @@ export default function LocationSelector({
     }
   }, [value]);
 
+  // Debounced search to prevent excessive API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Forward geocoding - search for address
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim() || disabled) return;
+    if (!debouncedSearchQuery.trim() || disabled) return;
 
     setLoading(true);
     setError(null);
@@ -62,7 +69,7 @@ export default function LocationSelector({
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
-          searchQuery
+          debouncedSearchQuery
         )}`,
         {
           headers: { "User-Agent": "leish.my/1.0 (contact@leish.my)" },
@@ -91,7 +98,7 @@ export default function LocationSelector({
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, disabled]);
+  }, [debouncedSearchQuery, disabled]);
 
   // Reverse geocoding - get address from coordinates
   const reverseGeocode = useCallback(
@@ -151,6 +158,27 @@ export default function LocationSelector({
     },
     [disabled, onChange, reverseGeocode]
   );
+
+  // Map callbacks with useCallback to prevent recreation on every render
+  const mapCallbacks = useCallback((map: L.Map | null) => {
+    if (!disabled && map) {
+      // Enable map click handling for location selection
+      map.on('click', handleMapClick);
+      // Return cleanup function
+      return () => {
+        map.off('click', handleMapClick);
+      };
+    } else if (map) {
+      // Disable all interactions when disabled
+      map.dragging.disable();
+      map.touchZoom.disable();
+      map.doubleClickZoom.disable();
+      map.scrollWheelZoom.disable();
+      map.boxZoom.disable();
+      map.keyboard.disable();
+      if (map.tap) map.tap.disable();
+    }
+  }, [disabled, handleMapClick]);
 
   // Handle selecting a search result
   const handleSelectSearchResult = useCallback(
@@ -263,47 +291,29 @@ export default function LocationSelector({
               </button>
             )}
           </div>
-          <div className="min-h-[200px]">
+            <div className="min-h-[200px]">
             <MapContainer
               ref={leafletMapRef}
               center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : MALAYSIA_CENTER}
                zoom={selectedLocation ? 13 : 8}
-               style={{ height: "100%", width: "100%" }}
-               scrollWheelZoom={!disabled}
-               doubleClickZoom={!disabled}
-               dragging={!disabled}
-               whenCreated={(map) => {
-                 if (!disabled) {
-                   // Enable map click handling for location selection
-                   map.on('click', handleMapClick);
-                   // Return cleanup function
-                   return () => {
-                     map.off('click', handleMapClick);
-                   };
-                 } else {
-                   // Disable all interactions when disabled
-                   map.dragging.disable();
-                   map.touchZoom.disable();
-                   map.doubleClickZoom.disable();
-                   map.scrollWheelZoom.disable();
-                   map.boxZoom.disable();
-                   map.keyboard.disable();
-                   if (map.tap) map.tap.disable();
-                 }
-               }}
-             >
-               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-               {selectedLocation && (
-                 <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
-                   {selectedLocation.address && (
-                     <Popup>
-                       <span className="text-sm">{selectedLocation.address}</span>
-                     </Popup>
-                   )}
-                 </Marker>
-               )}
-             </MapContainer>
-          </div>
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={!disabled}
+                doubleClickZoom={!disabled}
+                dragging={!disabled}
+                whenCreated={mapCallbacks}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {selectedLocation && (
+                  <Marker key={`${selectedLocation.lat}-${selectedLocation.lng}`} position={[selectedLocation.lat, selectedLocation.lng]}>
+                    {selectedLocation.address && (
+                      <Popup>
+                        <span className="text-sm">{selectedLocation.address}</span>
+                      </Popup>
+                    )}
+                  </Marker>
+                )}
+              </MapContainer>
+            </div>
         </div>
         
         {selectedLocation && (
