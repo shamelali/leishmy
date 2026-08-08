@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { hasPermission, StudioRole, Permission, ROLE_HIERARCHY } from "./roles";
+import { hasPermission, StudioRole, Permission, ROLE_HIERARCHY, roleAuthority } from "./roles";
 
 /**
  * Hook for studio dashboard role-based access control
@@ -23,8 +23,7 @@ export function useStudioAuth() {
   // Check if user's role has equal or higher authority than another role
   const canManageRole = (targetRole: StudioRole): boolean => {
     if (!studioRole) return false;
-    // Import here to avoid circular dependency
-    const { roleAuthority } from "./roles";
+    // roleAuthority is imported above
     return roleAuthority(studioRole, targetRole);
   };
    
