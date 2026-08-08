@@ -11,11 +11,9 @@ import { malaysiaStates, malaysiaDistricts } from "@/data/malaysia-locations";
 const specialtiesList = [
   "Bridal Makeup",
   "Soft Glam",
-  "Editorial / Photoshoot",
   "Hijab Styling",
-  "Airbrush Makeup",
-  "SFX / Creative",
   "Hairstyling",
+  "Groom",
 ];
 
 export default function OnboardingPage() {

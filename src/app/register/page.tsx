@@ -81,15 +81,13 @@ export default function RegisterPage() {
     }
   };
 
-  const availableSpecialties = [
-    "Bridal Makeup",
-    "Soft Glam",
-    "Editorial / Photoshoot",
-    "Hijab Styling",
-    "Airbrush Makeup",
-    "SFX / Creative",
-    "Hairstyling",
-  ];
+const availableSpecialties = [
+  "Bridal Makeup",
+  "Soft Glam",
+  "Hijab Styling",
+  "Hairstyling",
+  "Groom",
+];
 
   return (
     <div className="min-h-[calc(100vh-4rem)] py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-rose-50/50 via-white to-pink-50/50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 flex items-center justify-center">

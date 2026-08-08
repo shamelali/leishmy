@@ -27,9 +27,9 @@ const UNDERTONES = [
 
 const STYLE_OPTIONS = [
   "Natural / No-Makeup", "Soft Glam", "Full Glam", "Bridal",
-  "Editorial", "Avant-Garde", "Hijab Styling", "Airbrush",
-  "SFX / Creative", "Boho", "Classic Red Lip", "Smokey Eye",
+  "Avant-Garde", "Hijab Styling", "Boho", "Classic Red Lip", "Smokey Eye",
   "Dewy Skin", "Matte Finish", "Cut Crease", "Graphic Liner",
+  "Groom",
 ];
 
 export default function BeautyProfilePage() {

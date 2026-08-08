@@ -39,11 +39,11 @@ const expertiseOptions = [
   "Bridal Makeup",
   "Events",
   "Fashion/Editorial",
-  "Special Effects (SFX)",
   "Theater/Stage",
   "Commercial/TV/Film",
   "Class/Workshop",
   "Other",
+  "Groom",
 ];
 
 const languageOptions = ["English", "Malay", "Chinese", "Indian"];
