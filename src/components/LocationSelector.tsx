@@ -33,15 +33,16 @@ export default function LocationSelector({
   onChange,
   disabled = false,
 }: LocationSelectorProps) {
-  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(
-    value || null
-  );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>(
-    []
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(
+  value || null
+);
+const [searchQuery, setSearchQuery] = useState("");
+const [searchResults, setSearchResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>(
+  []
+);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+const [geoLoading, setGeoLoading] = useState(false);
   const mapRef = useRef<HTMLElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
 
@@ -159,26 +160,25 @@ export default function LocationSelector({
     [disabled, onChange, reverseGeocode]
   );
 
-  // Map callbacks with useCallback to prevent recreation on every render
-  const mapCallbacks = useCallback((map: L.Map | null) => {
-    if (!disabled && map) {
-      // Enable map click handling for location selection
-      map.on('click', handleMapClick);
-      // Return cleanup function
-      return () => {
-        map.off('click', handleMapClick);
-      };
-    } else if (map) {
-      // Disable all interactions when disabled
-      map.dragging.disable();
-      map.touchZoom.disable();
-      map.doubleClickZoom.disable();
-      map.scrollWheelZoom.disable();
-      map.boxZoom.disable();
-      map.keyboard.disable();
-      if (map.tap) map.tap.disable();
-    }
-  }, [disabled, handleMapClick]);
+   // Map callbacks with useCallback to prevent recreation on every render
+   const mapCallbacks = useCallback((map: L.Map | null) => {
+     if (!disabled && map) {
+       // Enable map click handling for location selection
+       map.on('click', handleMapClick);
+       // Return cleanup function
+       return () => {
+         map.off('click', handleMapClick);
+       };
+     } else if (map) {
+       // Disable all interactions when disabled
+       map.dragging.disable();
+       map.touchZoom.disable();
+       map.doubleClickZoom.disable();
+       map.scrollWheelZoom.disable();
+       map.boxZoom.disable();
+       map.keyboard.disable();
+     }
+   }, [disabled, handleMapClick]);
 
   // Handle selecting a search result
   const handleSelectSearchResult = useCallback(
@@ -207,6 +207,46 @@ export default function LocationSelector({
     setSelectedLocation(null);
     onChange(null);
   }, [onChange]);
+
+  // Handle geolocation detection
+  const handleGeolocate = useCallback(async () => {
+    if (!navigator.geolocation || disabled) return;
+
+    setGeoLoading(true);
+    setError(null);
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      const locationData = await reverseGeocode(latitude, longitude);
+
+      if (locationData) {
+        setSelectedLocation(locationData);
+        onChange(locationData);
+
+        // Update map view to center on the geolocated position
+        if (leafletMapRef.current) {
+          leafletMapRef.current.setView([latitude, longitude], 13);
+        }
+      } else {
+        throw new Error("Unable to determine address from your location");
+      }
+    } catch (err: any) {
+      setError(
+        err.message || 
+        "Failed to get your location. Please ensure location services are enabled and try again."
+      );
+    } finally {
+      setGeoLoading(false);
+    }
+  }, [disabled, leafletMapRef, onChange, reverseGeocode]);
 
   // Handle Enter key in search input
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -277,31 +317,46 @@ export default function LocationSelector({
           )}
         </div>
         
-        <div className="mb-3">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Selected Location
-            </span>
-            {selectedLocation && !disabled && (
-              <button
-                onClick={handleClearSelection}
-                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Selected Location
+                </span>
+                <div className="flex items-center gap-2">
+                  {selectedLocation && !disabled && (
+                    <button
+                      onClick={handleClearSelection}
+                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  {!disabled && (
+                    <button
+                      onClick={handleGeolocate}
+                      disabled={geoLoading}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+                    >
+                      {geoLoading ? (
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span className="text-xs">Use My Location</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
             <div className="min-h-[200px]">
-            <MapContainer
-              ref={leafletMapRef}
-              center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : MALAYSIA_CENTER}
-               zoom={selectedLocation ? 13 : 8}
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={!disabled}
-                doubleClickZoom={!disabled}
-                dragging={!disabled}
-                whenCreated={mapCallbacks}
-              >
+             <MapContainer
+               ref={leafletMapRef}
+               center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : MALAYSIA_CENTER}
+                zoom={selectedLocation ? 13 : 8}
+                 style={{ height: "100%", width: "100%" }}
+                 scrollWheelZoom={!disabled}
+                 doubleClickZoom={!disabled}
+                 dragging={!disabled}
+                 whenReady={mapCallbacks}
+               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 {selectedLocation && (
                   <Marker key={`${selectedLocation.lat}-${selectedLocation.lng}`} position={[selectedLocation.lat, selectedLocation.lng]}>
