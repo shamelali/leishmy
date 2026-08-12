@@ -34,6 +34,8 @@ interface QuoteModalProps {
   };
   onClose: () => void;
   onSuccess: () => void;
+  initialLocation?: string;  // From booking, displayed read-only
+  initialPlaceId?: string;   // From Google Places, stored for reference
 }
 
 const DISCOUNT_REASONS = [
@@ -59,6 +61,9 @@ export function QuoteModal({
   const [servicePrice, setServicePrice] = useState("");
   const [accommodationFee, setAccommodationFee] = useState("");
   const [travelFee, setTravelFee] = useState("");
+  const [travelSurcharge, setTravelSurcharge] = useState("");  // NEW: artist-editable, 0-50% max
+  const [initialLocation, setInitialLocation] = useState("");  // NEW: from booking, read-only
+  const [initialPlaceId, setInitialPlaceId] = useState("");   // NEW: Google Places reference
   const [discount, setDiscount] = useState("");
   const [discountReason, setDiscountReason] = useState("");
   const [extras, setExtras] = useState<ExtraItem[]>([]);
@@ -143,9 +148,10 @@ export function QuoteModal({
   const servicePriceNum = parseFloat(servicePrice) || 0;
   const accommodationFeeNum = parseFloat(accommodationFee) || 0;
   const travelFeeNum = parseFloat(travelFee) || 0;
+  const travelSurchargeNum = parseFloat(travelSurcharge) || 0;  // NEW
   const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0);
   const adjustmentsTotal = pricingAdjustments.reduce((sum, a) => sum + a.amount, 0);
-  const subtotal = servicePriceNum + accommodationFeeNum + travelFeeNum + extrasTotal + adjustmentsTotal;
+  const subtotal = servicePriceNum + accommodationFeeNum + travelFeeNum + travelSurchargeNum + extrasTotal + adjustmentsTotal;  // INCLUDE travelSurcharge
   const discountAmount = Math.min(parseFloat(discount) || 0, subtotal * 0.5); // Max 50%
   const total = Math.max(0, subtotal - discountAmount);
   const depositPercentNum = Math.min(100, Math.max(10, parseFloat(depositPercent) || 30));
@@ -169,12 +175,15 @@ export function QuoteModal({
           servicePrice: servicePriceNum,
           accommodationFee: accommodationFeeNum,
           travelFee: travelFeeNum,
+          travelSurcharge: travelSurchargeNum,  // NEW
           discount: discountAmount,
           discountReason: discountReason || undefined,
           extras: extras.length > 0 ? extras : undefined,
-          notes: notes || undefined,
           packageId: selectedPackageId ? Number(selectedPackageId) : undefined,
           depositPercent: depositPercentNum,
+          notes: notes || undefined,
+          location: initialLocation || undefined,  // NEW: from booking, read-only
+          placeId: initialPlaceId || undefined,   // NEW: Google Places reference
         }),
       });
 
