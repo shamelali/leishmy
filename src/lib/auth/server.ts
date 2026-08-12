@@ -8,7 +8,7 @@ export { auth, authConfig as neauthConfig, getAuth, handler } from "./auth";
 export async function getAuthSession(): Promise<{ id: string; email: string; role: string; isAdmin: boolean; studioRole: string } | null> {
   const session = await getSession();
   if (!session?.user) return null;
-  const [dbUser, dbProfile] = await Promise.all([
+  const [usersResult, profilesResult] = await Promise.all([
     db
       .select()
       .from(users)
@@ -20,6 +20,8 @@ export async function getAuthSession(): Promise<{ id: string; email: string; rol
       .where(eq(profiles.userId, session.user.id))
       .limit(1),
   ]);
+  const dbUser = usersResult[0];
+  const dbProfile = profilesResult[0];
   if (!dbUser) return null;
   
   const email = session.user.email ?? dbUser.email;
@@ -29,7 +31,7 @@ export async function getAuthSession(): Promise<{ id: string; email: string; rol
   
   // Use profile role if available (for studio/artist specific roles), otherwise fall back to user role
   const profileRole = dbProfile?.role || "customer";
-  const effectiveRole = profileRole !== "customer" ? profileRole : dbUser.role;
+  const effectiveRole = (profileRole !== "customer" ? profileRole : dbUser.role) || "customer";
   
   return { 
     id: dbUser.id, 

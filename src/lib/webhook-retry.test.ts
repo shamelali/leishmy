@@ -1,3 +1,5 @@
+import { describe, it, before, after } from "node:test";
+import assert from "node:assert/strict";
 import { db } from "@/db";
 import { webhookEvents } from "@/db/schema";
 import { WebhookRetryService } from "@/lib/webhook-retry";
@@ -6,7 +8,7 @@ import { eq } from "drizzle-orm";
 describe("WebhookRetryService", () => {
   let testEventId: number;
 
-  beforeAll(async () => {
+  before(async () => {
     // Create a test webhook event
     const [event] = await db
       .insert(webhookEvents)
@@ -20,12 +22,14 @@ describe("WebhookRetryService", () => {
     testEventId = event.id;
   });
 
-  afterAll(async () => {
+  after(async () => {
     // Clean up test event
-    await db.delete(webhookEvents).where(eq(webhookEvents.id, testEventId));
+    if (testEventId) {
+      await db.delete(webhookEvents).where(eq(webhookEvents.id, testEventId));
+    }
   });
 
-  test("should enqueue webhook for retry", async () => {
+  it("should enqueue webhook for retry", async () => {
     await WebhookRetryService.enqueueForRetry(testEventId, "Test error");
 
     const [event] = await db
@@ -34,20 +38,31 @@ describe("WebhookRetryService", () => {
       .where(eq(webhookEvents.id, testEventId))
       .limit(1);
 
-    expect(event).toBeDefined();
-    expect(event?.status).toBe("retry_scheduled");
-    expect((event?.payload as any)?.retryCount).toBe(1);
+    assert.ok(event);
+    assert.equal(event.status, "retry_scheduled");
+    assert.equal((event.payload as { retryCount?: number })?.retryCount, 1);
   });
 
-  test("should move to dead letter after max retries", async () => {
+  it("should move to dead letter after max retries", async () => {
+    const [currentEvent] = await db
+      .select()
+      .from(webhookEvents)
+      .where(eq(webhookEvents.id, testEventId))
+      .limit(1);
+
+    const currentPayload =
+      typeof currentEvent?.payload === "object" && currentEvent?.payload !== null
+        ? currentEvent.payload
+        : {};
+
     // Manually set retry count to 2 (one away from max)
     await db
       .update(webhookEvents)
       .set({
         payload: {
-          ...(typeof (await db.select().from(webhookEvents).where(eq(webhookEvents.id, testEventId)).limit(1)).then(res => res[0]?.payload || {}) as object),
-          retryCount: 2
-        }
+          ...currentPayload,
+          retryCount: 2,
+        },
       })
       .where(eq(webhookEvents.id, testEventId));
 
@@ -59,12 +74,12 @@ describe("WebhookRetryService", () => {
       .where(eq(webhookEvents.id, testEventId))
       .limit(1);
 
-    expect(event).toBeDefined();
-    expect(event?.status).toBe("dead_letter");
-    expect((event?.payload as any)?.retryCount).toBe(3);
+    assert.ok(event);
+    assert.equal(event.status, "dead_letter");
+    assert.equal((event.payload as { retryCount?: number })?.retryCount, 3);
   });
 
-  test("should get ready for retry", async () => {
+  it("should get ready for retry", async () => {
     // Reset event for retry test
     await db
       .update(webhookEvents)
@@ -73,13 +88,13 @@ describe("WebhookRetryService", () => {
         payload: {
           test: "data",
           retryCount: 0,
-          nextRetryAt: new Date(Date.now() - 10000).toISOString() // Past time
-        }
+          nextRetryAt: new Date(Date.now() - 10000).toISOString(), // Past time
+        },
       })
       .where(eq(webhookEvents.id, testEventId));
 
     const readyEvents = await WebhookRetryService.getReadyForRetry(10);
-    expect(readyEvents.length).toBeGreaterThan(0);
-    expect(readyEvents[0]?.id).toBe(testEventId);
+    assert.ok(readyEvents.length > 0);
+    assert.equal(readyEvents[0]?.id, testEventId);
   });
 });
