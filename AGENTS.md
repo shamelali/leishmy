@@ -126,7 +126,7 @@ Real money transfers use the Billplz **V5** `payment_orders` API (`src/lib/billp
 
 ### Vercel Cron Jobs
 
-Defined in `vercel.json` — 9 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC).
+Defined in `vercel.json` — 10 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/process-webhook-retries`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC). The Vercel webhook-retry job runs daily; see `docs/WEBHOOK_RETRY_SCHEDULING.md` for GitHub Actions and QStash 15-minute alternatives.
 
 ### Sentry
 

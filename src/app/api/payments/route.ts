@@ -117,7 +117,11 @@ export async function GET(request: NextRequest) {
 
        const pendingBalance = payoutRows
          .filter((p) => p.status === "pending")
-         .reduce((sum, p) => sum + p.amount, 0);
+         .reduce(
+           (sum, p) =>
+             sum + (p.netAmount ?? (p.amount - (p.commissionAmount ?? 0))),
+           0,
+         ) / 100;
 
         // Track payouts analytics
         await PaymentAnalytics.trackPaymentEvent("payouts_data_retrieved", Number(userId), {

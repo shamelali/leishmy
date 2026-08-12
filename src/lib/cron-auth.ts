@@ -6,7 +6,9 @@ export function verifyCronSecret(request: Request): boolean {
   const expected = process.env.CRON_SECRET;
   if (!expected) return false;
 
-  const provided = request.headers.get(CRON_SECRET_HEADER) || "";
+  const authorization = request.headers.get("authorization");
+  const bearerSecret = authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? "";
+  const provided = request.headers.get(CRON_SECRET_HEADER) || bearerSecret;
   if (!provided) return false;
 
   try {
