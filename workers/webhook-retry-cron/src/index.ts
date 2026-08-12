@@ -11,6 +11,9 @@ interface ScheduledController {
 const RETRY_PATH = "/api/cron/process-webhook-retries";
 
 function retryEndpoint(appUrl: string): string {
+  if (!appUrl) {
+    throw new Error("APP_URL is not configured");
+  }
   const baseUrl = new URL(appUrl);
   const isLocalDevelopment =
     baseUrl.protocol === "http:" &&

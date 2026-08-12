@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
 
+// Single-process-only fallback (local dev). In production the real
+// NEON_AUTH_COOKIE_SECRET must be set — see src/lib/env.ts.
 const runtimeFallbackCredential = randomBytes(32).toString("hex");
 
 export function readPrefixedEnv(prefix: string, key: string): string | undefined {

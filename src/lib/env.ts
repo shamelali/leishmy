@@ -2,6 +2,10 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 
 function runtimeFallbackCredential(): string {
+  // Single-process-only fallback: a random value generated at module load.
+  // Fine for local dev (one process), but in a multi-instance deployment each
+  // instance gets a DIFFERENT value, so secrets like NEON_AUTH_COOKIE_SECRET
+  // and CRON_SECRET MUST be set explicitly in production. See scripts/launch.ts.
   return randomBytes(32).toString("hex");
 }
 

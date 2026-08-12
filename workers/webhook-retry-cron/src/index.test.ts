@@ -49,6 +49,13 @@ describe("invokeWebhookRetryProcessor", () => {
     );
   });
 
+  it("requires APP_URL to be configured", async () => {
+    await assert.rejects(
+      invokeWebhookRetryProcessor({ ...env, APP_URL: "" }),
+      /APP_URL is not configured/,
+    );
+  });
+
   it("rejects insecure non-local destinations", async () => {
     await assert.rejects(
       invokeWebhookRetryProcessor({

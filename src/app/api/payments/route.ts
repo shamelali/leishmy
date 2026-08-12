@@ -135,7 +135,9 @@ export async function GET(request: NextRequest) {
        return NextResponse.json({
          payouts: payoutRows.map((p) => ({
            id: String(p.id),
-           amount: p.amount,
+           // payouts.amount is stored in cents; return MYR like pendingBalance
+           // so dashboards render the same unit throughout.
+           amount: (p.amount ?? 0) / 100,
            status: p.status,
            createdAt: p.createdAt?.toISOString() || "",
            updatedAt: p.updatedAt?.toISOString() || undefined,

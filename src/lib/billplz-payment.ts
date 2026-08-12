@@ -147,9 +147,10 @@ export function classifyBookingPayment(input: {
  * Booking side effects after a payment is marked paid.
  *
  * Mirrors the historical webhook rules so reconcile and replay stay aligned:
- * deposit-like payments (including a full payment when no deposit is set)
- * stamp `secondPaymentDueDate` once; remaining-balance payments stamp
- * `remainingPaymentSent`.
+ * deposit payments stamp `secondPaymentDueDate` once; remaining-balance
+ * payments stamp `remainingPaymentSent`. A `full` payment (customer paid the
+ * entire amount upfront, incl. zero-deposit bookings) schedules nothing — the
+ * second-payment cron would otherwise bill the balance they already paid.
  */
 export function buildBookingPaymentUpdate(input: {
   kind: BookingPaymentKind;
@@ -163,8 +164,7 @@ export function buildBookingPaymentUpdate(input: {
     updatedAt: now,
   };
 
-  const isDepositLike = input.kind === "deposit" || input.kind === "full";
-  if (isDepositLike && !input.existingSecondPaymentDueDate) {
+  if (input.kind === "deposit" && !input.existingSecondPaymentDueDate) {
     const secondPaymentDate = new Date(input.bookingDate);
     secondPaymentDate.setDate(secondPaymentDate.getDate() + 14);
     update.secondPaymentDueDate = secondPaymentDate;

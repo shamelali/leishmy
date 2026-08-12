@@ -249,6 +249,19 @@ describe("Billplz payment helpers", () => {
     assert.equal(remaining.secondPaymentDueDate, undefined);
   });
 
+  it("does not schedule a second payment for a full upfront payment", () => {
+    const bookingDate = new Date("2026-09-01T00:00:00.000Z");
+    const full = buildBookingPaymentUpdate({
+      kind: "full",
+      bookingDate,
+      existingSecondPaymentDueDate: null,
+      now: new Date("2026-08-12T00:00:00.000Z"),
+    });
+    assert.equal(full.status, "confirmed");
+    assert.equal(full.secondPaymentDueDate, undefined);
+    assert.equal(full.remainingPaymentSent, undefined);
+  });
+
   it("strips retry metadata from mixed webhook payloads", () => {
     const callback = extractBillplzCallback({
       id: "bill_1",
