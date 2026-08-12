@@ -128,7 +128,7 @@ export function classifyBookingPayment(input: {
       ? explicitDeposit
       : bookingAmountMyr;
   const depositCents = Math.round(depositMyr * 100);
-  const remainingCents = Math.round((bookingAmountMyr - depositMyr) * 100);
+  const remainingCents = Math.round(bookingAmountMyr * 100) - depositCents;
   const paymentAmountCents = Number(input.paymentAmountCents);
 
   if (paymentAmountCents === depositCents && remainingCents <= 0) {

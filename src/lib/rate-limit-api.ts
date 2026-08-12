@@ -13,7 +13,10 @@ export async function rateLimitApi(
 
   const identifier = options.identifier || `${request.method}:${request.nextUrl.pathname}:${ip}`;
 
-  const result = await limit(identifier);
+  const result = await limit(identifier, {
+    max: options.max,
+    window: options.window,
+  });
 
   if (!result.success) {
     return NextResponse.json(

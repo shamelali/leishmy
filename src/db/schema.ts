@@ -279,6 +279,15 @@ export const bookings = pgTable("bookings", {
   index("bookings_date_idx").on(table.date),
   index("bookings_status_idx").on(table.status),
   index("bookings_user_status_idx").on(table.userId, table.status),
+  uniqueIndex("bookings_artist_date_time_unique")
+    .on(table.artistId, table.date, table.time)
+    .where(sql`${table.artistId} is not null and ${table.status} not in ('cancelled', 'rejected')`),
+  uniqueIndex("bookings_studio_date_time_unique")
+    .on(table.studioId, table.date, table.time)
+    .where(sql`${table.studioId} is not null and ${table.artistId} is null and ${table.status} not in ('cancelled', 'rejected')`),
+  index("bookings_active_date_idx")
+    .on(table.date)
+    .where(sql`${table.status} not in ('cancelled', 'rejected')`),
 ],
 );
 

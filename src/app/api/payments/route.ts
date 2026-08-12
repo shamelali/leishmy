@@ -12,6 +12,7 @@ import { createBillSchema, registerBankSchema, createRemainingBillSchema, qrPaym
 import { createBillForBooking } from "@/lib/billplz-bill";
 import { reconcilePayment } from "@/lib/payment-reconcile";
 import { PaymentAnalytics } from "@/lib/payment-analytics";
+import { remainingMyr } from "@/lib/money";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 const publicEnv = prefixedEnvReader("NEXT_PUBLIC_");
@@ -406,8 +407,7 @@ export async function POST(request: NextRequest) {
          userId: session?.id ?? null
        });
 
-       const remainingAmount =
-         Number(booking.amount) - (Number(booking.depositAmount) || 0);
+       const remainingAmount = remainingMyr(booking.amount, booking.depositAmount);
        if (!remainingAmount || remainingAmount < 1) {
          // Track remaining bill creation failure (no balance)
          await PaymentAnalytics.trackPaymentEvent("remaining_bill_creation_failed", 0, {
@@ -517,8 +517,7 @@ export async function POST(request: NextRequest) {
        if (!booking) {
          return NextResponse.json({ error: "Booking not found" }, { status: 404 });
        }
-       const remainingAmount =
-         Number(booking.amount) - (Number(booking.depositAmount) || 0);
+       const remainingAmount = remainingMyr(booking.amount, booking.depositAmount);
        if (remainingAmount <= 0) {
          // Track QR payment creation failure (no balance)
          await PaymentAnalytics.trackPaymentEvent("qr_payment_creation_failed", 0, {
