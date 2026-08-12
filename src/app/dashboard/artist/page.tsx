@@ -159,7 +159,7 @@ export default function DashboardArtist() {
 		);
 	}, []);
 
-const handleSendQuote = useCallback(async (bookingId: string, customAmount: number | null) => {
+const handleSendQuote = useCallback(async (booking: { id: string }) => {
   if (!user?.id) return;
   
   // Send a custom quote for this booking
@@ -167,8 +167,7 @@ const handleSendQuote = useCallback(async (bookingId: string, customAmount: numb
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      bookingId: Number(bookingId),
-      amount: customAmount ? String(customAmount) : undefined,
+      bookingId: Number(booking.id),
       notes: "Custom quote sent from artist dashboard",
     }),
   });
@@ -176,7 +175,7 @@ const handleSendQuote = useCallback(async (bookingId: string, customAmount: numb
   // Update booking status to quote_pending if it was requested
   setBookings((prev) =>
     prev.map((b) => (
-      b.id === bookingId && b.status === "requested"
+      b.id === booking.id && b.status === "requested"
         ? { ...b, status: "quote_pending" }
         : b
     ))
@@ -298,6 +297,7 @@ const handleSendQuote = useCallback(async (bookingId: string, customAmount: numb
           onStartService={handleStartService}
           isProvider={true}
           onCompleteService={handleCompleteService}
+        />
       );
     case "prices":
       return (

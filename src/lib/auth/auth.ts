@@ -32,4 +32,10 @@ export function handler() {
 
 export { authConfig, getAuth };
 
-export const auth = getAuth();
+export const auth = new Proxy({} as ReturnType<typeof createNeonAuth>, {
+  get(_target, prop: keyof ReturnType<typeof createNeonAuth>) {
+    const instance = getAuth();
+    const value = instance[prop];
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
+});

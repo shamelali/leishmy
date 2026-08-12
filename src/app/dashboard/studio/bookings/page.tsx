@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { ClipboardList, Calendar, Clock, User, DollarSign, Filter,
 ChevronDown, CheckCircle, XCircle, AlertCircle, ArrowRight, Search,
-CalendarCheck, Export
+CalendarCheck, Download
 } from "lucide-react";
 import { DashboardLoading } from "@/components/DashboardLoading";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -157,7 +157,7 @@ export default function StudioBookings() {
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
               >
-                <Export className="w-4 h-4" /> Export
+                <Download className="w-4 h-4" /> Export
               </button>
             )}
           </div>

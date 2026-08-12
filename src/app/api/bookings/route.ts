@@ -410,7 +410,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Build where conditions for filtering
-      let whereConditions = [eq(bookings.userId, userId)];
+      const whereConditions = [eq(bookings.userId, userId)];
       
       // Add search filter if provided
       if (search) {
@@ -420,27 +420,28 @@ export async function GET(request: NextRequest) {
             ilike(users.name, searchTerm),
             ilike(artistUsers.name, searchTerm),
             ilike(bookings.service, searchTerm)
-          )
+          )!
         );
       }
       
       // Add date range filters if provided
       if (startDate) {
-        whereConditions.push(gte(bookings.date, startDate));
+        whereConditions.push(gte(bookings.date, new Date(startDate)));
       }
       
       if (endDate) {
-        whereConditions.push(lte(bookings.date, endDate));
+        whereConditions.push(lte(bookings.date, new Date(endDate)));
       }
+
+      const userWhereClause = whereConditions.length > 1 ? and(...whereConditions)! : whereConditions[0];
       
       const [totalResult] = await db
         .select({ count: count() })
         .from(bookings)
         .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
         .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
-        .where(and(...whereConditions));
+        .where(userWhereClause);
       const total = totalResult?.count ?? 0;
-      // Build where conditions for filtering
       
       const userBookings = await db
         .select({
@@ -472,7 +473,7 @@ export async function GET(request: NextRequest) {
         .from(bookings)
         .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
         .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
-        .where(and(...whereConditions))
+        .where(userWhereClause)
         .limit(pageSize)
         .offset(offset);
       return NextResponse.json({
@@ -503,24 +504,26 @@ export async function GET(request: NextRequest) {
           or(
             ilike(users.name, searchTerm),
             ilike(bookings.service, searchTerm)
-          )
+          )!
         );
       }
       
       // Add date range filters if provided
       if (startDate) {
-        whereConditions.push(gte(bookings.date, startDate));
+        whereConditions.push(gte(bookings.date, new Date(startDate)));
       }
       
       if (endDate) {
-        whereConditions.push(lte(bookings.date, endDate));
+        whereConditions.push(lte(bookings.date, new Date(endDate)));
       }
+
+      const artistWhereClause = whereConditions.length > 1 ? and(...whereConditions)! : whereConditions[0];
       
       const [totalResult] = await db
         .select({ count: count() })
         .from(bookings)
         .leftJoin(artistUsers, eq(bookings.userId, artistUsers.id))
-        .where(and(...whereConditions));
+        .where(artistWhereClause);
       const total = totalResult?.count ?? 0;
       const artistBookings = await db
         .select({
@@ -551,7 +554,7 @@ export async function GET(request: NextRequest) {
         })
         .from(bookings)
         .leftJoin(artistUsers, eq(bookings.userId, artistUsers.id))
-        .where(and(...whereConditions))
+        .where(artistWhereClause)
         .orderBy(desc(bookings.createdAt))
         .limit(pageSize)
         .offset(offset);
@@ -582,39 +585,46 @@ export async function GET(request: NextRequest) {
         or(
           ilike(users.name, searchTerm),
           ilike(bookings.service, searchTerm)
-        )
+        )!
       );
     }
     
     // Add date range filters if provided
     if (startDate) {
-      whereConditions.push(gte(bookings.date, startDate));
+      whereConditions.push(gte(bookings.date, new Date(startDate)));
     }
     
     if (endDate) {
-      whereConditions.push(lte(bookings.date, endDate));
+      whereConditions.push(lte(bookings.date, new Date(endDate)));
     }
+
+    const adminWhereClause = whereConditions.length > 1
+      ? and(...whereConditions)!
+      : whereConditions.length === 1
+      ? whereConditions[0]
+      : undefined;
 
     const [totalResult] = await db
       .select({ count: count() })
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
-      .leftJoin(users, eq(profiles.userId, users.id), alias(users, "artist_users"))
-      .where(and(...whereConditions));
+      .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
+      .where(adminWhereClause);
     const total = totalResult?.count ?? 0;
     const rawBookings = await db
       .select()
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(profiles, eq(bookings.artistId, profiles.userId))
-      .leftJoin(users, eq(profiles.userId, users.id), alias(users, "artist_users"))
-      .where(and(...whereConditions))
+      .leftJoin(artistUsers, eq(profiles.userId, artistUsers.id))
+      .where(adminWhereClause)
       .limit(pageSize)
       .offset(offset);
 
     const allBookings = await Promise.all(
-      rawBookings.map(async (b) => {
+      rawBookings.map(async (row) => {
+        const b = row.bookings;
         let clientName = "Anonymous";
         let clientEmail = "";
         if (b.userId) {

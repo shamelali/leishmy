@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { users, profiles, bookings, payments } from "@/db/schema";
 import { eq, count, and, or, gte, lt, sql, desc } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
