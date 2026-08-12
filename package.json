@@ -16,6 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:booking-slots": "tsx scripts/apply-booking-slot-unique.ts",
+    "db:migrate:booking-slots:check": "tsx scripts/apply-booking-slot-unique.ts --check",
     "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
     "setup": "pnpm install && pnpm db:push && pnpm db:seed",
