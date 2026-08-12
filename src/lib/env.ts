@@ -1,7 +1,14 @@
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 
+function runtimeFallbackCredential(): string {
+  return randomBytes(32).toString("hex");
+}
+
 const envSchema = z.object({
-  DATABASE_URL: z.string().default("postgresql://placeholder:placeholder@localhost:5432/neondb"),
+  DATABASE_URL: z.string().default(
+    `postgresql://build:${runtimeFallbackCredential()}@localhost:5432/neondb`,
+  ),
   NEXT_PUBLIC_URL: z.string().default("http://localhost:3000"),
   BREVO_API_KEY: z.string().optional(),
   FROM_EMAIL: z.string().optional(),
@@ -17,13 +24,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   NEXT_PUBLIC_FB_PIXEL_ID: z.string().optional(),
-  CRON_SECRET: z.string().default("development_cron_secret"),
+  CRON_SECRET: z.string().default(runtimeFallbackCredential()),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_KEY: z.string().optional(),
   NEON_AUTH_BASE_URL: z.string().default("https://auth.neon.tech"),
-  NEON_AUTH_COOKIE_SECRET: z.string().default("01234567890123456789012345678901"),
+  NEON_AUTH_COOKIE_SECRET: z.string().default(runtimeFallbackCredential()),
   NEXT_PUBLIC_NEON_AUTH_BASE_URL: z.string().optional(),
   NEON_AUTH_URL: z.string().optional().describe(
     "Neon Auth database connection string used by the sync-auth-users cron to read neon_auth.* tables. " +

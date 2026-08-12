@@ -1,0 +1,19 @@
+{
+  "name": "leish-webhook-retry-cron",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-12",
+  "workers_dev": false,
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "vars": {
+    "APP_URL": "https://leish.my"
+  },
+  "secrets": {
+    "required": ["CRON_SECRET"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

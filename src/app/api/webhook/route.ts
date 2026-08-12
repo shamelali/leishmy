@@ -153,11 +153,12 @@ export async function POST(request: NextRequest) {
             .limit(1);
 
           if (booking) {
-            const remainingAmount =
-              Number(booking.amount) - (Number(booking.depositAmount) || 0);
-            // payment.amount is stored in cents; booking.depositAmount and
+            const depositAmount =
+              Number(booking.depositAmount) || Number(booking.amount);
+            const remainingAmount = Number(booking.amount) - depositAmount;
+            // payment.amount is stored in cents; depositAmount and
             // remainingAmount are in MYR. Convert MYR to cents for comparison.
-            const depositCents = Math.round((Number(booking.depositAmount) || 0) * 100);
+            const depositCents = Math.round(depositAmount * 100);
             const remainingCents = Math.round(remainingAmount * 100);
             const isDepositPayment =
               Number(payment.amount) === depositCents;

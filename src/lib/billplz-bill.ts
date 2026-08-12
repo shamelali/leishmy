@@ -26,9 +26,18 @@ export interface CreateBillOptions {
 }
 
 export interface CreateBillResult {
-  bill: { id: string };
+  bill: { id: string; url?: string };
   payment: typeof payments.$inferSelect;
   cached?: boolean;
+}
+
+function cachedBill(billplzId: string | null): CreateBillResult["bill"] {
+  const id = billplzId ?? "";
+  if (!id) return { id };
+
+  const apiUrl = BILLPLZ_API || "https://www.billplz.com/api/v3";
+  const origin = new URL(apiUrl).origin;
+  return { id, url: `${origin}/bills/${encodeURIComponent(id)}` };
 }
 
 /**
@@ -49,10 +58,18 @@ export async function createBillForBooking(
       .where(eq(payments.idempotencyKey, idempotencyKey))
       .limit(1);
 
+    if (existing && existing.bookingId !== bookingId) {
+      return {
+        ok: false,
+        status: 409,
+        error: "Idempotency key is already associated with another booking",
+      };
+    }
+
     if (existing && existing.status !== "pending") {
       return {
         ok: true,
-        data: { bill: { id: existing.billplzId ?? "" }, payment: existing, cached: true },
+        data: { bill: cachedBill(existing.billplzId), payment: existing, cached: true },
       };
     }
 
@@ -74,7 +91,7 @@ export async function createBillForBooking(
         // Still valid pending payment — return cached
         return {
           ok: true,
-          data: { bill: { id: existing.billplzId ?? "" }, payment: existing, cached: true },
+          data: { bill: cachedBill(existing.billplzId), payment: existing, cached: true },
         };
       }
     }
@@ -90,7 +107,7 @@ export async function createBillForBooking(
     return { ok: false, status: 404, error: "Booking not found" };
   }
 
-  // Prevent duplicate pending payments for same booking (skip cancelled bookings)
+  // Reuse a pending bill for this booking instead of creating a duplicate.
   const [existingPending] = await db
     .select()
     .from(payments)
@@ -104,9 +121,12 @@ export async function createBillForBooking(
 
   if (existingPending && booking.status !== "cancelled") {
     return {
-      ok: false,
-      status: 409,
-      error: "A pending payment already exists for this booking",
+      ok: true,
+      data: {
+        bill: cachedBill(existingPending.billplzId),
+        payment: existingPending,
+        cached: true,
+      },
     };
   }
 

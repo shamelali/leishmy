@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { db } from "@/db";
 import { webhookEvents } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -73,7 +74,7 @@ export class WebhookRetryService {
    */
   private static calculateDelayWithJitter(retryCount: number): number {
     const baseDelay = this.BASE_DELAY_MS * Math.pow(2, retryCount - 1);
-    const jitter = Math.floor(Math.random() * 1000); // 0-1000ms random jitter
+    const jitter = randomInt(1000); // 0-999ms cryptographically secure jitter
     return baseDelay + jitter;
   }
 
@@ -81,16 +82,16 @@ export class WebhookRetryService {
    * Get webhook events that are ready for retry
    */
   static async getReadyForRetry(limit = 10): Promise<Array<typeof webhookEvents.$inferSelect>> {
-    const now = new Date();
-    
+    const nowIso = new Date().toISOString();
+
     return await db
       .select()
       .from(webhookEvents)
       .where(and(
         eq(webhookEvents.status, "retry_scheduled"),
-        // Next retry time should be in the past
-        // We store nextRetryAt in payload as ISO string
-        sql/*sql*/ `${webhookEvents.payload}->>'nextRetryAt' < ${now.toISOString()}`
+        // Next retry time should be in the past. Keep the JSON value and
+        // comparison value parameterized instead of interpolating SQL text.
+        sql/*sql*/ `${webhookEvents.payload}->>'nextRetryAt' < ${sql.param(nowIso)}`
       ))
       .limit(limit);
   }
@@ -123,8 +124,9 @@ export class WebhookRetryService {
       // For now, we'll simulate success/failure based on a simple condition
       // In reality, this would re-execute the webhook processing logic
       
-      // For demonstration, let's assume 70% success rate on retry
-      const success = Math.random() > 0.3;
+      // For demonstration, assume a 70% success rate on retry. Use a CSPRNG
+      // because retry outcomes affect payment-webhook processing state.
+      const success = randomInt(10) >= 3;
       
       if (success) {
        // Mark as successfully processed

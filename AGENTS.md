@@ -51,7 +51,7 @@ This project does NOT use `next-intl` or any server-side i18n framework. The `ne
 | `src/app/api/` | REST API endpoints (~30 routes) |
 | `src/app/dashboard/` | 3 dashboards: `admin/`, `artist/`, `studio/` |
 | `src/app/api/auth/[...path]/` | Neon Auth handler (catch-all) |
-| `src/app/api/cron/` | Vercel cron jobs (9 daily/weekly jobs) |
+| `src/app/api/cron/` | Authenticated cron endpoints (10 daily/weekly jobs) |
 | `src/components/` | Shared React components |
 | `src/components/home/` | Homepage section components |
 | `src/lib/` | Business logic, utilities, integrations |
@@ -66,7 +66,7 @@ This project does NOT use `next-intl` or any server-side i18n framework. The `ne
 | `drizzle/` | Drizzle migration SQL files (20+ migrations) |
 | `scripts/` | One-off scripts (seed, sweep, backfill, verify) |
 | `e2e/` | Playwright end-to-end tests (11 spec files) |
-| `workers/` | Cloudflare Workers (`email/` has own `package.json`; `url-shortener/` shares root workspace) |
+| `workers/` | Cloudflare Workers for inbound email, URL shortening, and webhook retry scheduling |
 
 ### Route Structure
 
@@ -126,7 +126,7 @@ Real money transfers use the Billplz **V5** `payment_orders` API (`src/lib/billp
 
 ### Vercel Cron Jobs
 
-Defined in `vercel.json` — 9 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC).
+Defined in `vercel.json` — 10 cron jobs (all daily-or-less frequent, Hobby-compatible). Each uses `CRON_SECRET` for auth. Paths: `/api/cron/sync-auth-users`, `/api/cron/sweep-orphans`, `/api/cron/reconcile-payments`, `/api/cron/process-webhook-retries`, `/api/cron/auto-release-payments`, `/api/cron/booking-reminders`, `/api/cron/send-second-payments`, `/api/cron/lead-follow-ups`, `/api/cron/inbound-email-ack` (daily 14:00 UTC, lookback 24h), `/api/cron/weekly-digest` (weekly Mon 01:00 UTC). The Vercel webhook-retry job runs daily as a fallback; `workers/webhook-retry-cron` provides the preferred 15-minute Cloudflare Cron Trigger. See `docs/WEBHOOK_RETRY_SCHEDULING.md`.
 
 ### Sentry
 
@@ -189,5 +189,5 @@ The project receives incoming WhatsApp messages via a Cloud API webhook at `/api
 - **No GitHub Copilot autofix PRs** — Sentry generated some auto-PRs (PR ##6, ##7, ##8), but the codebase has moved since. Review manually before merging.
 - **The `feat/multi-language` remote branch is stale** — 208 commits behind main, never merged. Do not use.
 - **Outbound email** uses Brevo. **Inbound email** uses Cloudflare Email Routing (MX records) — not Brevo Inbound Parse.
-- **`workers/`** contains standalone Cloudflare Workers: `email/` has its own `package.json` and `wrangler.jsonc`; `url-shortener/` shares the root workspace config and has its own `wrangler.jsonc` but no `package.json`.
+- **`workers/`** contains standalone Cloudflare Workers: `email/` has its own `package.json`; `url-shortener/` and `webhook-retry-cron/` use the root Wrangler dependency. The retry Worker calls the authenticated retry endpoint every 15 minutes and requires a Cloudflare `CRON_SECRET` secret.
 - **CI** runs `pnpm typecheck`, `pnpm lint`, `pnpm build` on push/PR to `main`.

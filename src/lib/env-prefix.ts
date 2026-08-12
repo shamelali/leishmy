@@ -1,3 +1,7 @@
+import { randomBytes } from "node:crypto";
+
+const runtimeFallbackCredential = randomBytes(32).toString("hex");
+
 export function readPrefixedEnv(prefix: string, key: string): string | undefined {
   return process.env[`${prefix}${key}`];
 }
@@ -9,9 +13,9 @@ export function readRequiredPrefixedEnv(prefix: string, key: string): string {
     return process.env.NEXT_PUBLIC_NEON_AUTH_BASE_URL || "https://auth.neon.tech";
   }
   if (prefix === "NEON_AUTH_" && key === "COOKIE_SECRET") {
-    return "01234567890123456789012345678901";
+    return runtimeFallbackCredential;
   }
-  return "placeholder";
+  return runtimeFallbackCredential;
 }
 
 export function prefixedEnvReader(prefix: string) {

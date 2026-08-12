@@ -68,3 +68,9 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Vercel Cron invokes configured paths with GET. External schedulers may use
+// POST, so both methods share the same authenticated implementation.
+export async function GET(request: NextRequest) {
+  return POST(request);
+}

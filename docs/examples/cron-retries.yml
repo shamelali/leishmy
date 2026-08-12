@@ -1,0 +1,34 @@
+name: Process webhook retries
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: process-webhook-retries
+  cancel-in-progress: false
+
+jobs:
+  process-retries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Invoke webhook retry processor
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL and CRON_SECRET repository secrets are required." >&2
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            --retry 3 \
+            --max-time 60 \
+            --request POST \
+            --header "x-cron-secret: $CRON_SECRET" \
+            "${APP_URL%/}/api/cron/process-webhook-retries"
