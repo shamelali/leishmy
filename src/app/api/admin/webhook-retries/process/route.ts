@@ -27,15 +27,20 @@ export async function POST(request: NextRequest) {
 
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
+    let deadLettered = 0;
     let retried = 0;
 
     for (const event of events) {
       try {
-        const success = await WebhookRetryService.processRetry(event.id);
-        if (success) {
+        const result = await WebhookRetryService.processRetry(event.id);
+        if (result.status === "processed") {
           processed += 1;
+        } else if (result.status === "skipped") {
+          skipped += 1;
         } else {
           failed += 1;
+          if (result.status === "dead_letter") deadLettered += 1;
         }
         retried += 1;
       } catch (error) {
@@ -50,9 +55,11 @@ export async function POST(request: NextRequest) {
       data: {
         processed,
         failed,
+        skipped,
+        deadLettered,
         attempted: retried,
-        message: `Processed ${processed}, failed ${failed}, total attempted ${retried}`
-      }
+        message: `Processed ${processed}, failed ${failed}, skipped ${skipped}, dead-lettered ${deadLettered}, total attempted ${retried}`,
+      },
     });
   } catch (error) {
     console.error("Error processing webhook retries:", error);

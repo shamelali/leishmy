@@ -2,6 +2,16 @@
 
 `GET` or `POST` requests to `/api/cron/process-webhook-retries` process up to 20 scheduled webhook retries per invocation. External schedulers authenticate with the production `CRON_SECRET` in the `x-cron-secret` header; Vercel Cron uses the equivalent `Authorization: Bearer <CRON_SECRET>` header.
 
+## Replay semantics
+
+Retries re-run the same idempotent Billplz payment processor as `POST /api/webhook` (`processBillplzPaymentWebhook`). A financial webhook is never marked processed by chance.
+
+- The worker atomically claims a `retry_scheduled` (or stale `processing`) row before replay.
+- Payment and booking updates run in one transaction and are idempotent: duplicate callbacks do not double-confirm or re-send notifications.
+- The event is marked `processed` only after that replay succeeds.
+- Retryable failures (missing local payment, unexpected errors) are requeued with exponential backoff.
+- Permanent failures (amount mismatch) are marked terminal; events that exhaust `MAX_RETRIES` move to the dead-letter queue.
+
 ## Preferred high-frequency scheduler: Cloudflare Workers
 
 The Worker in `workers/webhook-retry-cron` invokes the endpoint every 15 minutes using a Cloudflare Cron Trigger. Its `CRON_SECRET` is stored as an encrypted Worker secret, and the Worker has no public HTTP route.

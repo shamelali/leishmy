@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { payments, bookings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { prefixedEnvReader } from "@/lib/env-prefix";
+import { buildBookingPaymentUpdate, classifyBookingPayment } from "@/lib/billplz-payment";
 
 const billplz = prefixedEnvReader("BILLPLZ_");
 
@@ -82,36 +83,18 @@ export async function reconcilePayment(
         .limit(1);
 
       if (booking) {
-        // Mirror the webhook's side effects so a payment recovered via the
-        // reconcile cron (missed webhook) is kept consistent: set the second
-        // payment due date for deposits and track remaining-payment receipt.
-        const remainingAmount =
-          Number(booking.amount) - (Number(booking.depositAmount) || 0);
-        const depositCents = Math.round((Number(booking.depositAmount) || 0) * 100);
-        const remainingCents = Math.round(remainingAmount * 100);
-        const isDepositPayment = Number(payment.amount) === depositCents;
-        const isRemainingPayment =
-          remainingCents > 0 && Number(payment.amount) === remainingCents;
-
-        const updateData: {
-          status: string;
-          secondPaymentDueDate?: Date;
-          remainingPaymentSent?: boolean;
-          updatedAt: Date;
-        } = {
-          status: "confirmed",
-          updatedAt: new Date(),
-        };
-
-        if (isDepositPayment && !booking.secondPaymentDueDate) {
-          const secondPaymentDate = new Date(booking.date);
-          secondPaymentDate.setDate(secondPaymentDate.getDate() + 14);
-          updateData.secondPaymentDueDate = secondPaymentDate;
-        }
-
-        if (isRemainingPayment) {
-          updateData.remainingPaymentSent = true;
-        }
+        // Mirror the webhook processor so a payment recovered via reconcile
+        // (missed webhook) keeps deposit / remaining-balance state consistent.
+        const classified = classifyBookingPayment({
+          paymentAmountCents: Number(payment.amount),
+          bookingAmountMyr: booking.amount,
+          depositAmountMyr: booking.depositAmount,
+        });
+        const updateData = buildBookingPaymentUpdate({
+          kind: classified.kind,
+          bookingDate: booking.date,
+          existingSecondPaymentDueDate: booking.secondPaymentDueDate,
+        });
 
         await db
           .update(bookings)

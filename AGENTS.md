@@ -11,7 +11,8 @@
 | Typecheck | `pnpm typecheck` (tsc --noEmit) |
 | Lint | `pnpm lint` |
 | Lint fix | `pnpm lint:fix` |
-| Full check | `pnpm check` (typecheck + lint) |
+| Full check | `pnpm check` (typecheck + unit tests + lint) |
+| Unit tests | `pnpm test:unit` |
 | E2E tests | `pnpm test:e2e` |
 | Fresh dev (reset DB) | `pnpm dev:fresh` |
 | DB generate | `pnpm db:generate` |

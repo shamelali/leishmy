@@ -1,205 +1,460 @@
 import { randomInt } from "node:crypto";
 import { db } from "@/db";
 import { webhookEvents } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import {
+  asPayloadRecord,
+  describeWebhookResult,
+  isRetryableWebhookResult,
+  isSuccessfulWebhookReplay,
+  type BillplzPaymentWebhookResult,
+} from "@/lib/billplz-payment";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 
-export class WebhookRetryService {
-  static MAX_RETRIES = 3;
-  static BASE_DELAY_MS = 1000; // Base delay for exponential backoff
+export const WEBHOOK_RETRY = {
+  MAX_RETRIES: 3,
+  BASE_DELAY_MS: 1000,
+  CLAIM_STALE_MS: 2 * 60 * 1000,
+} as const;
 
-  /**
-   * Enqueue a webhook event for retry processing
-   */
-  static async enqueueForRetry(eventId: number, error: string): Promise<void> {
-    // Get current webhook event to check retry count
+export type WebhookEventRecord = typeof webhookEvents.$inferSelect;
+
+export type WebhookAttemptLogEntry = {
+  at: string;
+  error?: string;
+  result?: string;
+  retryCount?: number;
+};
+
+export type ProcessRetryResult = {
+  status: "processed" | "requeued" | "dead_letter" | "skipped" | "terminal";
+  error?: string;
+  replayStatus?: string;
+};
+
+export type ReplayWebhookFn = (payload: unknown) => Promise<BillplzPaymentWebhookResult>;
+
+export interface WebhookRetryStore {
+  getById(id: number): Promise<WebhookEventRecord | null>;
+  claimForProcessing(
+    id: number,
+    now: Date,
+    staleMs: number,
+  ): Promise<WebhookEventRecord | null>;
+  listReadyForRetry(
+    limit: number,
+    now: Date,
+    staleMs: number,
+  ): Promise<WebhookEventRecord[]>;
+  save(
+    id: number,
+    update: { status: string; payload: unknown },
+    expectedStatuses?: string[],
+  ): Promise<WebhookEventRecord | null>;
+  listByStatus(status: string, limit: number): Promise<WebhookEventRecord[]>;
+  countByStatus(status: string): Promise<number>;
+}
+
+type RetryMeta = {
+  retryCount: number;
+  processingAttempts: number;
+  lastError?: string;
+  lastRetryAttempt?: string;
+  nextRetryAt?: string;
+  claimedAt?: string;
+  processedAt?: string;
+  retrySuccess?: boolean;
+  movedToDeadLetterAt?: string;
+  replayStatus?: string;
+  attemptLog: WebhookAttemptLogEntry[];
+};
+
+export function readRetryMeta(payload: unknown): RetryMeta {
+  const record = asPayloadRecord(payload);
+  const retryCount = Number(record.retryCount);
+  const processingAttempts = Number(record.processingAttempts);
+  const attemptLog = Array.isArray(record.attemptLog)
+    ? (record.attemptLog as WebhookAttemptLogEntry[]).filter(
+        (entry) => entry && typeof entry === "object",
+      )
+    : [];
+
+  return {
+    retryCount: Number.isFinite(retryCount) ? retryCount : 0,
+    processingAttempts: Number.isFinite(processingAttempts) ? processingAttempts : 0,
+    lastError: typeof record.lastError === "string" ? record.lastError : undefined,
+    lastRetryAttempt:
+      typeof record.lastRetryAttempt === "string" ? record.lastRetryAttempt : undefined,
+    nextRetryAt: typeof record.nextRetryAt === "string" ? record.nextRetryAt : undefined,
+    claimedAt: typeof record.claimedAt === "string" ? record.claimedAt : undefined,
+    processedAt: typeof record.processedAt === "string" ? record.processedAt : undefined,
+    retrySuccess: record.retrySuccess === true,
+    movedToDeadLetterAt:
+      typeof record.movedToDeadLetterAt === "string"
+        ? record.movedToDeadLetterAt
+        : undefined,
+    replayStatus: typeof record.replayStatus === "string" ? record.replayStatus : undefined,
+    attemptLog,
+  };
+}
+
+export function mergeRetryMeta(
+  payload: unknown,
+  meta: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...asPayloadRecord(payload),
+    ...meta,
+  };
+}
+
+export function computeRetryDelayMs(retryCount: number, jitterMs: number): number {
+  const baseDelay = WEBHOOK_RETRY.BASE_DELAY_MS * Math.pow(2, Math.max(retryCount, 1) - 1);
+  return baseDelay + Math.max(0, jitterMs);
+}
+
+export function nextRetryCountExceedsMax(
+  currentRetryCount: number,
+  maxRetries = WEBHOOK_RETRY.MAX_RETRIES,
+): boolean {
+  return currentRetryCount + 1 >= maxRetries;
+}
+
+function appendAttemptLog(
+  payload: unknown,
+  entry: WebhookAttemptLogEntry,
+): WebhookAttemptLogEntry[] {
+  return [...readRetryMeta(payload).attemptLog, entry].slice(-10);
+}
+
+export class PostgresWebhookRetryStore implements WebhookRetryStore {
+  async getById(id: number): Promise<WebhookEventRecord | null> {
     const [event] = await db
       .select()
       .from(webhookEvents)
-      .where(eq(webhookEvents.id, eventId))
+      .where(eq(webhookEvents.id, id))
       .limit(1);
-
-    if (!event) {
-      console.error(`[WebhookRetry] Event ${eventId} not found for retry`);
-      return;
-    }
-
-    const currentRetryCount = (event.payload && typeof event.payload === 'object' && 'retryCount' in event.payload) ? (event.payload as { retryCount: number }).retryCount : 0;
-    const newRetryCount = currentRetryCount + 1;
-
-     // If we've exceeded max retries, move to dead letter queue
-     if (newRetryCount >= this.MAX_RETRIES) {
-       await db
-         .update(webhookEvents)
-         .set({
-           status: "dead_letter",
-           payload: {
-             ...(typeof event.payload === 'object' && event.payload !== null ? event.payload : {}),
-             retryCount: newRetryCount,
-             lastError: error,
-             lastRetryAttempt: new Date(),
-             movedToDeadLetterAt: new Date()
-           }
-         })
-         .where(eq(webhookEvents.id, eventId));
-
-      console.error(`[WebhookRetry] Event ${eventId} moved to dead letter queue after ${newRetryCount} retries`);
-      return;
-    }
-
-    // Calculate delay with exponential backoff and jitter
-    const delayMs = this.calculateDelayWithJitter(newRetryCount);
-    const nextRetryAt = new Date(Date.now() + delayMs);
-
-     // Update event for retry
-     await db
-       .update(webhookEvents)
-       .set({
-         status: "retry_scheduled",
-         payload: {
-           ...(typeof event.payload === 'object' && event.payload !== null ? event.payload : {}),
-           retryCount: newRetryCount,
-           lastError: error,
-           lastRetryAttempt: new Date(),
-           nextRetryAt
-         }
-       })
-       .where(eq(webhookEvents.id, eventId));
-
-    console.log(`[WebhookRetry] Event ${eventId} scheduled for retry ${newRetryCount}/${this.MAX_RETRIES} in ${delayMs}ms`);
+    return event ?? null;
   }
 
-  /**
-   * Calculate delay with exponential backoff and jitter
-   * Formula: baseDelay * 2^(retryCount-1) + random jitter (0-1000ms)
-   */
-  private static calculateDelayWithJitter(retryCount: number): number {
-    const baseDelay = this.BASE_DELAY_MS * Math.pow(2, retryCount - 1);
-    const jitter = randomInt(1000); // 0-999ms cryptographically secure jitter
-    return baseDelay + jitter;
+  async claimForProcessing(
+    id: number,
+    now: Date,
+    staleMs: number,
+  ): Promise<WebhookEventRecord | null> {
+    const nowIso = now.toISOString();
+    const staleIso = new Date(now.getTime() - staleMs).toISOString();
+
+    const [claimed] = await db
+      .update(webhookEvents)
+      .set({
+        status: "processing",
+        payload: sql`
+          COALESCE(${webhookEvents.payload}, '{}'::jsonb)
+          || jsonb_build_object(
+            'claimedAt', ${nowIso}::text,
+            'processingAttempts',
+              COALESCE((${webhookEvents.payload}->>'processingAttempts')::int, 0) + 1
+          )
+        `,
+      })
+      .where(
+        and(
+          eq(webhookEvents.id, id),
+          or(
+            and(
+              eq(webhookEvents.status, "retry_scheduled"),
+              sql`COALESCE(${webhookEvents.payload}->>'nextRetryAt', '1970-01-01T00:00:00.000Z') < ${nowIso}`,
+            ),
+            and(
+              eq(webhookEvents.status, "processing"),
+              sql`COALESCE(${webhookEvents.payload}->>'claimedAt', '1970-01-01T00:00:00.000Z') < ${staleIso}`,
+            ),
+          ),
+        ),
+      )
+      .returning();
+
+    return claimed ?? null;
   }
 
-  /**
-   * Get webhook events that are ready for retry
-   */
-  static async getReadyForRetry(limit = 10): Promise<Array<typeof webhookEvents.$inferSelect>> {
-    const nowIso = new Date().toISOString();
+  async listReadyForRetry(
+    limit: number,
+    now: Date,
+    staleMs: number,
+  ): Promise<WebhookEventRecord[]> {
+    const nowIso = now.toISOString();
+    const staleIso = new Date(now.getTime() - staleMs).toISOString();
 
-    return await db
+    return db
       .select()
       .from(webhookEvents)
-      .where(and(
-        eq(webhookEvents.status, "retry_scheduled"),
-        // Next retry time should be in the past. Keep the JSON value and
-        // comparison value parameterized instead of interpolating SQL text.
-        sql/*sql*/ `${webhookEvents.payload}->>'nextRetryAt' < ${sql.param(nowIso)}`
-      ))
+      .where(
+        or(
+          and(
+            eq(webhookEvents.status, "retry_scheduled"),
+            sql`COALESCE(${webhookEvents.payload}->>'nextRetryAt', '1970-01-01T00:00:00.000Z') < ${nowIso}`,
+          ),
+          and(
+            eq(webhookEvents.status, "processing"),
+            sql`COALESCE(${webhookEvents.payload}->>'claimedAt', '1970-01-01T00:00:00.000Z') < ${staleIso}`,
+          ),
+        ),
+      )
+      .orderBy(asc(webhookEvents.id))
       .limit(limit);
   }
 
-  /**
-   * Process a single webhook event retry
-   * This would typically be called by a cron job or queue worker
-   */
-  static async processRetry(eventId: number): Promise<boolean> {
-    // Get the webhook event
-    const [event] = await db
+  async save(
+    id: number,
+    update: { status: string; payload: unknown },
+    expectedStatuses?: string[],
+  ): Promise<WebhookEventRecord | null> {
+    const [updated] = await db
+      .update(webhookEvents)
+      .set({
+        status: update.status,
+        payload: update.payload,
+      })
+      .where(
+        expectedStatuses && expectedStatuses.length > 0
+          ? and(eq(webhookEvents.id, id), inArray(webhookEvents.status, expectedStatuses))
+          : eq(webhookEvents.id, id),
+      )
+      .returning();
+    return updated ?? null;
+  }
+
+  async listByStatus(status: string, limit: number): Promise<WebhookEventRecord[]> {
+    return db
       .select()
       .from(webhookEvents)
-      .where(eq(webhookEvents.id, eventId))
-      .limit(1);
+      .where(eq(webhookEvents.status, status))
+      .orderBy(asc(webhookEvents.createdAt))
+      .limit(limit);
+  }
 
+  async countByStatus(status: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(webhookEvents)
+      .where(eq(webhookEvents.status, status));
+    return Number(result?.count ?? 0);
+  }
+}
+
+const defaultReplay: ReplayWebhookFn = async (payload) => {
+  const { processBillplzPaymentWebhook } = await import("@/lib/billplz-payment-webhook");
+  return processBillplzPaymentWebhook(payload);
+};
+
+export class WebhookRetryService {
+  static MAX_RETRIES = WEBHOOK_RETRY.MAX_RETRIES;
+  static BASE_DELAY_MS = WEBHOOK_RETRY.BASE_DELAY_MS;
+
+  constructor(
+    private readonly store: WebhookRetryStore = new PostgresWebhookRetryStore(),
+    private readonly replay: ReplayWebhookFn = defaultReplay,
+    private readonly jitterMs: () => number = () => randomInt(1000),
+    private readonly now: () => Date = () => new Date(),
+  ) {}
+
+  /**
+   * Enqueue a webhook event for retry processing.
+   * After MAX_RETRIES failed attempts the event is moved to the dead-letter queue.
+   */
+  async enqueueForRetry(
+    eventId: number,
+    error: string,
+  ): Promise<"retry_scheduled" | "dead_letter" | "missing"> {
+    const event = await this.store.getById(eventId);
     if (!event) {
-      console.error(`[WebhookRetry] Event ${eventId} not found for processing`);
-      return false;
+      console.error(`[WebhookRetry] Event ${eventId} not found for retry`);
+      return "missing";
     }
 
-    // Check if it's actually ready for retry
-    if (event.status !== "retry_scheduled") {
-      console.log(`[WebhookRetry] Event ${eventId} is not ready for retry (status: ${event.status})`);
-      return false;
+    if (event.status === "processed" || event.status === "mismatch") {
+      return event.status === "processed" ? "missing" : "dead_letter";
+    }
+
+    const now = this.now();
+    const currentRetryCount = readRetryMeta(event.payload).retryCount;
+    const newRetryCount = currentRetryCount + 1;
+    const attemptLog = appendAttemptLog(event.payload, {
+      at: now.toISOString(),
+      error,
+      retryCount: newRetryCount,
+    });
+
+    if (newRetryCount >= WebhookRetryService.MAX_RETRIES) {
+      const saved = await this.store.save(
+        eventId,
+        {
+          status: "dead_letter",
+          payload: mergeRetryMeta(event.payload, {
+            retryCount: newRetryCount,
+            lastError: error,
+            lastRetryAttempt: now.toISOString(),
+            movedToDeadLetterAt: now.toISOString(),
+            claimedAt: null,
+            attemptLog,
+          }),
+        },
+        ["received", "processing", "retry_scheduled", "dead_letter"],
+      );
+
+      console.error(
+        `[WebhookRetry] Event ${eventId} moved to dead letter queue after ${newRetryCount} retries`,
+      );
+      return saved ? "dead_letter" : "missing";
+    }
+
+    const delayMs = computeRetryDelayMs(newRetryCount, this.jitterMs());
+    const nextRetryAt = new Date(now.getTime() + delayMs).toISOString();
+
+    const saved = await this.store.save(
+      eventId,
+      {
+        status: "retry_scheduled",
+        payload: mergeRetryMeta(event.payload, {
+          retryCount: newRetryCount,
+          lastError: error,
+          lastRetryAttempt: now.toISOString(),
+          nextRetryAt,
+          claimedAt: null,
+          attemptLog,
+        }),
+      },
+      ["received", "processing", "retry_scheduled"],
+    );
+
+    if (!saved) return "missing";
+
+    console.log(
+      `[WebhookRetry] Event ${eventId} scheduled for retry ${newRetryCount}/${WebhookRetryService.MAX_RETRIES} in ${delayMs}ms`,
+    );
+    return "retry_scheduled";
+  }
+
+  async getReadyForRetry(limit = 10): Promise<WebhookEventRecord[]> {
+    return this.store.listReadyForRetry(limit, this.now(), WEBHOOK_RETRY.CLAIM_STALE_MS);
+  }
+
+  /**
+   * Replay a scheduled webhook using the real Billplz payment processor.
+   * The event is claimed atomically so concurrent workers cannot both process it.
+   * It is marked processed only after replay reports a successful financial outcome.
+   */
+  async processRetry(eventId: number): Promise<ProcessRetryResult> {
+    const claimed = await this.store.claimForProcessing(
+      eventId,
+      this.now(),
+      WEBHOOK_RETRY.CLAIM_STALE_MS,
+    );
+
+    if (!claimed) {
+      const existing = await this.store.getById(eventId);
+      console.log(
+        `[WebhookRetry] Event ${eventId} is not claimable (status: ${existing?.status ?? "missing"})`,
+      );
+      return { status: "skipped", replayStatus: existing?.status ?? "missing" };
     }
 
     try {
-      // Here we would re-process the webhook by calling the webhook handler again
-      // For now, we'll simulate success/failure based on a simple condition
-      // In reality, this would re-execute the webhook processing logic
-      
-      // For demonstration, assume a 70% success rate on retry. Use a CSPRNG
-      // because retry outcomes affect payment-webhook processing state.
-      const success = randomInt(10) >= 3;
-      
-      if (success) {
-       // Mark as successfully processed
-       await db
-         .update(webhookEvents)
-         .set({
-           status: "processed",
-           payload: {
-             ...(typeof event.payload === 'object' && event.payload !== null ? event.payload : {}),
-             processedAt: new Date(),
-             retrySuccess: true
-           }
-         })
-         .where(eq(webhookEvents.id, eventId));
-        
-        console.log(`[WebhookRetry] Event ${eventId} processed successfully on retry`);
-        return true;
-      } else {
-        // Failed again, re-queue for another retry
-        await this.enqueueForRetry(eventId, "Retry processing failed");
-        return false;
+      const result = await this.replay(claimed.payload);
+
+      if (isSuccessfulWebhookReplay(result)) {
+        const marked = await this.finalizeEvent(claimed.id, "processed", {
+          processedAt: this.now().toISOString(),
+          retrySuccess: true,
+          replayStatus: result.status,
+          lastError: null,
+          claimedAt: null,
+          attemptLog: appendAttemptLog(claimed.payload, {
+            at: this.now().toISOString(),
+            result: result.status,
+            retryCount: readRetryMeta(claimed.payload).retryCount,
+          }),
+        }, ["processing"]);
+
+        if (!marked) {
+          throw new Error("Failed to mark webhook event processed after successful replay");
+        }
+
+        console.log(
+          `[WebhookRetry] Event ${eventId} processed successfully on retry (${result.status})`,
+        );
+        return { status: "processed", replayStatus: result.status };
       }
+
+      if (!isRetryableWebhookResult(result)) {
+        const status = result.status === "amount_mismatch" ? "mismatch" : "dead_letter";
+        await this.finalizeEvent(claimed.id, status, {
+          lastError: describeWebhookResult(result),
+          lastRetryAttempt: this.now().toISOString(),
+          replayStatus: result.status,
+          claimedAt: null,
+          attemptLog: appendAttemptLog(claimed.payload, {
+            at: this.now().toISOString(),
+            error: describeWebhookResult(result),
+            result: result.status,
+            retryCount: readRetryMeta(claimed.payload).retryCount,
+          }),
+        }, ["processing"]);
+        return {
+          status: "terminal",
+          error: describeWebhookResult(result),
+          replayStatus: result.status,
+        };
+      }
+
+      const queued = await this.enqueueForRetry(eventId, describeWebhookResult(result));
+      return {
+        status: queued === "dead_letter" ? "dead_letter" : "requeued",
+        error: describeWebhookResult(result),
+        replayStatus: result.status,
+      };
     } catch (error) {
-      // Unexpected error during retry processing
-      await this.enqueueForRetry(eventId, `Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
+      const message = error instanceof Error ? error.message : String(error);
+      const queued = await this.enqueueForRetry(eventId, `Unexpected error: ${message}`);
+      return {
+        status: queued === "dead_letter" ? "dead_letter" : "requeued",
+        error: message,
+      };
     }
   }
 
-  /**
-   * Get dead letter webhook events for manual intervention
-   */
-  static async getDeadLetterEvents(limit = 50): Promise<Array<typeof webhookEvents.$inferSelect>> {
-    return await db
-      .select()
-      .from(webhookEvents)
-      .where(eq(webhookEvents.status, "dead_letter"))
-      .orderBy(webhookEvents.createdAt)
-      .limit(limit);
+  async finalizeEvent(
+    eventId: number,
+    status: string,
+    extra: Record<string, unknown>,
+    expectedStatuses?: string[],
+  ): Promise<WebhookEventRecord | null> {
+    const event = await this.store.getById(eventId);
+    if (!event) return null;
+    return this.store.save(
+      eventId,
+      {
+        status,
+        payload: mergeRetryMeta(event.payload, extra),
+      },
+      expectedStatuses,
+    );
   }
 
-  /**
-   * Get total count of dead letter webhook events
-   */
-  static async getDeadLetterCount(): Promise<number> {
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(webhookEvents)
-      .where(eq(webhookEvents.status, "dead_letter"));
-    return Number(result?.count ?? 0);
+  async getDeadLetterEvents(limit = 50): Promise<WebhookEventRecord[]> {
+    return this.store.listByStatus("dead_letter", limit);
   }
 
-  /**
-   * Get total count of retry scheduled webhook events
-   */
-  static async getRetryScheduledCount(): Promise<number> {
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(webhookEvents)
-      .where(eq(webhookEvents.status, "retry_scheduled"));
-    return Number(result?.count ?? 0);
+  async getDeadLetterCount(): Promise<number> {
+    return this.store.countByStatus("dead_letter");
   }
 
-  /**
-   * Manually retry a dead letter event
-   */
-  static async manualRetryDeadLetter(eventId: number): Promise<boolean> {
-    const [event] = await db
-      .select()
-      .from(webhookEvents)
-      .where(eq(webhookEvents.id, eventId))
-      .limit(1);
+  async getRetryScheduledCount(): Promise<number> {
+    return this.store.countByStatus("retry_scheduled");
+  }
 
+  async manualRetryDeadLetter(eventId: number): Promise<boolean> {
+    const event = await this.store.getById(eventId);
     if (!event) {
       console.error(`[WebhookRetry] Dead letter event ${eventId} not found`);
       return false;
@@ -210,25 +465,74 @@ export class WebhookRetryService {
       return false;
     }
 
-    // Reset retry count and move back to retry queue
-    const delayMs = this.calculateDelayWithJitter(1); // Start at first retry delay
-    const nextRetryAt = new Date(Date.now() + delayMs);
+    const now = this.now();
+    const delayMs = computeRetryDelayMs(1, this.jitterMs());
+    const nextRetryAt = new Date(now.getTime() + delayMs).toISOString();
 
-     await db
-       .update(webhookEvents)
-       .set({
-         status: "retry_scheduled",
-         payload: {
-           ...(typeof event.payload === 'object' && event.payload !== null ? event.payload : {}),
-           retryCount: 0, // Reset retry count
-           lastError: "Manually moved from dead letter queue",
-           lastRetryAttempt: new Date(),
-           nextRetryAt
-         }
-       })
-       .where(eq(webhookEvents.id, eventId));
+    const saved = await this.store.save(
+      eventId,
+      {
+        status: "retry_scheduled",
+        payload: mergeRetryMeta(event.payload, {
+          retryCount: 0,
+          lastError: "Manually moved from dead letter queue",
+          lastRetryAttempt: now.toISOString(),
+          nextRetryAt,
+          claimedAt: null,
+          movedToDeadLetterAt: null,
+        }),
+      },
+      ["dead_letter"],
+    );
 
+    if (!saved) return false;
     console.log(`[WebhookRetry] Dead letter event ${eventId} moved to retry queue`);
     return true;
+  }
+
+  private static defaultInstance: WebhookRetryService | undefined;
+
+  private static get default(): WebhookRetryService {
+    if (!this.defaultInstance) {
+      this.defaultInstance = new WebhookRetryService();
+    }
+    return this.defaultInstance;
+  }
+
+  static enqueueForRetry(eventId: number, error: string) {
+    return this.default.enqueueForRetry(eventId, error);
+  }
+
+  static getReadyForRetry(limit = 10) {
+    return this.default.getReadyForRetry(limit);
+  }
+
+  static processRetry(eventId: number) {
+    return this.default.processRetry(eventId);
+  }
+
+  static getDeadLetterEvents(limit = 50) {
+    return this.default.getDeadLetterEvents(limit);
+  }
+
+  static getDeadLetterCount() {
+    return this.default.getDeadLetterCount();
+  }
+
+  static getRetryScheduledCount() {
+    return this.default.getRetryScheduledCount();
+  }
+
+  static manualRetryDeadLetter(eventId: number) {
+    return this.default.manualRetryDeadLetter(eventId);
+  }
+
+  static finalizeEvent(
+    eventId: number,
+    status: string,
+    extra: Record<string, unknown>,
+    expectedStatuses?: string[],
+  ) {
+    return this.default.finalizeEvent(eventId, status, extra, expectedStatuses);
   }
 }

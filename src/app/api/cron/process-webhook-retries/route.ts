@@ -22,18 +22,22 @@ export async function POST(request: NextRequest) {
   try {
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
+    let deadLettered = 0;
     let retried = 0;
 
-    // Get webhook events ready for retry
-    const events = await WebhookRetryService.getReadyForRetry(20); // Process up to 20 at a time
+    const events = await WebhookRetryService.getReadyForRetry(20);
 
     for (const event of events) {
       try {
-        const success = await WebhookRetryService.processRetry(event.id);
-        if (success) {
+        const result = await WebhookRetryService.processRetry(event.id);
+        if (result.status === "processed") {
           processed += 1;
+        } else if (result.status === "skipped") {
+          skipped += 1;
         } else {
           failed += 1;
+          if (result.status === "dead_letter") deadLettered += 1;
         }
         retried += 1;
       } catch (error) {
@@ -46,13 +50,15 @@ export async function POST(request: NextRequest) {
     await recordCronRun(
       "process-webhook-retries",
       "success",
-      `Processed ${processed}, failed ${failed}, total attempted ${retried}`
+      `Processed ${processed}, failed ${failed}, skipped ${skipped}, dead-lettered ${deadLettered}, total attempted ${retried}`,
     );
 
     return NextResponse.json({
       success: true,
       processed,
       failed,
+      skipped,
+      deadLettered,
       attempted: retried,
     });
   } catch (err) {
