@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices, quoteOptions } from "@/db/schema";
-import { eq, and, or, ilike, count, inArray, desc, gte, lte } from "drizzle-orm";
+import { bookings, users, profiles, notifications, referrals, services, payouts, payments, invoices } from "@/db/schema";
+import { eq, and, or, ilike, count, desc, gte, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendQuoteReadyEmail, sendBookingCompletedEmail } from "@/lib/email";
+import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendBookingCompletedEmail } from "@/lib/email";
 import { sendCancellationNotice } from "@/lib/notifications/whatsapp";
 import { sendPushNotification } from "@/lib/notifications/push";
 import { getAuthSession } from "@/lib/auth/server";
@@ -11,8 +11,31 @@ import { hasAdminAccess } from "@/lib/auth/admin";
 import { awardPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
-import { createBookingSchema, updateBookingSchema, addQuoteSchema, acceptQuoteSchema, rejectQuoteSchema, updateBookingPriceSchema } from "@/lib/validations/bookings";
+import { createBookingSchema, updateBookingSchema, updateBookingPriceSchema } from "@/lib/validations/bookings";
 import { MIN_BOOKING_AMOUNT, MAX_BOOKING_AMOUNT } from "@/lib/constants";
+import { rateLimitApi } from "@/lib/rate-limit-api";
+import {
+  AppError,
+  correlationIdFrom,
+  isUniqueViolation,
+  logCaught,
+  withSerializableTransaction,
+  withTimeout,
+} from "@/lib/db-utils";
+import { clampDepositPercent, depositCentsFromTotal, fromCents, myrString, toCents } from "@/lib/money";
+import { bookingDateFromInput, findConflictingBooking } from "@/lib/booking-slot";
+
+const NOTIFY_TIMEOUT_MS = 5_000;
+
+function jsonWithCorrelation(
+  correlationId: string,
+  body: unknown,
+  status = 200,
+): NextResponse {
+  const res = NextResponse.json(body, { status });
+  res.headers.set("x-correlation-id", correlationId);
+  return res;
+}
 
 export const runtime = "nodejs";
 
@@ -74,13 +97,21 @@ async function ensureCustomer(
 }
 
 export async function POST(request: NextRequest) {
+  const correlationId = correlationIdFrom(request);
+  const limited = await rateLimitApi(request, { max: 10, window: 60 });
+  if (limited) {
+    limited.headers.set("x-correlation-id", correlationId);
+    return limited;
+  }
+
   try {
     const body = await request.json();
     const parsed = createBookingSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
+      return jsonWithCorrelation(
+        correlationId,
         { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
+        400,
       );
     }
 
@@ -92,15 +123,16 @@ export async function POST(request: NextRequest) {
     const session = await getAuthSession();
     const customer = await ensureCustomer(body, session);
     if (!customer || !date) {
-      return NextResponse.json(
+      return jsonWithCorrelation(
+        correlationId,
         { error: "clientEmail and date are required" },
-        { status: 400 }
+        400,
       );
     }
 
     // Resolve service price and provider deposit percent for server-side amount calculation
-    let serviceName = body.service || "Service Request";
-    let servicePrice = "0";
+    let serviceName = parsed.data.service || body.service || "Service Request";
+    let servicePriceCents = 0;
     let depositPercent = 30;
     if (serviceIdNum) {
       const [service] = await db
@@ -110,7 +142,7 @@ export async function POST(request: NextRequest) {
         .limit(1);
       if (service) {
         serviceName = service.name;
-        servicePrice = String(service.price);
+        servicePriceCents = toCents(service.price);
       }
     }
 
@@ -123,42 +155,88 @@ export async function POST(request: NextRequest) {
         .where(eq(profiles.userId, providerUserId))
         .limit(1);
       if (providerProfile?.defaultDepositPercent) {
-        depositPercent = providerProfile.defaultDepositPercent;
+        depositPercent = clampDepositPercent(providerProfile.defaultDepositPercent);
       }
     }
 
-    const depositAmount = String(
-      Math.round(Number(servicePrice) * (depositPercent / 100) * 100) / 100,
-    );
+    const servicePriceMyr = fromCents(servicePriceCents);
+    const depositAmount = myrString(depositCentsFromTotal(servicePriceCents, depositPercent));
 
-    if (Number(servicePrice) > 0) {
-      if (Number(servicePrice) < MIN_BOOKING_AMOUNT || Number(servicePrice) > MAX_BOOKING_AMOUNT) {
-        return NextResponse.json(
+    if (servicePriceCents > 0) {
+      if (servicePriceMyr < MIN_BOOKING_AMOUNT || servicePriceMyr > MAX_BOOKING_AMOUNT) {
+        return jsonWithCorrelation(
+          correlationId,
           { error: `Service price must be between ${MIN_BOOKING_AMOUNT} and ${MAX_BOOKING_AMOUNT}` },
-          { status: 400 },
+          400,
         );
       }
     }
 
-    // Create booking with requested status
-    const [booking] = await db
-      .insert(bookings)
-      .values({
-        userId: customer.id,
-        artistId: artistIdStr,
-        studioId: studioIdStr,
-        serviceId: serviceId || null,
-        service: serviceName,
-        notes: body.notes || null,
-        location: body.location || null,
-        placeId: body.placeId || null,
-        date: new Date(date),
-        time: time || null,
-        amount: servicePrice,
-        milestone: servicePrice === "0" ? null : `deposit_${depositPercent}`,
-        status: servicePrice === "0" ? "quote_pending" : "requested",
-      })
-      .returning();
+    const bookingDate = bookingDateFromInput(date);
+
+    // Pre-flight availability check (best-effort; re-checked under the lock)
+    const preflightConflict = await findConflictingBooking(db, {
+      artistId: artistIdStr,
+      studioId: studioIdStr,
+      date: bookingDate,
+      time: time || null,
+    });
+    if (preflightConflict) {
+      return jsonWithCorrelation(
+        correlationId,
+        { error: "This time slot is no longer available" },
+        409,
+      );
+    }
+
+    let booking;
+    try {
+      booking = await withSerializableTransaction(async (tx) => {
+        const conflict = await findConflictingBooking(tx, {
+          artistId: artistIdStr,
+          studioId: studioIdStr,
+          date: bookingDate,
+          time: time || null,
+        });
+        if (conflict) {
+          throw new AppError(409, "This time slot is no longer available");
+        }
+
+        const [created] = await tx
+          .insert(bookings)
+          .values({
+            userId: customer.id,
+            artistId: artistIdStr,
+            studioId: studioIdStr,
+            serviceId: serviceId || null,
+            service: serviceName,
+            notes: parsed.data.notes || body.notes || null,
+            location: parsed.data.location || body.location || null,
+            placeId: parsed.data.placeId || body.placeId || null,
+            date: bookingDate,
+            time: time || null,
+            amount: myrString(servicePriceCents),
+            depositAmount: servicePriceCents > 0 ? depositAmount : null,
+            milestone: servicePriceCents === 0 ? null : `deposit_${depositPercent}`,
+            status: servicePriceCents === 0 ? "quote_pending" : "requested",
+          })
+          .returning();
+
+        return created;
+      }, { correlationId });
+    } catch (err) {
+      if (err instanceof AppError) {
+        return jsonWithCorrelation(correlationId, { error: err.message }, err.status);
+      }
+      if (isUniqueViolation(err)) {
+        return jsonWithCorrelation(
+          correlationId,
+          { error: "This time slot is no longer available" },
+          409,
+        );
+      }
+      throw err;
+    }
 
     const artist = artistIdStr
       ? await db.select().from(profiles).where(and(eq(profiles.userId, artistIdStr), eq(profiles.role, "artist"))).limit(1).then((r) => r[0])
@@ -180,60 +258,90 @@ export async function POST(request: NextRequest) {
 
     // Notify MUA of new booking request
     if (artist?.userId) {
-      await db.insert(notifications).values({
-        userId: artist.userId,
-        type: "booking_request",
-        title: "New Booking Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
-        data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
-      }).catch(() => {});
-      sendPushNotification(artist.userId, {
-        title: "New Booking Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
-        url: `/bookings/${booking.id}`,
-      }).catch(() => {});
+      await withTimeout(
+        db.insert(notifications).values({
+          userId: artist.userId,
+          type: "booking_request",
+          title: "New Booking Request",
+          body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
+          data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "booking_request_artist",
+        correlationId,
+      );
+      void withTimeout(
+        sendPushNotification(artist.userId, {
+          title: "New Booking Request",
+          body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
+          url: `/bookings/${booking.id}`,
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "push_booking_request_artist",
+        correlationId,
+      );
     }
 
     // Notify studio of new booking request
     if (studio?.userId) {
-      await db.insert(notifications).values({
-        userId: studio.userId,
-        type: "booking_request",
-        title: "New Booking Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
-        data: { link: "/dashboard/studio/bookings", bookingId: String(booking.id) },
-      }).catch(() => {});
-      sendPushNotification(studio.userId, {
-        title: "New Booking Request",
-        body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
-        url: "/dashboard/studio/bookings",
-      }).catch(() => {});
+      await withTimeout(
+        db.insert(notifications).values({
+          userId: studio.userId,
+          type: "booking_request",
+          title: "New Booking Request",
+          body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}${time ? ` at ${time}` : ""}. Accept or send a custom quote.`,
+          data: { link: "/dashboard/studio/bookings", bookingId: String(booking.id) },
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "booking_request_studio",
+        correlationId,
+      );
+      void withTimeout(
+        sendPushNotification(studio.userId, {
+          title: "New Booking Request",
+          body: `${customer.name || "A customer"} requested "${serviceName}" on ${formattedDate}.`,
+          url: "/dashboard/studio/bookings",
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "push_booking_request_studio",
+        correlationId,
+      );
     }
 
-    // Email customer confirmation
-    sendBookingReceivedEmail({
-      email: customer.email,
-      customerName: customer.name || "Valued Customer",
-      bookingId: String(booking.id),
-      serviceName,
-      providerName: providerUser?.name || artist?.bio || "Your Provider",
-      date: formattedDate,
-      time: time || "To be confirmed",
-      amount: 0,
-      paymentType: "deposit",
-    }).catch((err) => console.error("sendBookingReceivedEmail failed:", err));
+    // Email customer confirmation — never block the HTTP response
+    void withTimeout(
+      sendBookingReceivedEmail({
+        email: customer.email,
+        customerName: customer.name || "Valued Customer",
+        bookingId: String(booking.id),
+        serviceName,
+        providerName: providerUser?.name || artist?.bio || "Your Provider",
+        date: formattedDate,
+        time: time || "To be confirmed",
+        amount: 0,
+        paymentType: "deposit",
+      }),
+      NOTIFY_TIMEOUT_MS,
+      "email_booking_received",
+      correlationId,
+    );
 
     // Email provider (artist or studio)
     if (providerUser?.email) {
-      sendProviderNewBookingEmail({
-        email: providerUser.email,
-        providerName: providerUser.name || "Your Provider",
-        customerName: customer.name || "A customer",
-        bookingId: String(booking.id),
-        serviceName,
-        date: formattedDate,
-        time: time || "To be confirmed",
-      }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
+      void withTimeout(
+        sendProviderNewBookingEmail({
+          email: providerUser.email,
+          providerName: providerUser.name || "Your Provider",
+          customerName: customer.name || "A customer",
+          bookingId: String(booking.id),
+          serviceName,
+          date: formattedDate,
+          time: time || "To be confirmed",
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "email_provider_new_booking",
+        correlationId,
+      );
     }
 
     const refCookie = request.cookies.get("leish_ref");
@@ -297,13 +405,18 @@ export async function POST(request: NextRequest) {
                   ),
                 );
 
-                await db.insert(notifications).values({
-                  userId: referrerOwnerId,
-                  type: "loyalty",
-                  title: "🎉 Referral Reward!",
-                  body: `You earned ${pointsAwarded} loyalty points from a referral booking!`,
-                  data: { link: "/dashboard/artist/share", pointsAwarded: String(pointsAwarded) },
-                }).catch(() => {});
+                await withTimeout(
+                  db.insert(notifications).values({
+                    userId: referrerOwnerId,
+                    type: "loyalty",
+                    title: "🎉 Referral Reward!",
+                    body: `You earned ${pointsAwarded} loyalty points from a referral booking!`,
+                    data: { link: "/dashboard/artist/share", pointsAwarded: String(pointsAwarded) },
+                  }),
+                  NOTIFY_TIMEOUT_MS,
+                  "referral_reward",
+                  correlationId,
+                );
               }
             }
           }
@@ -675,10 +788,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const correlationId = correlationIdFrom(request);
+  const limited = await rateLimitApi(request, { max: 20, window: 60 });
+  if (limited) {
+    limited.headers.set("x-correlation-id", correlationId);
+    return limited;
+  }
+
   try {
     const session = await getAuthSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonWithCorrelation(correlationId, { error: "Unauthorized" }, 401);
     }
 
     const body = await request.json();
@@ -687,48 +807,53 @@ export async function PATCH(request: NextRequest) {
     if (body.amount !== undefined || body.travelSurcharge !== undefined || body.accommodationFee !== undefined || body.depositAmount !== undefined) {
       const parsed = updateBookingPriceSchema.safeParse(body);
       if (!parsed.success) {
-        return NextResponse.json(
+        return jsonWithCorrelation(
+          correlationId,
           { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-          { status: 400 },
+          400,
         );
       }
 
-const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.data;
+      const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.data;
 
-  if (amount !== undefined) {
-    const num = Number(amount);
-    if (num < MIN_BOOKING_AMOUNT || num > MAX_BOOKING_AMOUNT) {
-      return NextResponse.json(
-        { error: `Amount must be between ${MIN_BOOKING_AMOUNT} and ${MAX_BOOKING_AMOUNT}` },
-        { status: 400 },
-      );
-    }
-  }
+      if (amount !== undefined) {
+        const num = fromCents(toCents(amount));
+        if (num < MIN_BOOKING_AMOUNT || num > MAX_BOOKING_AMOUNT) {
+          return jsonWithCorrelation(
+            correlationId,
+            { error: `Amount must be between ${MIN_BOOKING_AMOUNT} and ${MAX_BOOKING_AMOUNT}` },
+            400,
+          );
+        }
+      }
 
-  const [existing] = await db
+      const [existing] = await db
         .select()
         .from(bookings)
         .where(eq(bookings.id, Number(id)))
         .limit(1);
 
       if (!existing) {
-        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+        return jsonWithCorrelation(correlationId, { error: "Booking not found" }, 404);
       }
 
       // Only the assigned artist/studio or admin can update pricing
       const isAssignedProvider = existing.artistId === session.id || existing.studioId === session.id;
       if (!isAssignedProvider && !hasAdminAccess(session)) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return jsonWithCorrelation(correlationId, { error: "Forbidden" }, 403);
       }
 
-      const updateData: Record<string, any> = {};
-      if (amount !== undefined) updateData.amount = String(amount);
-      if (depositAmount !== undefined) updateData.depositAmount = String(depositAmount);
-      if (travelSurcharge !== undefined) updateData.travelSurcharge = String(travelSurcharge);
-      if (accommodationFee !== undefined) updateData.accommodationFee = String(accommodationFee);
+      const updateData: Record<string, unknown> = {};
+      if (amount !== undefined) updateData.amount = myrString(toCents(amount));
+      if (depositAmount !== undefined) updateData.depositAmount = myrString(toCents(depositAmount));
+      if (travelSurcharge !== undefined) updateData.travelSurcharge = myrString(toCents(travelSurcharge));
+      if (accommodationFee !== undefined) updateData.accommodationFee = myrString(toCents(accommodationFee));
       if (amount !== undefined || travelSurcharge !== undefined || accommodationFee !== undefined) {
-        const svc = Number(amount ?? existing.amount) - Number(travelSurcharge ?? existing.travelSurcharge) - Number(accommodationFee ?? existing.accommodationFee);
-        updateData.servicePrice = String(Math.max(0, svc));
+        const svcCents =
+          toCents(amount ?? existing.amount)
+          - toCents(travelSurcharge ?? existing.travelSurcharge)
+          - toCents(accommodationFee ?? existing.accommodationFee);
+        updateData.servicePrice = myrString(Math.max(0, svcCents));
       }
       updateData.updatedAt = new Date();
 
@@ -805,18 +930,28 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
 
     // Notify customer when service starts
     if (status === "in_progress" && existing.userId) {
-      await db.insert(notifications).values({
-        userId: existing.userId,
-        type: "service_started",
-        title: "Service In Progress",
-        body: `Your "${existing.service}" service with ${existing.artistId ? "your artist" : "your studio"} has started.`,
-        data: { link: `/bookings/${updated.id}`, bookingId: String(updated.id) },
-      }).catch(() => {});
-      sendPushNotification(existing.userId, {
-        title: "Service In Progress",
-        body: `Your "${existing.service}" service has started.`,
-        url: `/bookings/${updated.id}`,
-      }).catch(() => {});
+      await withTimeout(
+        db.insert(notifications).values({
+          userId: existing.userId,
+          type: "service_started",
+          title: "Service In Progress",
+          body: `Your "${existing.service}" service with ${existing.artistId ? "your artist" : "your studio"} has started.`,
+          data: { link: `/bookings/${updated.id}`, bookingId: String(updated.id) },
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "service_started",
+        correlationId,
+      );
+      void withTimeout(
+        sendPushNotification(existing.userId, {
+          title: "Service In Progress",
+          body: `Your "${existing.service}" service has started.`,
+          url: `/bookings/${updated.id}`,
+        }),
+        NOTIFY_TIMEOUT_MS,
+        "push_service_started",
+        correlationId,
+      );
     }
 
     if (status === "cancelled" && existing.userId) {
@@ -902,17 +1037,7 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
           const now = new Date();
           const year = now.getFullYear();
           const month = String(now.getMonth() + 1).padStart(2, "0");
-          const [lastInvoice] = await db
-            .select({ invoiceNumber: invoices.invoiceNumber })
-            .from(invoices)
-        .orderBy(desc(invoices.id))
-        .limit(1);
-          let seq = 1;
-          if (lastInvoice) {
-            const match = lastInvoice.invoiceNumber.match(/-(\d{6})$/);
-            if (match) seq = parseInt(match[1], 10) + 1;
-          }
-          const invoiceNumber = `INV-${year}${month}-${String(seq).padStart(6, "0")}`;
+          const invoiceNumber = `INV-${year}${month}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
           let serviceName = existing.service || "Service";
           if (existing.serviceId) {
@@ -924,18 +1049,35 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
             if (svc) serviceName = svc.name;
           }
 
-          const subtotal = Number(existing.amount) || 0;
+          const subtotalCents = toCents(existing.amount);
           const commissionRate = 0.08;
-          const commissionAmount = Math.round(subtotal * commissionRate);
+          const commissionCents = Math.round(subtotalCents * commissionRate);
+          const travelCents = toCents(existing.travelSurcharge);
+          const stayCents = toCents(existing.accommodationFee);
 
           const lineItems = [
-            { description: serviceName, quantity: 1, unitPrice: subtotal, amount: subtotal },
+            {
+              description: serviceName,
+              quantity: 1,
+              unitPrice: fromCents(subtotalCents),
+              amount: fromCents(subtotalCents),
+            },
           ];
-          if (existing.travelSurcharge && Number(existing.travelSurcharge) > 0) {
-            lineItems.push({ description: "Travel surcharge", quantity: 1, unitPrice: Number(existing.travelSurcharge), amount: Number(existing.travelSurcharge) });
+          if (travelCents > 0) {
+            lineItems.push({
+              description: "Travel surcharge",
+              quantity: 1,
+              unitPrice: fromCents(travelCents),
+              amount: fromCents(travelCents),
+            });
           }
-          if (existing.accommodationFee && Number(existing.accommodationFee) > 0) {
-            lineItems.push({ description: "Accommodation fee", quantity: 1, unitPrice: Number(existing.accommodationFee), amount: Number(existing.accommodationFee) });
+          if (stayCents > 0) {
+            lineItems.push({
+              description: "Accommodation fee",
+              quantity: 1,
+              unitPrice: fromCents(stayCents),
+              amount: fromCents(stayCents),
+            });
           }
 
           await db.insert(invoices).values({
@@ -943,10 +1085,10 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
             bookingId: Number(id),
             issuerId: recipientId,
             recipientId: existing.userId,
-            subtotal: String(subtotal / 100),
-            commissionAmount: String(commissionAmount / 100),
+            subtotal: myrString(subtotalCents),
+            commissionAmount: myrString(commissionCents),
             commissionRate: String(commissionRate),
-            total: String(subtotal / 100),
+            total: myrString(subtotalCents),
             status: "issued",
             lineItems,
             issuedAt: new Date(),
@@ -954,18 +1096,28 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
         }
 
         // Prompt customer to leave a review
-        await db.insert(notifications).values({
-          userId: existing.userId,
-          type: "review_prompt",
-          title: "How was your experience?",
-          body: `Your "${existing.service}" service is complete! Share your feedback and help others find great ${existing.artistId ? "artists" : "studios"}.`,
-          data: { link: `/bookings/${updated.id}#review`, bookingId: String(updated.id) },
-        }).catch(() => {});
-        sendPushNotification(existing.userId, {
-          title: "Leave a Review",
-          body: `Your "${existing.service}" service is complete! Rate your experience.`,
-          url: `/bookings/${updated.id}#review`,
-        }).catch(() => {});
+        await withTimeout(
+          db.insert(notifications).values({
+            userId: existing.userId,
+            type: "review_prompt",
+            title: "How was your experience?",
+            body: `Your "${existing.service}" service is complete! Share your feedback and help others find great ${existing.artistId ? "artists" : "studios"}.`,
+            data: { link: `/bookings/${updated.id}#review`, bookingId: String(updated.id) },
+          }),
+          NOTIFY_TIMEOUT_MS,
+          "review_prompt",
+          correlationId,
+        );
+        void withTimeout(
+          sendPushNotification(existing.userId, {
+            title: "Leave a Review",
+            body: `Your "${existing.service}" service is complete! Rate your experience.`,
+            url: `/bookings/${updated.id}#review`,
+          }),
+          NOTIFY_TIMEOUT_MS,
+          "push_review_prompt",
+          correlationId,
+        );
 
         // Send completion email with review link
         const [customerUser] = await db
@@ -991,9 +1143,9 @@ const { id, amount, depositAmount, travelSurcharge, accommodationFee } = parsed.
     revalidatePath("/dashboard/studio");
     revalidatePath("/bookings/" + id);
 
-    return NextResponse.json({ booking: updated });
+    return jsonWithCorrelation(correlationId, { booking: updated });
   } catch (error) {
-    console.error("Update booking error:", error);
-    return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });
+    logCaught("bookings.update", error, { correlationId });
+    return jsonWithCorrelation(correlationId, { error: "Failed to update booking" }, 500);
   }
 }

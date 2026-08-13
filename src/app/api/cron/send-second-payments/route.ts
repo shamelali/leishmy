@@ -8,6 +8,8 @@ import { verifyCronSecret } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron-tracking";
 import { createBillForBooking } from "@/lib/billplz-bill";
 import { sendRemainingPaymentReminderEmail } from "@/lib/email";
+import { remainingMyr } from "@/lib/money";
+import { logCaught } from "@/lib/db-utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_URL || "https://leish.my";
 
@@ -88,8 +90,7 @@ export async function POST(request: Request) {
       const user = booking.userId ? userMap.get(booking.userId) : null;
       if (!user) continue;
 
-      const remainingAmount =
-        Number(booking.amount) - (Number(booking.depositAmount) || 0);
+      const remainingAmount = remainingMyr(booking.amount, booking.depositAmount);
       if (remainingAmount <= 0) continue;
 
       // Create a Billplz bill for the second payment (remaining balance).
@@ -154,7 +155,9 @@ export async function POST(request: Request) {
         "\n\nThank you,\nLeish";
 
       // Send WhatsApp reminder
-      await sendMessage(user.name || "Customer", message).catch(() => {});
+      await sendMessage(user.name || "Customer", message).catch((err) => {
+        logCaught("cron.send-second-payments.whatsapp", err, { bookingId: booking.id });
+      });
 
       // Send email with payment link
       if (user.email) {
@@ -205,7 +208,9 @@ export async function POST(request: Request) {
             ".\n\nThe customer has been notified to complete payment." +
             "\n\nThank you,\nLeish";
 
-          await sendMessage(provider.name || "Provider", providerMessage).catch(() => {});
+          await sendMessage(provider.name || "Provider", providerMessage).catch((err) => {
+            logCaught("cron.send-second-payments.provider-whatsapp", err, { bookingId: booking.id });
+          });
 
           await db.insert(notifications).values({
             userId: booking.artistId,
@@ -213,7 +218,9 @@ export async function POST(request: Request) {
             title: "Second Payment Due",
             body: `Remaining balance of MYR ${remainingAmount.toFixed(2)} for booking #${booking.id} is due by ${dueDateStr}. Customer has been notified.`,
             data: { link: `/bookings/${booking.id}`, bookingId: String(booking.id) },
-          }).catch(() => {});
+          }).catch((err) => {
+            logCaught("cron.send-second-payments.notify", err, { bookingId: booking.id });
+          });
         }
       }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { payments, payouts, bookings, notifications, adminSettings, profiles, users } from "@/db/schema";
 import { awardPoints } from "@/lib/loyalty";
-import { eq, sql, and, lte, inArray } from "drizzle-orm";
+import { eq, and, lte } from "drizzle-orm";
 import { Redis } from "@upstash/redis";
 import { verifyCronSecret } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron-tracking";
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       // empty body is fine
     }
 
-    const cutoff = sql`NOW() - INTERVAL '${sql.raw(String(COOLING_DAYS))} days'`;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - COOLING_DAYS);
 
     const rows = await db
       .select({
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(payments.status, "paid"),
-          lte(bookings.date, cutoff),
+          lte(bookings.date, cutoffDate),
         ),
       )
       .orderBy(payments.id);
@@ -288,7 +289,9 @@ export async function POST(request: NextRequest) {
         });
 
         if (row.userId) {
-          awardPoints(row.userId, "booking_completed", String(row.bookingId), `Booking #${row.bookingId} completed`).catch(() => {});
+          awardPoints(row.userId, "booking_completed", String(row.bookingId), `Booking #${row.bookingId} completed`).catch((err) => {
+            console.error("[auto-release] awardPoints failed", { paymentId: row.paymentId, err });
+          });
         }
 
         released += 1;

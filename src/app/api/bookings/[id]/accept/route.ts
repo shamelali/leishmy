@@ -1,107 +1,151 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { bookings, users, profiles, notifications } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getAuthSession } from "@/lib/auth/server";
 import { revalidatePath } from "next/cache";
 import { acceptQuoteSchema } from "@/lib/validations/bookings";
-import { sendBookingReceivedEmail, sendProviderNewBookingEmail, sendPaymentInstructionEmail } from "@/lib/email";
+import { sendProviderNewBookingEmail, sendPaymentInstructionEmail } from "@/lib/email";
 import { createBillForBooking } from "@/lib/billplz-bill";
 import { logAudit } from "@/lib/audit";
 import { sendPushNotification } from "@/lib/notifications/push";
+import { rateLimitApi } from "@/lib/rate-limit-api";
+import {
+  AppError,
+  correlationIdFrom,
+  logCaught,
+  withSerializableTransaction,
+  withTimeout,
+} from "@/lib/db-utils";
+import {
+  clampDepositPercent,
+  depositCentsFromTotal,
+  fromCents,
+  myrString,
+  toCents,
+} from "@/lib/money";
 
 export const runtime = "nodejs";
 
+const NOTIFY_TIMEOUT_MS = 5_000;
+const ACCEPTABLE_STATUSES = ["quote_sent", "requested"] as const;
+
+function jsonWithCorrelation(correlationId: string, body: unknown, status = 200) {
+  const res = NextResponse.json(body, { status });
+  res.headers.set("x-correlation-id", correlationId);
+  return res;
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const correlationId = correlationIdFrom(request);
+  const limited = await rateLimitApi(request, { max: 10, window: 60 });
+  if (limited) {
+    limited.headers.set("x-correlation-id", correlationId);
+    return limited;
+  }
+
   try {
     const session = await getAuthSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonWithCorrelation(correlationId, { error: "Unauthorized" }, 401);
     }
 
     const { id } = await params;
     const bookingId = Number(id);
+    if (!Number.isInteger(bookingId) || bookingId <= 0) {
+      return jsonWithCorrelation(correlationId, { error: "Invalid booking id" }, 400);
+    }
 
     const body = await request.json();
     const parsed = acceptQuoteSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
+      return jsonWithCorrelation(
+        correlationId,
         { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
+        400,
       );
     }
 
-    // Verify booking exists and is in an acceptable status
-    const [booking] = await db
-      .select()
-      .from(bookings)
-      .where(eq(bookings.id, bookingId))
-      .limit(1);
+    const accepted = await withSerializableTransaction(async (tx) => {
+      const [booking] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .for("update")
+        .limit(1);
 
-    if (!booking) {
-      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-    }
+      if (!booking) {
+        throw new AppError(404, "Booking not found");
+      }
 
-    // Allow acceptance from both "quote_sent" (quote flow) and "requested" (direct accept)
-    if (booking.status !== "quote_sent" && booking.status !== "requested") {
-      return NextResponse.json(
-        { error: "Booking is not awaiting acceptance" },
-        { status: 400 },
-      );
-    }
+      if (booking.status !== "quote_sent" && booking.status !== "requested") {
+        throw new AppError(400, "Booking is not awaiting acceptance");
+      }
 
-    // Verify customer owns this booking
-    if (booking.userId !== session.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+      if (booking.userId !== session.id) {
+        throw new AppError(403, "Forbidden");
+      }
 
-    // Calculate total: for requested status use service price from DB, for quote_sent use quote columns
-    let totalPrice: number;
-    let depositPercentNum: number;
-    let depositAmount: number;
+      let totalCents: number;
+      if (booking.status === "requested") {
+        totalCents = toCents(booking.amount);
+      } else {
+        const quoteCents =
+          toCents(booking.servicePrice) +
+          toCents(booking.accommodationFee) +
+          toCents(booking.travelSurcharge);
+        totalCents = quoteCents > 0 ? quoteCents : toCents(booking.amount);
+      }
 
-    if (booking.status === "requested") {
-      // Direct accept at fixed service price
-      totalPrice = Number(booking.amount) || 0;
-      depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
-      depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
-    } else {
-      // Quote acceptance: use quote columns
-      const quoteTotal =
-        (Number(booking.servicePrice) || 0) +
-        (Number(booking.accommodationFee) || 0) +
-        (Number(booking.travelSurcharge) || 0);
-      totalPrice = quoteTotal || Number(booking.amount) || 0;
-      depositPercentNum = Math.min(100, Math.max(10, booking.depositPercent || 30));
-      depositAmount = Math.round(totalPrice * (depositPercentNum / 100) * 100) / 100;
-    }
+      const depositPercentNum = clampDepositPercent(booking.depositPercent);
+      const depositAmountCents = depositCentsFromTotal(totalCents, depositPercentNum);
+      const previousStatus = booking.status;
 
-    const previousStatus = booking.status;
+      const [updated] = await tx
+        .update(bookings)
+        .set({
+          status: "pending",
+          amount: myrString(totalCents),
+          depositAmount: myrString(depositAmountCents),
+          milestone: `deposit_${depositPercentNum}`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(bookings.id, bookingId),
+            inArray(bookings.status, [...ACCEPTABLE_STATUSES]),
+          ),
+        )
+        .returning();
 
-    // Update booking: set amount to total, status to pending, milestone to deposit_{percent}
-    const [updated] = await db
-      .update(bookings)
-      .set({
-        status: "pending",
-        amount: String(totalPrice),
-        depositAmount: String(depositAmount),
-        milestone: `deposit_${depositPercentNum}`,
-      })
-      .where(eq(bookings.id, bookingId))
-      .returning();
+      if (!updated) {
+        throw new AppError(409, "Booking was already processed");
+      }
 
-    logAudit(db, {
+      return {
+        booking,
+        updated,
+        previousStatus,
+        depositPercentNum,
+        depositAmount: fromCents(depositAmountCents),
+        totalPrice: fromCents(totalCents),
+      };
+    }, { correlationId });
+
+    const { booking, updated, previousStatus, depositPercentNum, depositAmount, totalPrice } =
+      accepted;
+
+    void logAudit(db, {
       actorId: session.id,
       action: previousStatus === "requested" ? "booking.direct_accepted" : "booking.quote_accepted",
       entityType: "booking",
       entityId: String(bookingId),
-      meta: { previousStatus, newStatus: "pending", totalPrice, depositAmount },
-    }).catch(() => {});
+      meta: { previousStatus, newStatus: "pending", totalPrice, depositAmount, correlationId },
+    });
 
-    // Notify provider
     if (booking.artistId) {
       const [artist] = await db
         .select({ userId: profiles.userId })
@@ -110,20 +154,29 @@ export async function POST(
         .limit(1);
 
       if (artist) {
-        await db.insert(notifications).values({
-          userId: artist.userId,
-          type: "booking_accepted",
-          title: "Booking Accepted",
-          body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
-          data: { link: `/bookings/${bookingId}`, bookingId: String(booking.id) },
-        }).catch(() => {});
+        await withTimeout(
+          db.insert(notifications).values({
+            userId: artist.userId,
+            type: "booking_accepted",
+            title: "Booking Accepted",
+            body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
+            data: { link: `/bookings/${bookingId}`, bookingId: String(booking.id) },
+          }),
+          NOTIFY_TIMEOUT_MS,
+          "booking_accepted",
+          correlationId,
+        );
 
-        // Send push notification
-        sendPushNotification(artist.userId, {
-          title: "Booking Accepted",
-          body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
-          url: `/bookings/${bookingId}`,
-        }).catch(() => {});
+        void withTimeout(
+          sendPushNotification(artist.userId, {
+            title: "Booking Accepted",
+            body: `Customer accepted the booking for "${booking.service}". Awaiting payment.`,
+            url: `/bookings/${bookingId}`,
+          }),
+          NOTIFY_TIMEOUT_MS,
+          "push_booking_accepted",
+          correlationId,
+        );
 
         const [providerUser] = await db
           .select({ name: users.name, email: users.email })
@@ -138,22 +191,27 @@ export async function POST(
             .where(eq(users.id, booking.userId))
             .limit(1);
 
-          sendProviderNewBookingEmail({
-            email: providerUser.email,
-            providerName: providerUser.name || "Your Provider",
-            customerName: customer?.name || "A customer",
-            bookingId: String(booking.id),
-            serviceName: booking.service || "Service",
-            date: new Date(booking.date).toLocaleDateString("en-MY", {
-              weekday: "long", year: "numeric", month: "long", day: "numeric",
+          void withTimeout(
+            sendProviderNewBookingEmail({
+              email: providerUser.email,
+              providerName: providerUser.name || "Your Provider",
+              customerName: customer?.name || "A customer",
+              bookingId: String(booking.id),
+              serviceName: booking.service || "Service",
+              date: new Date(booking.date).toLocaleDateString("en-MY", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric",
+              }),
+              time: booking.time || "To be confirmed",
+              travelSurcharge: fromCents(toCents(booking.travelSurcharge)) || undefined,
+              accommodationFee: fromCents(toCents(booking.accommodationFee)) || undefined,
+              totalPrice,
+              depositAmount,
+              depositPercent: depositPercentNum,
             }),
-            time: booking.time || "To be confirmed",
-            travelSurcharge: Number(booking.travelSurcharge) || undefined,
-            accommodationFee: Number(booking.accommodationFee) || undefined,
-            totalPrice: Number(booking.amount) || undefined,
-            depositAmount: Number(booking.depositAmount) || undefined,
-            depositPercent: booking.depositPercent || undefined,
-          }).catch((err) => console.error("sendProviderNewBookingEmail failed:", err));
+            NOTIFY_TIMEOUT_MS,
+            "email_provider_accepted",
+            correlationId,
+          );
         }
       }
     }
@@ -161,14 +219,14 @@ export async function POST(
     revalidatePath("/bookings");
     revalidatePath("/dashboard/artist");
 
-    // Create deposit bill via Billplz
     const [customerUser] = await db
       .select({ name: users.name, email: users.email })
       .from(users)
       .where(eq(users.id, session.id))
       .limit(1);
 
-    const idempotencyKey = `accept_${bookingId}_${Date.now()}`;
+    // Time-windowed idempotency key so retries within the same minute reuse the bill.
+    const idempotencyKey = `accept_${bookingId}_${Math.floor(Date.now() / 60_000)}`;
     const billResult = await createBillForBooking({
       bookingId,
       description: `Booking deposit — ${booking.service || "service"}`,
@@ -178,10 +236,8 @@ export async function POST(
     });
 
     if (!billResult.ok) {
-      console.error("Bill creation failed after quote acceptance:", billResult.error);
-      // Booking was already accepted — still return success for the acceptance
-      // but surface the bill error so the client can retry payment separately
-      return NextResponse.json({
+      logCaught("bookings.accept.bill", billResult.error, { correlationId, bookingId });
+      return jsonWithCorrelation(correlationId, {
         success: true,
         booking: updated,
         depositAmount,
@@ -190,7 +246,6 @@ export async function POST(
       });
     }
 
-    // Send payment instruction email to customer with deposit payment link
     const bill = billResult.data.bill as { id: string; url?: string };
     let paymentUrl: string | undefined = bill.url;
     if (!paymentUrl && bill.id) {
@@ -218,27 +273,32 @@ export async function POST(
         providerName = studioUser?.name || providerName;
       }
 
-      sendPaymentInstructionEmail({
-        email: customerUser.email,
-        customerName: customerUser.name || "Valued Customer",
-        bookingId: String(booking.id),
-        serviceName: booking.service || "Service",
-        providerName,
-        date: new Date(booking.date).toLocaleDateString("en-MY", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
+      void withTimeout(
+        sendPaymentInstructionEmail({
+          email: customerUser.email,
+          customerName: customerUser.name || "Valued Customer",
+          bookingId: String(booking.id),
+          serviceName: booking.service || "Service",
+          providerName,
+          date: new Date(booking.date).toLocaleDateString("en-MY", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          time: booking.time || "To be confirmed",
+          depositAmount,
+          totalPrice,
+          depositPercent: depositPercentNum,
+          paymentUrl,
         }),
-        time: booking.time || "To be confirmed",
-        depositAmount,
-        totalPrice,
-        depositPercent: depositPercentNum,
-        paymentUrl,
-      }).catch((err) => console.error("sendPaymentInstructionEmail failed:", err));
+        NOTIFY_TIMEOUT_MS,
+        "email_payment_instruction",
+        correlationId,
+      );
     }
 
-    return NextResponse.json({
+    return jsonWithCorrelation(correlationId, {
       success: true,
       booking: updated,
       depositAmount,
@@ -248,10 +308,10 @@ export async function POST(
       cached: billResult.data.cached,
     });
   } catch (error) {
-    console.error("Accept quote error:", error);
-    return NextResponse.json(
-      { error: "Failed to accept quote" },
-      { status: 500 }
-    );
+    if (error instanceof AppError) {
+      return jsonWithCorrelation(correlationId, { error: error.message }, error.status);
+    }
+    logCaught("bookings.accept", error, { correlationId });
+    return jsonWithCorrelation(correlationId, { error: "Failed to accept quote" }, 500);
   }
 }
