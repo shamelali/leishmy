@@ -1,12 +1,33 @@
 # Leish! v2 — Launch Hardening Patch (2026-08-17)
 
+## Commits (branch `launch-hardening`, base `main` @ `d69b3ac`)
+
+1. **`a9a0785`** — Unify public booking loop onto db-facade backend; harden launch gates
+2. **`e8fadd3`** — Return true 404 for unknown artist slugs; friendly gateway-down message on pay-fee
+
+**Artifacts** (regenerated to cover both commits): `patches/leish_v2-launch-hardening.bundle`
++ `patches/leish_v2-launch-hardening.patch` (combined, applies cleanly to pristine `main`).
+
+## Round 2 additions (commit e8fadd3)
+
+- **True 404 for unknown artist slugs.** The root layout streams the shell before
+  `notFound()` runs (CSP nonce via `headers()` forces dynamic rendering), so unknown
+  slugs committed HTTP 200 with a `noindex` 404 body. `src/proxy.ts` now short-circuits
+  `/artists/<unknown>` with a rewrite that renders the global not-found UI at HTTP 404.
+  Verified: unknown slug → 404 + styled "Page not found"; real artist pages → 200.
+- **Friendly gateway-down message.** `POST /api/bookings/[id]/pay-fee` returns a clear
+  503 ("The payment gateway is temporarily unavailable…") when the Billplz API is
+  unreachable, instead of the generic 500 (details still logged/reported to Sentry).
+  Dev provider unaffected. Verified: 503 with billplz env + unreachable API; 201 dev path.
+
 ## ✅ Verification record (re-run 2026-08-17, from clean state)
 
 **Patch integrity**
-- `git am`-style apply check against pristine `main`: **applies cleanly** (no conflicts)
+- `git am`-style apply check against pristine `main`: **applies cleanly** (no conflicts) —
+  re-verified after round 2 (combined 2-commit patch)
 - Bundle `leish_v2-launch-hardening.bundle`: **verified OK** — contains
-  `refs/heads/launch-hardening` @ `a9a0785`, base `d69b3ac` (= main)
-- Clone @ `a9a0785`: working tree clean, diff vs main = 18 files, +596/−777
+  `refs/heads/launch-hardening` @ `e8fadd3` (base `d69b3ac` = main)
+- Clone @ `e8fadd3`: working tree clean; diff vs main = 2 commits, 20 files
 
 **Quality gates (all re-executed)**
 - `npm run typecheck` ✅ 0 errors

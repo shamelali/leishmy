@@ -5,7 +5,10 @@
 
 ## Base / Head
 - **Base:** `main` (`d69b3ac`)
-- **Head:** `launch-hardening` (`a9a0785` — 18 files, +596 / −777)
+- **Head:** `launch-hardening` — 2 commits:
+  - `a9a0785` — Unify public booking loop onto db-facade backend; harden launch gates
+  - `e8fadd3` — Return true 404 for unknown artist slugs; friendly gateway-down message on pay-fee
+- **Diff:** 20 files, ~+630 / −780
 
 ## Body
 
@@ -35,6 +38,12 @@ be pointed at the wrong webhook. This PR unifies the public loop onto the db-fac
   Playwright e2e) + `e2e/smoke.spec.ts`.
 - **Docs:** ARCHITECTURE (single-path data flow), DEPLOY (correct webhook URL +
   rewritten smoke test), HANDOVER (unification note), README, `.env.example`.
+- **True 404 for unknown artist slugs** (`src/proxy.ts`): the root layout streams the
+  shell before `notFound()` runs, so unknown slugs previously committed HTTP 200 with a
+  noindex 404 body. The proxy now short-circuits them to the styled not-found UI with
+  a real 404.
+- **Friendly gateway-down message**: `pay-fee` returns a clear 503 when the Billplz API
+  is unreachable (details still logged/reported), instead of a generic 500.
 
 ### Verification
 
