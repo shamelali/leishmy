@@ -2,6 +2,12 @@
 
 **Goal:** push branch `launch-hardening` to `shamelali/leish_v2` and open the PR.
 
+**Status:** The PR request is already filed as **issue #8** on leish_v2:
+https://github.com/shamelali/leish_v2/issues/8 (contains the full PR body + how-to).
+The old sandbox token had `push: false` on leish_v2 (issues allowed, contents denied).
+With the app granted **Read & write** on leish_v2, a new session's token will have
+`push: true` and can open the PR.
+
 **Context:** commit `a9a0785` ("Unify public booking loop onto db-facade backend;
 harden launch gates", base `main` @ `d69b3ac`) is verified and bundled in this repo.
 See `NOTES.md` (verification record) and `PR_BODY.md` (PR title/body).
