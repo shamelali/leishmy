@@ -1,0 +1,1909 @@
+From a9a078556281c5197e258563fda6f295b31bcac3 Mon Sep 17 00:00:00 2001
+From: Arena Agent <arena-agent@localhost>
+Date: Mon, 17 Aug 2026 05:45:40 +0000
+Subject: [PATCH 1/2] Unify public booking loop onto db-facade backend; harden
+ launch gates
+
+- Artist pages + BookingCalendar now use the db-facade journey
+  (request -> quotation -> RM200 fee -> webhook confirm) instead of the
+  legacy Supabase slot/deposit path. Artist pages render without Supabase env.
+- booking/success reads real booking status from db-facade (no Supabase).
+- Remove legacy dual-path code: src/lib/actions/*, src/lib/payments/*,
+  src/app/api/payments/billplz/*. Single webhook: POST /api/payments/webhook.
+- Gate artist profile claims on verified email (same rule as bookings).
+- Add GitHub Actions CI (typecheck/lint/test/build + Playwright e2e) and
+  e2e smoke specs.
+- Docs: ARCHITECTURE, DEPLOY, HANDOVER, README, .env.example updated to
+  the single-path architecture and corrected webhook URL.
+---
+ .env.example                                  |   3 +-
+ .github/workflows/ci.yml                      |  34 ++
+ README.md                                     |  14 +-
+ docs/ARCHITECTURE.md                          | 109 ++++--
+ docs/DEPLOY.md                                |  67 +++-
+ docs/HANDOVER.md                              |  23 +-
+ e2e/smoke.spec.ts                             |  78 ++++
+ src/app/api/artist-profiles/route.ts          |   5 +
+ src/app/api/payments/billplz/create/route.ts  |  54 ---
+ src/app/api/payments/billplz/webhook/route.ts | 137 -------
+ src/app/artists/[slug]/page.tsx               | 117 +++---
+ src/app/booking/success/page.tsx              | 116 ++++--
+ src/components/booking-calendar.tsx           | 347 +++++++++---------
+ src/lib/actions/artists.ts                    |  44 ---
+ src/lib/actions/bookings.ts                   |  79 ----
+ src/lib/payments/billplz.ts                   |  68 ----
+ src/lib/payments/commission.ts                |  49 ---
+ src/lib/payments/types.ts                     |  29 --
+ 18 files changed, 596 insertions(+), 777 deletions(-)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 e2e/smoke.spec.ts
+ delete mode 100644 src/app/api/payments/billplz/create/route.ts
+ delete mode 100644 src/app/api/payments/billplz/webhook/route.ts
+ delete mode 100644 src/lib/actions/artists.ts
+ delete mode 100644 src/lib/actions/bookings.ts
+ delete mode 100644 src/lib/payments/billplz.ts
+ delete mode 100644 src/lib/payments/commission.ts
+ delete mode 100644 src/lib/payments/types.ts
+
+diff --git a/.env.example b/.env.example
+index 9ea2888..3a964de 100644
+--- a/.env.example
++++ b/.env.example
+@@ -43,7 +43,8 @@ SESSION_SECRET=
+ # BILLPLZ_COLLECTION_ID=
+ # BILLPLZ_X_SIGNATURE_KEY=
+ # BILLPLZ_BASE_URL=https://www.billplz.com/api/v3
+-# Optional overrides (default to {NEXT_PUBLIC_SITE_URL}/api/payments/billplz/webhook):
++# Optional overrides (default to {NEXT_PUBLIC_SITE_URL}/api/payments/webhook — the
++# db-facade webhook; there is only one payment path):
+ # BILLPLZ_CALLBACK_URL=
+ # BILLPLZ_REDIRECT_URL=
+ 
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..396b2db
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,34 @@
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++jobs:
++  check:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: npm
++      - run: npm ci
++      - run: npm run typecheck
++      - run: npm run lint
++      - run: npm test
++      - run: npm run build
++
++  e2e:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: npm
++      - run: npm ci
++      - run: npx playwright install --with-deps chromium
++      - run: npx playwright test
+diff --git a/README.md b/README.md
+index b302add..1c15269 100644
+--- a/README.md
++++ b/README.md
+@@ -41,12 +41,16 @@ modern Next.js application.
+ 
+ - [Next.js 16](https://nextjs.org) (App Router) + React 19 + TypeScript
+ - [Tailwind CSS 4](https://tailwindcss.com)
+-- **Dual persistence** — PostgreSQL (`DATABASE_URL` set, works with Neon) or
+-  Node 22's built-in `node:sqlite` (no URL — local dev/tests). Same async API:
+-  `await getDb().prepare(sql).get/all/run()`. Schema applied automatically; or
+-  `npm run db:migrate` to provision explicitly
++- **Dual persistence** — PostgreSQL (`DATABASE_URL` set — use the Supabase
++  pooler connection string in prod) or Node 22's built-in `node:sqlite` (no URL —
++  local dev/tests). Same async API: `await getDb().prepare(sql).get/all/run()`.
++  Schema applied automatically for SQLite; `npm run db:migrate` provisions
++  PostgreSQL explicitly
+ - [zod](https://zod.dev) request validation · [jose](https://github.com/panva/jose) session JWT
+-- Catalog data (artists/studios) lives in `src/lib/data.ts`; users & bookings are stored in SQLite
++- Catalog data (artists/studios) lives in `src/lib/data.ts`; users, bookings,
++  quotations and payments live in the db-facade store (SQLite or Postgres)
++- `/admin/**` pages and the proxy middleware use the Supabase client
++  (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` required for those)
+ 
+ ## API routes
+ 
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 42237ad..3d7447a 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -1,23 +1,52 @@
+ # Architecture
+ 
+-## Data flow: booking → payment
+-
+-1. Client selects a service + slot on `/artists/[slug]` (`BookingCalendar` component).
+-2. `POST /api/bookings` → `createBooking()` server action:
+-   - Validates input with Zod.
+-   - Fetches `service.price` and `provider.default_deposit_percent` from Supabase (never trusts client-sent amounts).
+-   - Resolves `amount` / `depositAmount` via `resolveBookingAmount()`.
+-   - Inserts the `bookings` row as `pending_payment`.
+-   - The DB-level unique index on `(slot_id) where status != 'cancelled'` rejects a double-booking race at the constraint level, not just in application code.
+-3. Client is redirected to `POST /api/payments/billplz/create`, which creates a Billplz bill for `deposit_amount` and returns the payment URL.
+-4. Client pays on Billplz's hosted page.
+-5. Billplz calls `POST /api/payments/billplz/webhook`:
+-   - Verifies `x_signature` (HMAC-SHA256 over an ordered field set) before trusting anything in the payload.
+-   - Logs the event to `payment_transactions` (append-only, idempotent on `billplz_bill_id`).
+-   - If paid, flips `bookings.status` to `confirmed` — guarded by `.eq("status", "pending_payment")` so a retried webhook can't double-process.
+-6. Client lands on `/booking/success`, which reads the real booking status rather than assuming success.
+-
+-## Why Supabase-only (not Neon + Supabase, not Drizzle)
++## Data flow: booking → payment (single db-facade backend)
++
++The public booking loop runs entirely on the db-facade backend (`src/server/*`,
++`POST /api/*`). There is one payment path and one webhook.
++
++1. Client browses the catalog (`src/lib/data.ts`) and opens `/artists/[slug]`
++   (`BookingCalendar` component).
++2. `POST /api/bookings` sends a booking **request** — `{ artistId, service, date, time, eventType, notes }`:
++   - Zod-validated (`src/server/validation.ts`).
++   - Gated on a verified email (`EMAIL_NOT_VERIFIED` otherwise).
++   - The catalog price is informational only: quotations, the RM 200 fee and
++     the balance are re-derived server-side from DB records — client-sent
++     amounts are never trusted.
++3. The MUA accepts the request (`PATCH /api/bookings/[id] { action: "accept" }`) and
++   sends a line-item quotation (`POST /api/bookings/[id]/quotation`) with a 24h
++   review window. Re-quoting supersedes the previous pending quotation.
++4. The client pays the flat RM 200 booking fee via
++   `POST /api/bookings/[id]/pay-fee` → `createBookingFeePayment()`
++   (`src/server/payments.ts`):
++   - `billplz` provider when `BILLPLZ_API_KEY` + `BILLPLZ_COLLECTION_ID` are set;
++     a `dev` provider otherwise (local/testing, no external calls).
++5. Billplz calls `POST /api/payments/webhook`:
++   - Raw-body HMAC-SHA256 signature verified (timing-safe) before any state change.
++   - `paid: true` → payment marked `paid` and the booking transitions
++     `accepted → confirmed` via the state machine (`src/server/bookings.ts`).
++     Only the payment webhook can confirm a booking.
++6. The balance (quotation total − RM 200) is due 3 days before the event.
++   The client lands back on `/dashboard` (or `/booking/success`, which reads the
++   real booking status — never a mock).
++
++Persistence: `src/server/db.ts` — PostgreSQL when `DATABASE_URL` is set
++(Supabase pooler recommended in prod), else node:sqlite for local/dev/tests.
++Same async API either way. Schema migrations: `scripts/migrate.ts`
++(`npm run db:migrate`).
++
++## Where Supabase still appears
++
++- `/admin/**` pages (provider approvals, overview metrics) use the Supabase
++  client (`src/lib/supabase`, typed by `src/lib/types/database.ts`, schema in
++  `supabase/migrations/*`). They require `NEXT_PUBLIC_SUPABASE_URL` /
++  `NEXT_PUBLIC_SUPABASE_ANON_KEY` and are the only pages that do.
++- `src/proxy.ts` refreshes Supabase auth sessions in middleware.
++- The legacy Supabase booking routes (`/api/payments/billplz/*`,
++  `src/lib/actions/*`, `src/lib/payments/*`) were removed on 2026-08-17 —
++  the public loop is single-path.
++
++## Why one Postgres provider (not Neon + Supabase, not Drizzle)
+ 
+ v1's mid-migration state (Neon for auth, Supabase-bound schema, a
+ dual-connection sync cron to keep them consistent) was the single biggest
+@@ -30,30 +59,38 @@ source of drift. One provider for Postgres + Auth + Storage removes:
+   journal to drift out of sync with.
+ - A second set of connection strings/pooling config to keep straight.
+ 
+-## RLS instead of hand-rolled route/layout guards
++## RLS instead of hand-rolled route/layout guards (admin surface)
+ 
+ v1's admin access check was an `if` statement in `app/admin/layout.tsx`
+-that had a role-check bug (see HANDOVER.md). This repo still has that
+-layout guard for UX (redirect before rendering), but the actual data
+-access is enforced by Postgres RLS policies (`supabase/migrations/0002_rls_policies.sql`).
+-That means even if the layout guard has a bug in the future, queries from
+-a non-admin still return nothing — defense in depth instead of a single
+-point of failure.
++that had a role-check bug (see HANDOVER.md). The admin pages still have
++that layout guard for UX (redirect before rendering), and the Supabase-backed
++data they read is protected by Postgres RLS policies
++(`supabase/migrations/0002_rls_policies.sql`). That means even if the layout
++guard has a bug in the future, queries from a non-admin still return nothing —
++defense in depth instead of a single point of failure.
++
++The public booking loop is protected by the session checks inside the
++`/api/*` route handlers (`src/server/session.ts`, per-route role checks), not
++by RLS.
+ 
+-## Commission logic lives in one place
++## Money logic lives in one place
+ 
+-`src/lib/payments/commission.ts` is the only place commission percentages
+-and deposit resolution logic should live. If you're tempted to compute an
+-amount inline in a route handler, don't — import `resolveBookingAmount`
+-instead so there's exactly one audited code path for anything touching
+-money.
++- `src/server/payments.ts` — the only place the RM 200 booking fee
++  (`BOOKING_FEE_SEN`), Billplz bill creation, refund rules and webhook
++  signature verification live.
++- `src/server/quotations.ts` — the only place quotation totals (base +
++  travel + early call + accommodation + extras) are computed, along with
++  the 24h expiry window.
++
++If you're tempted to compute an amount inline in a route handler, don't —
++import from these modules so there's exactly one audited code path for
++anything touching money. Client-sent amounts are never trusted.
+ 
+ ## Scope boundary: why no studios yet
+ 
+ Studios add a second provider type, a second commission tier, and a second
+ approval/booking flow. None of that is required to hit the launch gate
+-(10 MUAs, Klang Valley, one working payment flow). The schema reserves
+-`STUDIO_COMMISSION_PERCENT` and `EXTERNAL_STUDIO_COMMISSION_PERCENT` as
+-constants so the naming is consistent when studios do get built, but no
+-studio tables exist yet — add them as a new migration, don't retrofit
+-`providers`.
++(10 MUAs, Klang Valley, one working payment flow). The catalog
++(`src/lib/data.ts`) currently holds artists only — add studio support as a
++deliberate follow-up, not retrofitted into the artist flow.
++
+diff --git a/docs/DEPLOY.md b/docs/DEPLOY.md
+index 356af4a..18c0d0c 100644
+--- a/docs/DEPLOY.md
++++ b/docs/DEPLOY.md
+@@ -1,47 +1,76 @@
+ # Deploy checklist
+ 
+-## 1. Supabase
++## 1. Database & Supabase
++
++The public booking loop persists through `src/server/db.ts`: PostgreSQL when
++`DATABASE_URL` is set (use the Supabase pooler connection string in prod),
++node:sqlite otherwise. The `/admin/**` pages additionally use the Supabase
++client for provider management.
+ 
+ - [ ] Create a new Supabase project (do not reuse the v1 Neon project — this is a clean start).
+-- [ ] `npx supabase link --project-ref <ref>`
+-- [ ] `npx supabase db push` — applies both migration files in order.
+-- [ ] Confirm RLS is enabled on all 6 tables (`supabase/migrations/0002_rls_policies.sql` enables it, but verify in the dashboard).
+-- [ ] Create a Storage bucket for provider portfolio images; set public read policy for active providers only if you add photo upload before launch.
+-- [ ] `npm run db:types` locally and commit the generated `src/lib/types/database.ts`.
++- [ ] Set `DATABASE_URL` in Vercel to the Supabase pooler connection string (`sslmode=require`).
++- [ ] Run `npm run db:migrate` (scripts/migrate.ts) against production `DATABASE_URL`.
++- [ ] `npx supabase link --project-ref <ref>` and `npx supabase db push` — applies the
++      admin-side schema + RLS policies (`supabase/migrations/*`).
++- [ ] Confirm RLS is enabled on all tables (`supabase/migrations/0002_rls_policies.sql`
++      enables it, but verify in the dashboard).
++- [ ] Set `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (required by
++      `/admin/**` and `src/proxy.ts` — they fail loudly without them).
++- [ ] Create a Storage bucket for provider portfolio images; set public read policy for
++      active providers only if you add photo upload before launch.
+ 
+ ## 2. Vercel
+ 
+ - [ ] New Vercel project (do not reuse the old project ID — avoids inheriting stale env vars).
+-- [ ] Set all vars from `.env.example` in the **Production** environment. Double-check `NEXT_PUBLIC_URL=https://leish.my` — not localhost.
++- [ ] Set all vars from `.env.example` in the **Production** environment. Double-check
++      `NEXT_PUBLIC_URL=https://leish.my` — not localhost.
+ - [ ] Confirm no `NEXT_PUBLIC_*` var is marked "sensitive" (breaks the client bundle).
+ - [ ] Connect the domain, confirm Cloudflare DNS points at Vercel correctly.
+ - [ ] Turn off auto-deploy from any bot/agent commit path — human review required on `main`.
+ 
+-## 3. Billplz
++## 3. Billplz (single payment path — no second webhook route)
++
++The db-facade is the only payment path: `POST /api/bookings/[id]/pay-fee` creates
++the bill; the callback defaults to `{NEXT_PUBLIC_SITE_URL}/api/payments/webhook`
++(override with `BILLPLZ_CALLBACK_URL` if needed). The legacy
++`/api/payments/billplz/*` routes were removed on 2026-08-17.
+ 
+ - [ ] Confirm production mode (not sandbox) API key.
+-- [ ] Set webhook callback URL to `https://leish.my/api/payments/billplz/webhook` in the Billplz dashboard.
+-- [ ] Run one real end-to-end low-value payment (e.g. RM 1) before considering this done. Verify: bill created → webhook received → signature verified → `payment_transactions` row inserted → `bookings.status` flips to `confirmed`.
++- [ ] Set webhook callback URL to `https://leish.my/api/payments/webhook` in the
++      Billplz dashboard (must match `BILLPLZ_CALLBACK_URL` if overridden).
++- [ ] Run one real end-to-end low-value payment (e.g. RM 1) before considering this done.
++      Verify: bill created → webhook received → HMAC signature verified → `payments`
++      row marked `paid` → `bookings.status` flips to `confirmed`.
+ 
+ ## 4. Brevo
+ 
+ - [ ] Confirm sender domain is verified (SPF/DKIM) so mail doesn't land in spam.
+ - [ ] Send one test transactional email via `/api/email/send` and confirm delivery.
+-- [ ] Check the free-plan send cap against expected launch volume — this was flagged as a near-term scaling constraint previously.
++- [ ] Check the free-plan send cap against expected launch volume — this was flagged as a
++      near-term scaling constraint previously.
+ 
+ ## 5. Sentry
+ 
+ - [ ] New Sentry project (or reuse the org, new project) so v1 noise doesn't pollute triage.
+-- [ ] Confirm errors from `src/app/api/payments/billplz/webhook/route.ts` and `src/lib/email/brevo.ts` are actually reaching Sentry — these were previously failing silently in places.
++- [ ] Confirm errors from `src/app/api/payments/webhook/route.ts` and
++      `src/lib/email/brevo.ts` are actually reaching Sentry — these were previously
++      failing silently in places.
+ 
+ ## 6. Pre-launch smoke test (do this manually, in order)
+ 
+-1. Sign up as a client.
+-2. Sign up as an artist, complete provider profile — confirm it's `is_active: false` until approved.
+-3. As admin, approve the provider via `/admin/providers` (finish the TODO'd approve action first).
+-4. Add a service and an availability slot as the provider.
+-5. As the client, browse to the artist page, book the slot, pay the deposit via Billplz (real small amount).
+-6. Confirm the booking flips to `confirmed` and the success page shows it.
+-7. Try booking the same slot twice in two tabs — confirm the second one gets a clean "already booked" error, not a 500.
++The core loop: browse → request → accept → quotation → pay fee → webhook confirms.
++
++1. Sign up as a client, verify the email (dev outbox at `/dev/emails` if `EMAIL_PROVIDER=dev`).
++2. Sign up as an artist, verify the email, claim a catalog profile via the dashboard
++   (`POST /api/artist-profiles` — unverified accounts are rejected).
++3. As the client, open the artist page, pick a service + date + time + event type and
++   send the booking request.
++4. As the artist, accept the request and send a quotation (base + travel + extras).
++5. As the client, pay the RM 200 booking fee from the dashboard (real small Billplz
++   amount) and land back on `/dashboard` / `/booking/success`.
++6. Confirm the booking flips to `confirmed` and the success page shows it — the webhook
++   is the only thing that can confirm a booking.
++7. Negative tests: an unverified client cannot book; a webhook with a bad signature is
++   rejected with 401; booking the same date does not 500.
+ 
+ Only cut over DNS after all six sections above are checked.
+diff --git a/docs/HANDOVER.md b/docs/HANDOVER.md
+index 1ffbd86..fbb8105 100644
+--- a/docs/HANDOVER.md
++++ b/docs/HANDOVER.md
+@@ -1,5 +1,26 @@
+ # Handover — read this first
+ 
++## 2026-08-17 — public booking loop unified onto the db-facade backend
++
++The repo briefly shipped two parallel booking implementations: the public
++artist-page flow (`/artists/[slug]` + `BookingCalendar`) ran on Supabase
++client actions with slot/deposit-percent billing, while the dashboard and
++`/api/*` routes ran on the tested db-facade backend (request → quotation →
++RM 200 fee → webhook). The public loop was unified onto the db-facade path:
++
++- `src/app/artists/[slug]/page.tsx` reads the catalog (`src/lib/data.ts`),
++  same source as the listing pages — artist pages no longer need Supabase.
++- `src/components/booking-calendar.tsx` sends a booking **request** via
++  `POST /api/bookings` (service + date + time + event type). Quotation and
++  fee payment happen in the dashboard, per the leish.my journey.
++- `src/app/booking/success/page.tsx` reads the real booking status from the
++  db-facade instead of the Supabase client.
++- Removed: `src/lib/actions/*`, `src/lib/payments/*`,
++  `src/app/api/payments/billplz/*` (legacy slot-based billing path).
++- The single Billplz webhook is `POST /api/payments/webhook`.
++- `/admin/**` and `src/proxy.ts` remain Supabase-based (internal tooling);
++  they require `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
++
+ ## Why this rebuild happened
+ 
+ The previous Leish codebase (Next.js + Drizzle ORM + Neon Postgres, mid-way
+@@ -47,7 +68,7 @@ All launch stubs have been implemented and verified:
+ 
+ - `src/app/admin/providers/page.tsx` — approve/reject server actions wired with DB updates and path revalidation.
+ - `src/app/admin/page.tsx` — overview metrics for pending approvals, active MUAs, total bookings, and recent Billplz transaction webhook log.
+-- `src/app/api/payments/billplz/webhook/route.ts` — transactional booking confirmation email dispatch wired via Brevo with client/provider/service metadata.
++- `src/app/api/payments/webhook/route.ts` — transactional booking confirmation email dispatch wired via Brevo with client/provider/service metadata.
+ - `src/app/api/email/send/route.ts` — secured with internal shared-secret authorization.
+ - `src/components/booking-calendar.tsx` — styled booking component with service selection, deposit/balance calculations, slot conflict retry UX, and loading indicators.
+ - `src/lib/types/database.ts` — full Supabase Database TypeScript definitions matching `0001_core_schema.sql` and `0002_rls_policies.sql`.
+diff --git a/e2e/smoke.spec.ts b/e2e/smoke.spec.ts
+new file mode 100644
+index 0000000..fbac467
+--- /dev/null
++++ b/e2e/smoke.spec.ts
+@@ -0,0 +1,78 @@
++import { test, expect } from "@playwright/test";
++
++/**
++ * Launch smoke tests for the core loop:
++ * browse → request → (verification gate) → accept → quotation → fee → webhook.
++ * The webServer in playwright.config.ts builds and starts the app on :3100
++ * with the SQLite fallback (no external services needed).
++ */
++
++const ARTIST_ID = "aisha-azman";
++
++function futureDateISO(): string {
++  const d = new Date(Date.now() + 14 * 86_400_000);
++  const month = String(d.getMonth() + 1).padStart(2, "0");
++  const day = String(d.getDate()).padStart(2, "0");
++  return `${d.getFullYear()}-${month}-${day}`;
++}
++
++test("homepage loads with hero and CTAs", async ({ page }) => {
++  await page.goto("/");
++  await expect(page).toHaveTitle(/Leish!/);
++  await expect(page.getByRole("heading", { name: /Your Beauty, Perfected/i })).toBeVisible();
++  await expect(page.getByRole("link", { name: /Find & Book Artists/i })).toBeVisible();
++});
++
++test("artists listing shows the catalog", async ({ page }) => {
++  await page.goto("/artists");
++  await expect(page.getByRole("link", { name: /Aisha Azman/i }).first()).toBeVisible();
++});
++
++test("artist profile renders services and the booking form", async ({ page }) => {
++  await page.goto(`/artists/${ARTIST_ID}`);
++  await expect(page.getByRole("heading", { name: "Aisha Azman" })).toBeVisible();
++  await expect(page.getByText("Reception Makeup")).toBeVisible();
++  await expect(page.getByRole("button", { name: /Send Booking Request/i })).toBeVisible();
++});
++
++test("unauthenticated bookings API returns 401", async ({ request }) => {
++  const res = await request.get("/api/bookings");
++  expect(res.status()).toBe(401);
++});
++
++test("registration works and booking is gated on email verification", async ({ request }) => {
++  const email = `e2e-${Date.now()}@example.com`;
++  const reg = await request.post("/api/auth/register", {
++    data: { name: "E2E Client", email, password: "testpass123", role: "customer" },
++  });
++  expect([200, 201]).toContain(reg.status());
++
++  const book = await request.post("/api/bookings", {
++    data: {
++      artistId: ARTIST_ID,
++      service: "Reception Makeup",
++      date: futureDateISO(),
++      time: "10:00",
++      eventType: "Reception",
++      notes: "e2e smoke",
++    },
++  });
++  expect(book.status()).toBe(403);
++  const body = await book.json();
++  expect(body.code).toBe("EMAIL_NOT_VERIFIED");
++});
++
++test("unverified artists cannot claim catalog profiles", async ({ request }) => {
++  const email = `e2e-artist-${Date.now()}@example.com`;
++  const reg = await request.post("/api/auth/register", {
++    data: { name: "E2E MUA", email, password: "testpass123", role: "artist" },
++  });
++  expect([200, 201]).toContain(reg.status());
++
++  const claim = await request.post("/api/artist-profiles", {
++    data: { artistId: ARTIST_ID },
++  });
++  expect(claim.status()).toBe(403);
++  const body = await claim.json();
++  expect(String(body.error)).toContain("verify your email");
++});
+diff --git a/src/app/api/artist-profiles/route.ts b/src/app/api/artist-profiles/route.ts
+index 6dfbe0d..097408b 100644
+--- a/src/app/api/artist-profiles/route.ts
++++ b/src/app/api/artist-profiles/route.ts
+@@ -43,6 +43,11 @@ export async function POST(request: Request) {
+   if (!ARTIST_ROLES.includes(user.role as (typeof ARTIST_ROLES)[number])) {
+     return jsonError("Only artist and studio accounts can claim a profile", 403);
+   }
++  // Claims are public-facing (an unverified account could impersonate a
++  // catalog artist), so require a verified email — same gate as booking.
++  if (!user.email_verified) {
++    return jsonError("Please verify your email before claiming a profile", 403);
++  }
+ 
+   const body = await readJson<unknown>(request);
+   if (!body.ok) return body.error;
+diff --git a/src/app/api/payments/billplz/create/route.ts b/src/app/api/payments/billplz/create/route.ts
+deleted file mode 100644
+index 51a87d3..0000000
+--- a/src/app/api/payments/billplz/create/route.ts
++++ /dev/null
+@@ -1,54 +0,0 @@
+-import { NextRequest, NextResponse } from "next/server";
+-import { createClient } from "@/lib/supabase/server";
+-import { createBill } from "@/lib/payments/billplz";
+-import { z } from "zod";
+-
+-const schema = z.object({ bookingId: z.string().uuid() });
+-
+-export async function POST(req: NextRequest) {
+-  const body = await req.json().catch(() => null);
+-  const parsed = schema.safeParse(body);
+-  if (!parsed.success) {
+-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+-  }
+-
+-  const supabase = await createClient();
+-  const {
+-    data: { user },
+-  } = await supabase.auth.getUser();
+-  if (!user) {
+-    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+-  }
+-
+-  // RLS ensures this only returns a row if the caller is the booking's
+-  // client — do not add a manual ownership check here, trust the policy.
+-  const { data: booking, error } = await supabase
+-    .from("bookings")
+-    .select("id, deposit_amount, status, client_id, profiles ( full_name, phone )")
+-    .eq("id", parsed.data.bookingId)
+-    .single();
+-
+-  if (error || !booking) {
+-    return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+-  }
+-  if (booking.status !== "pending_payment") {
+-    return NextResponse.json({ error: "Booking is not payable." }, { status: 409 });
+-  }
+-
+-  const appUrl = process.env.NEXT_PUBLIC_URL;
+-  if (!appUrl) {
+-    throw new Error("[billplz/create] NEXT_PUBLIC_URL is not set.");
+-  }
+-
+-  const bill = await createBill({
+-    bookingId: booking.id,
+-    amountCents: Math.round(booking.deposit_amount * 100),
+-    name: user.email ?? "Leish client",
+-    email: user.email ?? "",
+-    description: `Leish booking deposit — ${booking.id}`,
+-    callbackUrl: `${appUrl}/api/payments/billplz/webhook`,
+-    redirectUrl: `${appUrl}/booking/success?bookingId=${booking.id}`,
+-  });
+-
+-  return NextResponse.json({ url: bill.url });
+-}
+diff --git a/src/app/api/payments/billplz/webhook/route.ts b/src/app/api/payments/billplz/webhook/route.ts
+deleted file mode 100644
+index ebd085f..0000000
+--- a/src/app/api/payments/billplz/webhook/route.ts
++++ /dev/null
+@@ -1,137 +0,0 @@
+-import { NextRequest, NextResponse } from "next/server";
+-import { createServiceRoleClient } from "@/lib/supabase/server";
+-import { verifyWebhookSignature } from "@/lib/payments/billplz";
+-import { sendTransactionalEmail } from "@/lib/email/brevo";
+-import { bookingConfirmationEmail } from "@/lib/email/templates";
+-import type { BillplzWebhookPayload } from "@/lib/payments/types";
+-
+-/**
+- * Billplz sends this as application/x-www-form-urlencoded, not JSON.
+- * Always verify x_signature before trusting anything in the payload —
+- * this is the only auth on this endpoint since it's a public URL by
+- * necessity (Billplz calls it directly, no session).
+- */
+-export async function POST(req: NextRequest) {
+-  const formData = await req.formData();
+-  const payload = Object.fromEntries(formData.entries()) as unknown as BillplzWebhookPayload;
+-
+-  let signatureValid: boolean;
+-  try {
+-    signatureValid = verifyWebhookSignature(payload);
+-  } catch (err) {
+-    console.error("[billplz/webhook] signature verification error", err);
+-    return NextResponse.json({ error: "Server misconfiguration." }, { status: 500 });
+-  }
+-
+-  if (!signatureValid) {
+-    console.warn("[billplz/webhook] invalid signature — rejecting", { billId: payload.id });
+-    return NextResponse.json({ error: "Invalid signature." }, { status: 403 });
+-  }
+-
+-  const bookingId = payload.reference_1 ?? payload["reference_1"];
+-  const isPaid = payload.paid === "true";
+-
+-  const supabase = createServiceRoleClient();
+-
+-  // Idempotent — Billplz can retry webhook delivery. The unique constraint
+-  // on billplz_bill_id means a duplicate insert is a no-op error we can
+-  // safely swallow after logging.
+-  const { error: logError } = await supabase.from("payment_transactions").insert({
+-    booking_id: bookingId,
+-    billplz_bill_id: payload.id,
+-    amount: Number(payload.paid_amount) / 100,
+-    paid: isPaid,
+-    raw_payload: payload,
+-  });
+-
+-  if (logError && logError.code !== "23505") {
+-    console.error("[billplz/webhook] failed to log transaction", logError);
+-    return NextResponse.json({ error: "Logging failed." }, { status: 500 });
+-  }
+-
+-  if (isPaid && bookingId) {
+-    const { error: updateError } = await supabase
+-      .from("bookings")
+-      .update({ status: "confirmed" })
+-      .eq("id", bookingId)
+-      .eq("status", "pending_payment"); // don't clobber an already-processed booking
+-
+-    if (updateError) {
+-      console.error("[billplz/webhook] failed to confirm booking", updateError);
+-      return NextResponse.json({ error: "Booking update failed." }, { status: 500 });
+-    }
+-
+-    // Send confirmation email via Brevo
+-    try {
+-      const { data: bookingData } = await supabase
+-        .from("bookings")
+-        .select(
+-          `
+-          id,
+-          amount,
+-          deposit_amount,
+-          client_id,
+-          profiles ( full_name, phone ),
+-          providers ( display_name ),
+-          services ( name ),
+-          availability_slots ( start_at )
+-        `,
+-        )
+-        .eq("id", bookingId)
+-        .single();
+-
+-      if (bookingData) {
+-        let clientEmail: string | undefined = payload.email || undefined;
+-        if (!clientEmail && bookingData.client_id) {
+-          const { data: userData } = await supabase.auth.admin.getUserById(bookingData.client_id);
+-          clientEmail = userData.user?.email;
+-        }
+-
+-        if (clientEmail) {
+-          const profile = Array.isArray(bookingData.profiles)
+-            ? bookingData.profiles[0]
+-            : bookingData.profiles;
+-          const provider = Array.isArray(bookingData.providers)
+-            ? bookingData.providers[0]
+-            : bookingData.providers;
+-          const service = Array.isArray(bookingData.services)
+-            ? bookingData.services[0]
+-            : bookingData.services;
+-          const slot = Array.isArray(bookingData.availability_slots)
+-            ? bookingData.availability_slots[0]
+-            : bookingData.availability_slots;
+-
+-          const clientName = profile?.full_name || payload.name || "Client";
+-          const providerName = provider?.display_name || "Artist";
+-          const serviceName = service?.name || "Beauty Service";
+-          const dateTime = slot?.start_at
+-            ? new Date(slot.start_at).toLocaleString("en-MY", {
+-                dateStyle: "full",
+-                timeStyle: "short",
+-                timeZone: "Asia/Kuala_Lumpur",
+-              })
+-            : "Scheduled Date";
+-
+-          const template = bookingConfirmationEmail({
+-            clientName,
+-            providerName,
+-            serviceName,
+-            dateTime,
+-            amount: Number(bookingData.amount),
+-          });
+-
+-          await sendTransactionalEmail({
+-            to: [{ email: clientEmail, name: clientName }],
+-            subject: template.subject,
+-            htmlContent: template.htmlContent,
+-          });
+-        }
+-      }
+-    } catch (emailErr) {
+-      // Non-fatal: logged to prevent dropping webhook confirmation response
+-      console.error("[billplz/webhook] failed to send confirmation email", emailErr);
+-    }
+-  }
+-
+-  return NextResponse.json({ ok: true });
+-}
+diff --git a/src/app/artists/[slug]/page.tsx b/src/app/artists/[slug]/page.tsx
+index dfc3bb0..dcdc6b5 100644
+--- a/src/app/artists/[slug]/page.tsx
++++ b/src/app/artists/[slug]/page.tsx
+@@ -1,17 +1,20 @@
+ import { notFound } from "next/navigation";
+ import Link from "next/link";
+-import { getArtistBySlug } from "@/lib/actions/artists";
++import { getArtist, BRIDAL_EVENTS, NON_BRIDAL_EVENTS } from "@/lib/data";
+ import BookingCalendar from "@/components/booking-calendar";
+ 
+ export default async function ArtistProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+   const { slug } = await params;
+-  const artist = await getArtistBySlug(slug);
+ 
+-  // getArtistBySlug returns null only on a genuine "not found" — any real
+-  // infra error throws instead, so this is now a trustworthy signal.
++  // Catalog-backed profile (src/lib/data.ts) — the same source the listing
++  // pages use, so artist pages need no external DB to render.
++  const artist = getArtist(slug);
+   if (!artist) notFound();
+ 
+-  const activeServices = (artist.services ?? []).filter((s: { is_active: boolean }) => s.is_active);
++  const eventTypes = [
++    ...BRIDAL_EVENTS.filter((e) => artist.bridal.includes(e.id)),
++    ...NON_BRIDAL_EVENTS.filter((e) => artist.nonBridal.includes(e.id)),
++  ];
+ 
+   return (
+     <div className="min-h-screen bg-stone-50 py-10 dark:bg-stone-950">
+@@ -23,7 +26,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+           </Link>
+           <span>/</span>
+           <span className="font-medium text-stone-900 dark:text-stone-200">
+-            {artist.display_name}
++            {artist.name}
+           </span>
+         </nav>
+ 
+@@ -34,23 +37,30 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+             <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900 sm:p-8">
+               <div className="flex items-start justify-between gap-4">
+                 <div>
+-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 mb-3">
+-                    <svg
+-                      viewBox="0 0 20 20"
+-                      fill="currentColor"
+-                      className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
+-                    >
+-                      <path
+-                        fillRule="evenodd"
+-                        d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.8a1 1 0 011.4 0z"
+-                        clipRule="evenodd"
+-                      />
+-                    </svg>
+-                    Verified Artist
+-                  </div>
++                  {artist.verified && (
++                    <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 mb-3">
++                      <svg
++                        viewBox="0 0 20 20"
++                        fill="currentColor"
++                        className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
++                      >
++                        <path
++                          fillRule="evenodd"
++                          d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.8a1 1 0 011.4 0z"
++                          clipRule="evenodd"
++                        />
++                      </svg>
++                      Verified Artist
++                    </div>
++                  )}
+                   <h1 className="text-3xl font-bold tracking-tight text-stone-900 dark:text-stone-100 sm:text-4xl">
+-                    {artist.display_name}
++                    {artist.name}
+                   </h1>
++                  {artist.tagline && (
++                    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
++                      {artist.tagline}
++                    </p>
++                  )}
+                   <p className="mt-2 flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400">
+                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-stone-400">
+                       <path
+@@ -59,7 +69,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+                         clipRule="evenodd"
+                       />
+                     </svg>
+-                    {artist.district ? `${artist.district}, ` : ""}
++                    {artist.area ? `${artist.area}, ` : ""}
+                     {artist.state || "Malaysia"}
+                   </p>
+                 </div>
+@@ -76,13 +86,13 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+                 </div>
+               )}
+ 
+-              {artist.specialties && artist.specialties.length > 0 && (
++              {artist.specialties.length > 0 && (
+                 <div className="mt-6 border-t border-stone-100 pt-6 dark:border-stone-800">
+                   <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                     Specialties
+                   </h2>
+                   <div className="mt-3 flex flex-wrap gap-2">
+-                    {artist.specialties.map((specialty: string) => (
++                    {artist.specialties.map((specialty) => (
+                       <span
+                         key={specialty}
+                         className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300"
+@@ -98,46 +108,31 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+             {/* Services List */}
+             <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900 sm:p-8">
+               <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">
+-                Services & Rates
++                Services &amp; Rates
+               </h2>
+               <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                 All prices include consultation and touch-up kits.
+               </p>
+ 
+               <div className="mt-6 space-y-4">
+-                {activeServices.map(
+-                  (service: {
+-                    id: string;
+-                    name: string;
+-                    description: string | null;
+-                    price: number;
+-                    duration_minutes: number;
+-                  }) => (
+-                    <div
+-                      key={service.id}
+-                      className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-stone-100 p-4 hover:border-stone-200 dark:border-stone-800/80 dark:hover:border-stone-700"
+-                    >
+-                      <div>
+-                        <h3 className="font-semibold text-stone-900 dark:text-stone-100">
+-                          {service.name}
+-                        </h3>
+-                        {service.description && (
+-                          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+-                            {service.description}
+-                          </p>
+-                        )}
+-                        <p className="mt-1 text-xs text-stone-400">
+-                          Duration: {service.duration_minutes} minutes
+-                        </p>
+-                      </div>
+-                      <div className="mt-3 sm:mt-0 text-left sm:text-right">
+-                        <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+-                          RM {service.price}
+-                        </span>
+-                      </div>
++                {artist.services.map((service) => (
++                  <div
++                    key={service.name}
++                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-stone-100 p-4 hover:border-stone-200 dark:border-stone-800/80 dark:hover:border-stone-700"
++                  >
++                    <div>
++                      <h3 className="font-semibold text-stone-900 dark:text-stone-100">
++                        {service.name}
++                      </h3>
++                      <p className="mt-1 text-xs text-stone-400">Duration: {service.duration}</p>
+                     </div>
+-                  ),
+-                )}
++                    <div className="mt-3 sm:mt-0 text-left sm:text-right">
++                      <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
++                        RM {service.price}
++                      </span>
++                    </div>
++                  </div>
++                ))}
+               </div>
+             </div>
+           </div>
+@@ -149,10 +144,10 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+                 Book an Appointment
+               </h2>
+               <BookingCalendar
+-                providerId={artist.id}
+-                slots={artist.availability_slots ?? []}
+-                services={activeServices}
+-                defaultDepositPercent={Number(artist.default_deposit_percent) || 30}
++                artistId={artist.id}
++                artistName={artist.name}
++                services={artist.services}
++                eventTypes={eventTypes}
+               />
+             </div>
+           </div>
+diff --git a/src/app/booking/success/page.tsx b/src/app/booking/success/page.tsx
+index bdd1d41..9a20a8a 100644
+--- a/src/app/booking/success/page.tsx
++++ b/src/app/booking/success/page.tsx
+@@ -1,12 +1,17 @@
+-import { createClient } from "@/lib/supabase/server";
++import Link from "next/link";
++import { cookies } from "next/headers";
++import { getDb } from "@/server/db";
++import { verifySessionToken, SESSION_COOKIE } from "@/server/session";
+ 
+ /**
+- * v1 note: this page used a setTimeout mock instead of a real payment
+- * status check. Query the actual booking status — the Billplz webhook
+- * (src/app/api/payments/billplz/webhook/route.ts) is the source of truth
+- * and will have already flipped status to "confirmed" by the time the
+- * user is redirected here, in the common case. If it hasn't (webhook
+- * lag), show a "processing" state rather than a false success.
++ * Post-payment landing page (db-facade backend).
++ *
++ * v1 note: this page used a setTimeout mock instead of a real payment status
++ * check. It now queries the actual booking status — the Billplz webhook
++ * (src/app/api/payments/webhook/route.ts) is the source of truth and will
++ * have already flipped status to "confirmed" by the time the user is
++ * redirected here, in the common case. If it hasn't (webhook lag), show a
++ * "processing" state rather than a false success.
+  */
+ export default async function BookingSuccessPage({
+   searchParams,
+@@ -15,33 +20,88 @@ export default async function BookingSuccessPage({
+ }) {
+   const { bookingId } = await searchParams;
+   if (!bookingId) {
+-    return <main className="p-16">Missing booking reference.</main>;
+-  }
+-
+-  const supabase = await createClient();
+-  const { data: booking } = await supabase
+-    .from("bookings")
+-    .select("status, amount")
+-    .eq("id", bookingId)
+-    .single();
+-
+-  if (!booking) {
+-    return <main className="p-16">Booking not found.</main>;
+-  }
+-
+-  if (booking.status === "confirmed") {
+     return (
+-      <main className="mx-auto max-w-md px-6 py-16 text-center">
+-        <h1 className="text-2xl font-bold">Booking confirmed 🎉</h1>
+-        <p className="mt-2 text-gray-600">Amount paid: RM {booking.amount}</p>
++      <main className="p-16 text-center text-stone-600 dark:text-stone-300">
++        Missing booking reference.
+       </main>
+     );
+   }
+ 
++  const cookieStore = await cookies();
++  const token = cookieStore.get(SESSION_COOKIE)?.value;
++  const payload = token ? await verifySessionToken(token) : null;
++  const booking = payload
++    ? ((await (
++        await getDb()
++      )
++        .prepare(
++          "SELECT id, status, service, artist_name, date, time FROM bookings WHERE id = ? AND user_id = ?",
++        )
++        .get(bookingId, payload.sub)) as
++        | { id: string; status: string; service: string; artist_name: string; date: string; time: string }
++        | undefined)
++    : undefined;
++
++  const isConfirmed = booking?.status === "confirmed" || booking?.status === "completed";
++
+   return (
+-    <main className="mx-auto max-w-md px-6 py-16 text-center">
+-      <h1 className="text-2xl font-bold">Processing your payment…</h1>
+-      <p className="mt-2 text-gray-600">This usually takes a few seconds. Refresh in a moment.</p>
++    <main className="min-h-screen bg-stone-50 py-16 dark:bg-stone-950">
++      <div className="mx-auto max-w-lg px-4">
++        <div className="rounded-2xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900 text-center">
++          {!booking ? (
++            <>
++              <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">
++                Booking not found
++              </h1>
++              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
++                We couldn&apos;t find this booking on your account.
++              </p>
++              <Link
++                href="/dashboard"
++                className="mt-6 inline-flex items-center justify-center rounded-xl bg-rose-600 px-5 py-2.5 font-semibold text-white hover:bg-rose-700"
++              >
++                Go to Dashboard
++              </Link>
++            </>
++          ) : isConfirmed ? (
++            <>
++              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-950">
++                <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
++                </svg>
++              </div>
++              <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">
++                Booking confirmed!
++              </h1>
++              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
++                {booking.service} with {booking.artist_name} on {booking.date} at {booking.time}.
++              </p>
++            </>
++          ) : (
++            <>
++              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950">
++                <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
++                </svg>
++              </div>
++              <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">
++                Payment processing…
++              </h1>
++              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
++                Your payment is being confirmed. We&apos;ll update this booking the moment the
++                payment clears.
++              </p>
++            </>
++          )}
++
++          <Link
++            href="/dashboard"
++            className="mt-8 inline-flex items-center justify-center rounded-xl bg-rose-600 px-5 py-2.5 font-semibold text-white hover:bg-rose-700"
++          >
++            View in Dashboard
++          </Link>
++        </div>
++      </div>
+     </main>
+   );
+ }
+diff --git a/src/components/booking-calendar.tsx b/src/components/booking-calendar.tsx
+index b7fa6d5..db96b5e 100644
+--- a/src/components/booking-calendar.tsx
++++ b/src/components/booking-calendar.tsx
+@@ -1,112 +1,155 @@
+ "use client";
+ 
+-import { useState, useTransition } from "react";
++import { useState } from "react";
++import Link from "next/link";
+ import { useRouter } from "next/navigation";
+-import { createBooking } from "@/lib/actions/bookings";
+ 
+-interface Slot {
+-  id: string;
+-  start_at: string;
+-  end_at: string;
+-  is_booked: boolean;
++interface CatalogService {
++  name: string;
++  price: number;
++  duration: string;
+ }
+ 
+-interface Service {
++interface EventTypeOption {
+   id: string;
+-  name: string;
+-  description?: string | null;
+-  price: number;
+-  duration_minutes: number;
++  label: string;
+ }
+ 
+ interface BookingCalendarProps {
+-  providerId: string;
+-  slots: Slot[];
+-  services: Service[];
+-  defaultDepositPercent?: number;
++  artistId: string;
++  artistName: string;
++  services: CatalogService[];
++  eventTypes: EventTypeOption[];
+ }
+ 
++const BOOKING_FEE_RM = 200;
++
++function todayISO(): string {
++  const d = new Date();
++  const month = String(d.getMonth() + 1).padStart(2, "0");
++  const day = String(d.getDate()).padStart(2, "0");
++  return `${d.getFullYear()}-${month}-${day}`;
++}
++
++/**
++ * Booking request flow (db-facade journey):
++ * browse → request → MUA accepts → quotation (24h) → pay RM 200 booking fee
++ * → webhook confirms. This component only sends the request; the quotation
++ * and payment steps live in the dashboard.
++ */
+ export default function BookingCalendar({
+-  providerId,
+-  slots,
++  artistId,
++  artistName,
+   services,
+-  defaultDepositPercent = 30,
++  eventTypes,
+ }: BookingCalendarProps) {
+   const router = useRouter();
+-  const [isPending, startTransition] = useTransition();
+ 
+-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+-    services[0]?.id ?? null,
++  const [selectedService, setSelectedService] = useState<string | null>(
++    services[0]?.name ?? null,
+   );
+-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
++  const [date, setDate] = useState("");
++  const [time, setTime] = useState("");
++  const [eventType, setEventType] = useState<string>(eventTypes[0]?.label ?? "");
+   const [notes, setNotes] = useState("");
+   const [error, setError] = useState<string | null>(null);
+-  const [isConflict, setIsConflict] = useState(false);
+-  const [isRedirecting, setIsRedirecting] = useState(false);
+-
+-  const availableSlots = slots.filter((s) => !s.is_booked);
+-  const selectedService = services.find((s) => s.id === selectedServiceId);
++  const [needsVerification, setNeedsVerification] = useState(false);
++  const [isSubmitting, setIsSubmitting] = useState(false);
++  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+ 
+-  // Financial calculations
+-  const servicePrice = selectedService?.price ?? 0;
+-  const depositAmount = Math.round((servicePrice * defaultDepositPercent) / 100);
+-  const balanceAmount = Math.max(0, servicePrice - depositAmount);
++  const service = services.find((s) => s.name === selectedService);
++  const servicePrice = service?.price ?? 0;
+ 
+   async function handleBookingSubmit(e: React.FormEvent) {
+     e.preventDefault();
+-    if (!selectedServiceId || !selectedSlotId) return;
++    if (!selectedService || !date || !time) {
++      setError("Choose a service, date and time to continue.");
++      return;
++    }
+ 
+     setError(null);
+-    setIsConflict(false);
+-
+-    startTransition(async () => {
+-      try {
+-        // 1. Create booking server-side (server resolves pricing)
+-        const booking = await createBooking({
+-          providerId,
+-          serviceId: selectedServiceId,
+-          slotId: selectedSlotId,
+-          notes: notes.trim() || undefined,
+-        });
+-
+-        // 2. Request Billplz payment bill for the deposit
+-        setIsRedirecting(true);
+-        const payRes = await fetch("/api/payments/billplz/create", {
+-          method: "POST",
+-          headers: { "Content-Type": "application/json" },
+-          body: JSON.stringify({ bookingId: booking.id }),
+-        });
++    setNeedsVerification(false);
++    setIsSubmitting(true);
+ 
+-        const payData = await payRes.json();
+-        if (!payRes.ok || !payData.url) {
+-          throw new Error(payData.error || "Unable to initiate payment gateway.");
+-        }
+-
+-        // 3. Redirect to hosted payment page
+-        window.location.assign(payData.url);
+-      } catch (err: unknown) {
+-        setIsRedirecting(false);
+-        const message = err instanceof Error ? err.message : "Something went wrong.";
++    try {
++      const res = await fetch("/api/bookings", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({
++          artistId,
++          service: selectedService,
++          date,
++          time,
++          eventType,
++          venue: "",
++          guestCount: 0,
++          notes: notes.trim(),
++        }),
++      });
+ 
+-        if (
+-          message.toLowerCase().includes("slot was just booked") ||
+-          message.toLowerCase().includes("duplicate") ||
+-          message.toLowerCase().includes("conflict")
+-        ) {
+-          setIsConflict(true);
+-          setSelectedSlotId(null);
+-          setError("This time slot was just booked by another client. Please select another slot.");
+-        } else if (message.toLowerCase().includes("not authenticated")) {
+-          setError("Please sign in to complete your booking.");
++      const data = await res.json();
++      if (!res.ok) {
++        const message: string = data.error ?? "Unable to send your booking request.";
++        if (res.status === 401) {
++          setError("Please sign in to send a booking request.");
+           router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+-        } else {
++          return;
++        }
++        if (data.code === "EMAIL_NOT_VERIFIED" || message.toLowerCase().includes("verify your email")) {
++          setNeedsVerification(true);
+           setError(message);
++          return;
+         }
++        setError(message);
++        return;
+       }
+-    });
++
++      setCreatedBookingId(data.booking.id);
++    } catch {
++      setError("Something went wrong. Please try again.");
++    } finally {
++      setIsSubmitting(false);
++    }
+   }
+ 
+-  const isBusy = isPending || isRedirecting;
++  if (createdBookingId) {
++    return (
++      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
++        <div className="rounded-xl bg-green-50 border border-green-200 p-5 dark:bg-green-950/40 dark:border-green-900">
++          <div className="flex items-start gap-3">
++            <svg
++              className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0"
++              fill="none"
++              viewBox="0 0 24 24"
++              stroke="currentColor"
++            >
++              <path
++                strokeLinecap="round"
++                strokeLinejoin="round"
++                strokeWidth={2}
++                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
++              />
++            </svg>
++            <div>
++              <p className="font-semibold text-green-800 dark:text-green-200">
++                Booking request sent!
++              </p>
++              <p className="mt-1 text-sm text-green-700 dark:text-green-300">
++                {artistName} will review your request and send a quotation (valid 24 hours).
++                Pay the RM {BOOKING_FEE_RM} booking fee from your dashboard to secure the date.
++              </p>
++            </div>
++          </div>
++        </div>
++        <Link
++          href="/dashboard"
++          className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 px-4 font-semibold text-white shadow-sm hover:bg-rose-700 transition-all"
++        >
++          Track request in Dashboard &rarr;
++        </Link>
++      </div>
++    );
++  }
+ 
+   return (
+     <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+@@ -118,13 +161,13 @@ export default function BookingCalendar({
+           </label>
+           <div className="grid gap-2.5 sm:grid-cols-2">
+             {services.map((s) => {
+-              const active = selectedServiceId === s.id;
++              const active = selectedService === s.name;
+               return (
+                 <button
+                   type="button"
+-                  key={s.id}
+-                  onClick={() => setSelectedServiceId(s.id)}
+-                  disabled={isBusy}
++                  key={s.name}
++                  onClick={() => setSelectedService(s.name)}
++                  disabled={isSubmitting}
+                   className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                     active
+                       ? "border-rose-600 bg-rose-50/60 ring-2 ring-rose-500/20 dark:border-rose-500 dark:bg-rose-950/30"
+@@ -134,16 +177,11 @@ export default function BookingCalendar({
+                   <span className="font-medium text-sm text-stone-900 dark:text-stone-100">
+                     {s.name}
+                   </span>
+-                  {s.description && (
+-                    <span className="mt-0.5 text-xs text-stone-500 line-clamp-1 dark:text-stone-400">
+-                      {s.description}
+-                    </span>
+-                  )}
+                   <div className="mt-2 flex items-center justify-between text-xs">
+                     <span className="font-semibold text-rose-600 dark:text-rose-400">
+                       RM {s.price}
+                     </span>
+-                    <span className="text-stone-400">{s.duration_minutes} min</span>
++                    <span className="text-stone-400">{s.duration}</span>
+                   </div>
+                 </button>
+               );
+@@ -151,86 +189,63 @@ export default function BookingCalendar({
+           </div>
+         </div>
+ 
+-        {/* Step 2: Time Slot Selection */}
++        {/* Step 2: Date, time & event type */}
+         <div>
+-          <div className="flex items-center justify-between mb-2">
+-            <label className="block text-sm font-semibold text-stone-900 dark:text-stone-100">
+-              2. Choose Available Date & Time
+-            </label>
+-            <span className="text-xs text-stone-500 dark:text-stone-400">
+-              {availableSlots.length} available
+-            </span>
++          <label className="block text-sm font-semibold text-stone-900 dark:text-stone-100 mb-2">
++            2. Choose Date &amp; Time
++          </label>
++          <div className="grid gap-3 sm:grid-cols-2">
++            <input
++              type="date"
++              value={date}
++              min={todayISO()}
++              onChange={(e) => setDate(e.target.value)}
++              disabled={isSubmitting}
++              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-800 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:[color-scheme:dark] dark:focus:ring-rose-950"
++            />
++            <input
++              type="time"
++              value={time}
++              onChange={(e) => setTime(e.target.value)}
++              disabled={isSubmitting}
++              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-800 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:[color-scheme:dark] dark:focus:ring-rose-950"
++            />
+           </div>
+ 
+-          {availableSlots.length > 0 ? (
+-            <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto pr-1">
+-              {availableSlots.map((slot) => {
+-                const active = selectedSlotId === slot.id;
+-                const dateObj = new Date(slot.start_at);
+-                const dateFormatted = dateObj.toLocaleDateString("en-MY", {
+-                  weekday: "short",
+-                  month: "short",
+-                  day: "numeric",
+-                });
+-                const timeFormatted = dateObj.toLocaleTimeString("en-MY", {
+-                  hour: "2-digit",
+-                  minute: "2-digit",
+-                });
+-
+-                return (
+-                  <button
+-                    type="button"
+-                    key={slot.id}
+-                    onClick={() => {
+-                      setSelectedSlotId(slot.id);
+-                      if (isConflict) setIsConflict(false);
+-                      if (error) setError(null);
+-                    }}
+-                    disabled={isBusy}
+-                    className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all ${
+-                      active
+-                        ? "border-rose-600 bg-rose-600 text-white font-medium shadow-sm"
+-                        : "border-stone-200 bg-white text-stone-800 hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-200"
+-                    }`}
+-                  >
+-                    <span>{dateFormatted}</span>
+-                    <span
+-                      className={
+-                        active
+-                          ? "text-rose-100"
+-                          : "text-stone-500 dark:text-stone-400 font-mono text-xs"
+-                      }
+-                    >
+-                      {timeFormatted}
+-                    </span>
+-                  </button>
+-                );
+-              })}
+-            </div>
+-          ) : (
+-            <div className="rounded-xl border border-dashed border-stone-300 p-6 text-center text-sm text-stone-500 dark:border-stone-800">
+-              No open slots currently available. Please check back later or contact the artist.
+-            </div>
+-          )}
++          <label className="block text-sm font-semibold text-stone-900 dark:text-stone-100 mt-4 mb-2">
++            3. Event Type
++          </label>
++          <select
++            value={eventType}
++            onChange={(e) => setEventType(e.target.value)}
++            disabled={isSubmitting}
++            className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-800 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:focus:ring-rose-950"
++          >
++            {eventTypes.map((et) => (
++              <option key={et.id} value={et.label}>
++                {et.label}
++              </option>
++            ))}
++          </select>
+         </div>
+ 
+-        {/* Step 3: Optional Notes */}
++        {/* Step 4: Optional Notes */}
+         <div>
+           <label className="block text-sm font-semibold text-stone-900 dark:text-stone-100 mb-1.5">
+-            3. Special Requests / Event Details (Optional)
++            4. Special Requests (Optional)
+           </label>
+           <textarea
+             value={notes}
+             onChange={(e) => setNotes(e.target.value)}
+             placeholder="E.g., Event venue in Bangsar, bridal look preference, early call time…"
+             rows={2}
+-            disabled={isBusy}
+-            maxLength={500}
++            disabled={isSubmitting}
++            maxLength={2000}
+             className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-800 placeholder-stone-400 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:focus:ring-rose-950"
+           />
+         </div>
+ 
+-        {/* Error / Conflict Alert */}
++        {/* Error Alert */}
+         {error && (
+           <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 flex items-start gap-3">
+             <svg
+@@ -248,32 +263,32 @@ export default function BookingCalendar({
+             </svg>
+             <div>
+               <p className="font-medium">{error}</p>
+-              {isConflict && (
+-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+-                  Slots are secured on a first-come, first-served basis. Choose an alternative slot
+-                  above to proceed.
+-                </p>
++              {needsVerification && (
++                <Link
++                  href="/verify-email"
++                  className="mt-1 inline-block text-xs font-semibold text-rose-600 hover:underline dark:text-rose-400"
++                >
++                  Verify your email &rarr;
++                </Link>
+               )}
+             </div>
+           </div>
+         )}
+ 
+         {/* Pricing Summary */}
+-        {selectedService && (
++        {service && (
+           <div className="rounded-xl bg-stone-50 p-4 dark:bg-stone-800/40 border border-stone-100 dark:border-stone-800 text-sm space-y-2">
+             <div className="flex justify-between text-stone-600 dark:text-stone-400">
+-              <span>Service Total</span>
+-              <span>RM {servicePrice.toFixed(2)}</span>
++              <span>Service price</span>
++              <span>RM {servicePrice}</span>
+             </div>
+-            <div className="flex justify-between font-medium text-stone-900 dark:text-stone-100">
+-              <span>Deposit Payable Now ({defaultDepositPercent}%)</span>
+-              <span className="text-rose-600 dark:text-rose-400">
+-                RM {depositAmount.toFixed(2)}
+-              </span>
++            <div className="flex justify-between text-stone-600 dark:text-stone-400">
++              <span>Booking fee (after quotation, secures your date)</span>
++              <span>RM {BOOKING_FEE_RM}</span>
+             </div>
+             <div className="flex justify-between text-xs text-stone-500 border-t border-stone-200 dark:border-stone-700/60 pt-2">
+               <span>Balance due 3 days before event</span>
+-              <span>RM {balanceAmount.toFixed(2)}</span>
++              <span>RM {Math.max(0, servicePrice - BOOKING_FEE_RM)}</span>
+             </div>
+           </div>
+         )}
+@@ -281,10 +296,10 @@ export default function BookingCalendar({
+         {/* Submit CTA */}
+         <button
+           type="submit"
+-          disabled={!selectedSlotId || !selectedServiceId || isBusy}
++          disabled={!selectedService || !date || !time || isSubmitting}
+           className="w-full flex items-center justify-center gap-2 rounded-xl bg-rose-600 py-3.5 px-4 font-semibold text-white shadow-sm hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+         >
+-          {isBusy ? (
++          {isSubmitting ? (
+             <>
+               <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                 <circle
+@@ -297,10 +312,10 @@ export default function BookingCalendar({
+                 />
+                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+               </svg>
+-              <span>{isRedirecting ? "Connecting to Billplz…" : "Reserving slot…"}</span>
++              <span>Sending request…</span>
+             </>
+           ) : (
+-            <span>Book Now & Pay RM {depositAmount.toFixed(2)} Deposit &rarr;</span>
++            <span>Send Booking Request &rarr;</span>
+           )}
+         </button>
+       </form>
+diff --git a/src/lib/actions/artists.ts b/src/lib/actions/artists.ts
+deleted file mode 100644
+index e41bb0e..0000000
+--- a/src/lib/actions/artists.ts
++++ /dev/null
+@@ -1,44 +0,0 @@
+-"use server";
+-
+-import { createClient } from "@/lib/supabase/server";
+-
+-export async function getArtists(filters?: { state?: string; specialty?: string }) {
+-  const supabase = await createClient();
+-
+-  let query = supabase
+-    .from("providers")
+-    .select("id, slug, display_name, bio, state, district, specialties")
+-    .eq("is_active", true);
+-
+-  if (filters?.state) query = query.eq("state", filters.state);
+-  if (filters?.specialty) query = query.contains("specialties", [filters.specialty]);
+-
+-  const { data, error } = await query;
+-  if (error) throw new Error(`[getArtists] ${error.message}`);
+-  return data;
+-}
+-
+-export async function getArtistBySlug(slug: string) {
+-  const supabase = await createClient();
+-
+-  const { data, error } = await supabase
+-    .from("providers")
+-    .select(
+-      `id, slug, display_name, bio, state, district, specialties, default_deposit_percent,
+-       services ( id, name, description, price, duration_minutes, is_active ),
+-       availability_slots ( id, start_at, end_at, is_booked )`,
+-    )
+-    .eq("slug", slug)
+-    .eq("is_active", true)
+-    .single();
+-
+-  if (error) {
+-    // Distinguish "not found" from a real infra failure — v1's silent-null
+-    // pattern made these indistinguishable, which is exactly what caused
+-    // the invisible 404s on this page.
+-    if (error.code === "PGRST116") return null;
+-    throw new Error(`[getArtistBySlug] ${error.message}`);
+-  }
+-
+-  return data;
+-}
+diff --git a/src/lib/actions/bookings.ts b/src/lib/actions/bookings.ts
+deleted file mode 100644
+index 37680e5..0000000
+--- a/src/lib/actions/bookings.ts
++++ /dev/null
+@@ -1,79 +0,0 @@
+-"use server";
+-
+-import { createClient } from "@/lib/supabase/server";
+-import { resolveBookingAmount } from "@/lib/payments/commission";
+-import { z } from "zod";
+-
+-const createBookingSchema = z.object({
+-  providerId: z.string().uuid(),
+-  serviceId: z.string().uuid(),
+-  slotId: z.string().uuid(),
+-  notes: z.string().max(500).optional(),
+-});
+-
+-export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+-
+-/**
+- * Creates a booking with amount/depositAmount resolved server-side from
+- * `services` and `providers` records — never from client input. This is
+- * the pattern audited and closed in v1; keep it intact.
+- */
+-export async function createBooking(input: CreateBookingInput) {
+-  const parsed = createBookingSchema.parse(input);
+-  const supabase = await createClient();
+-
+-  const {
+-    data: { user },
+-  } = await supabase.auth.getUser();
+-  if (!user) throw new Error("[createBooking] Not authenticated.");
+-
+-  const { data: service, error: serviceError } = await supabase
+-    .from("services")
+-    .select("price, provider_id, providers ( default_deposit_percent )")
+-    .eq("id", parsed.serviceId)
+-    .single();
+-
+-  if (serviceError || !service) {
+-    throw new Error("[createBooking] Service not found.");
+-  }
+-  if (service.provider_id !== parsed.providerId) {
+-    throw new Error("[createBooking] Service does not belong to provider.");
+-  }
+-
+-  const providerPercent = Array.isArray(service.providers)
+-    ? service.providers[0]?.default_deposit_percent
+-    : service.providers?.default_deposit_percent;
+-
+-  const { amount, depositAmount, commissionPercent } = resolveBookingAmount({
+-    servicePrice: service.price,
+-    providerDefaultDepositPercent: providerPercent ?? 30,
+-  });
+-
+-  const { data: booking, error: bookingError } = await supabase
+-    .from("bookings")
+-    .insert({
+-      client_id: user.id,
+-      provider_id: parsed.providerId,
+-      service_id: parsed.serviceId,
+-      slot_id: parsed.slotId,
+-      amount,
+-      deposit_amount: depositAmount,
+-      commission_percent: commissionPercent,
+-      notes: parsed.notes,
+-      status: "pending_payment",
+-    })
+-    .select()
+-    .single();
+-
+-  // The unique index on (slot_id) where status != 'cancelled' will raise a
+-  // unique_violation here if two clients race for the same slot. Surface
+-  // that as a clean error instead of a generic 500.
+-  if (bookingError) {
+-    if (bookingError.code === "23505") {
+-      throw new Error("[createBooking] This slot was just booked by someone else.");
+-    }
+-    throw new Error(`[createBooking] ${bookingError.message}`);
+-  }
+-
+-  return booking;
+-}
+diff --git a/src/lib/payments/billplz.ts b/src/lib/payments/billplz.ts
+deleted file mode 100644
+index cbea39f..0000000
+--- a/src/lib/payments/billplz.ts
++++ /dev/null
+@@ -1,68 +0,0 @@
+-import crypto from "crypto";
+-import type { BillplzBillResponse, BillplzCreateBillParams, BillplzWebhookPayload } from "./types";
+-
+-const BASE_URL = process.env.BILLPLZ_BASE_URL ?? "https://www.billplz.com/api/v3";
+-
+-function authHeader() {
+-  const apiKey = process.env.BILLPLZ_API_KEY;
+-  if (!apiKey) throw new Error("[billplz] BILLPLZ_API_KEY is not set.");
+-  return "Basic " + Buffer.from(`${apiKey}:`).toString("base64");
+-}
+-
+-export async function createBill(params: BillplzCreateBillParams): Promise<BillplzBillResponse> {
+-  const collectionId = process.env.BILLPLZ_COLLECTION_ID;
+-  if (!collectionId) throw new Error("[billplz] BILLPLZ_COLLECTION_ID is not set.");
+-
+-  const res = await fetch(`${BASE_URL}/bills`, {
+-    method: "POST",
+-    headers: {
+-      Authorization: authHeader(),
+-      "Content-Type": "application/x-www-form-urlencoded",
+-    },
+-    body: new URLSearchParams({
+-      collection_id: collectionId,
+-      email: params.email,
+-      name: params.name,
+-      amount: String(params.amountCents),
+-      callback_url: params.callbackUrl,
+-      redirect_url: params.redirectUrl,
+-      description: params.description,
+-      reference_1_label: "booking_id",
+-      reference_1: params.bookingId,
+-    }),
+-  });
+-
+-  if (!res.ok) {
+-    const body = await res.text();
+-    throw new Error(`[billplz] create bill failed (${res.status}): ${body}`);
+-  }
+-
+-  return res.json();
+-}
+-
+-/**
+- * Verifies the X-Signature on an incoming webhook payload. Billplz signs a
+- * specific ordered subset of fields joined with `|`, then HMAC-SHA256s that
+- * against your X_SIGNATURE_KEY. Reject anything that doesn't match — this
+- * is the only thing standing between "booking marked paid" and a forged
+- * webhook call.
+- */
+-export function verifyWebhookSignature(payload: BillplzWebhookPayload): boolean {
+-  const signatureKey = process.env.BILLPLZ_X_SIGNATURE_KEY;
+-  if (!signatureKey) throw new Error("[billplz] BILLPLZ_X_SIGNATURE_KEY is not set.");
+-
+-  const fieldsToSign = ["amount", "collection_id", "id", "paid", "paid_amount", "state"] as const;
+-
+-  const sourceString = fieldsToSign.map((field) => `${field}${payload[field] ?? ""}`).join("|");
+-
+-  const expected = crypto.createHmac("sha256", signatureKey).update(sourceString).digest("hex");
+-
+-  return timingSafeEqual(expected, payload.x_signature);
+-}
+-
+-function timingSafeEqual(a: string, b: string): boolean {
+-  const bufA = Buffer.from(a);
+-  const bufB = Buffer.from(b);
+-  if (bufA.length !== bufB.length) return false;
+-  return crypto.timingSafeEqual(bufA, bufB);
+-}
+diff --git a/src/lib/payments/commission.ts b/src/lib/payments/commission.ts
+deleted file mode 100644
+index f9b6782..0000000
+--- a/src/lib/payments/commission.ts
++++ /dev/null
+@@ -1,49 +0,0 @@
+-/**
+- * Commission constants. Match these to leish.my's published rates —
+- * do not change without updating the pricing page and investor materials.
+- */
+-export const MUA_COMMISSION_PERCENT = 12;
+-export const STUDIO_COMMISSION_PERCENT = 15; // reserved — studios out of v1 scope
+-export const EXTERNAL_STUDIO_COMMISSION_PERCENT = 20; // reserved — v1.1+
+-
+-const MIN_DEPOSIT_PERCENT = 10;
+-const MAX_DEPOSIT_PERCENT = 100;
+-
+-/**
+- * Resolves the booking amount and deposit SERVER-SIDE from the DB record.
+- * Never accept `amount` or `depositAmount` from client input — this
+- * closes the client-tampering vector that was audited and fixed in v1
+- * (booking amount/depositAmount could otherwise be spoofed by the client).
+- *
+- * Call this from the server action / route handler that creates a booking,
+- * using values already fetched from `services` and `providers` via a
+- * trusted (service-role or already-scoped) Supabase query — not from the
+- * request body.
+- */
+-export function resolveBookingAmount(params: {
+-  servicePrice: number;
+-  providerDefaultDepositPercent: number;
+-}) {
+-  const depositPercent = clamp(
+-    params.providerDefaultDepositPercent,
+-    MIN_DEPOSIT_PERCENT,
+-    MAX_DEPOSIT_PERCENT,
+-  );
+-
+-  const amount = round2(params.servicePrice);
+-  const depositAmount = round2((amount * depositPercent) / 100);
+-
+-  return {
+-    amount,
+-    depositAmount,
+-    commissionPercent: MUA_COMMISSION_PERCENT,
+-  };
+-}
+-
+-function clamp(value: number, min: number, max: number) {
+-  return Math.min(Math.max(value, min), max);
+-}
+-
+-function round2(value: number) {
+-  return Math.round(value * 100) / 100;
+-}
+diff --git a/src/lib/payments/types.ts b/src/lib/payments/types.ts
+deleted file mode 100644
+index a644b73..0000000
+--- a/src/lib/payments/types.ts
++++ /dev/null
+@@ -1,29 +0,0 @@
+-export interface BillplzCreateBillParams {
+-  bookingId: string;
+-  amountCents: number; // Billplz expects the smallest currency unit
+-  name: string;
+-  email: string;
+-  description: string;
+-  callbackUrl: string;
+-  redirectUrl: string;
+-}
+-
+-export interface BillplzBillResponse {
+-  id: string;
+-  collection_id: string;
+-  paid: boolean;
+-  state: string;
+-  amount: number;
+-  url: string;
+-}
+-
+-export interface BillplzWebhookPayload {
+-  id: string;
+-  collection_id: string;
+-  paid: string; // "true" | "false" as string, per Billplz webhook quirk
+-  state: string;
+-  amount: string;
+-  paid_amount: string;
+-  x_signature: string;
+-  [key: string]: string;
+-}
+-- 
+2.39.5
+
+
+From e8fadd34513b27a608e370f3f4c460cba3cc0440 Mon Sep 17 00:00:00 2001
+From: Arena Agent <arena-agent@localhost>
+Date: Mon, 17 Aug 2026 10:28:49 +0000
+Subject: [PATCH 2/2] Return true 404 for unknown artist slugs; friendly
+ gateway-down message on pay-fee
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- src/proxy.ts: short-circuit /artists/<unknown-slug> via a rewrite to a
+  nonexistent route, rendering the global not-found UI with HTTP 404.
+  (The root layout streams the shell before notFound() runs, which
+  committed a 200 with a noindex 404 body — SEO/correctness nit.)
+- pay-fee route: when the Billplz gateway is unreachable, return a clear
+  503 ("The payment gateway is temporarily unavailable…") instead of the
+  generic 500; details still logged/reported. Dev provider unchanged.
+- Verified live: unknown slug 404 + styled UI; real artist pages 200;
+  gateway-down 503; dev provider pay still 201.
+---
+ src/app/api/bookings/[id]/pay-fee/route.ts | 18 ++++++++++++++++--
+ src/app/artists/[slug]/page.tsx            |  3 ++-
+ src/proxy.ts                               | 16 +++++++++++++++-
+ 3 files changed, 33 insertions(+), 4 deletions(-)
+
+diff --git a/src/app/api/bookings/[id]/pay-fee/route.ts b/src/app/api/bookings/[id]/pay-fee/route.ts
+index e88cab5..d90630a 100644
+--- a/src/app/api/bookings/[id]/pay-fee/route.ts
++++ b/src/app/api/bookings/[id]/pay-fee/route.ts
+@@ -1,7 +1,7 @@
+ import { NextResponse } from "next/server";
+ import { getDb, type BookingRow, type UserRow } from "@/server/db";
+ import { verifySessionToken } from "@/server/session";
+-import { createBookingFeePayment, getPaymentForBooking } from "@/server/payments";
++import { createBookingFeePayment, getPaymentForBooking, activePaymentProvider } from "@/server/payments";
+ import { getActiveQuotation } from "@/server/quotations";
+ import { jsonError, statefulRoute } from "@/server/http";
+ import { logger } from "@/server/logger";
+@@ -55,7 +55,21 @@ export const POST = statefulRoute(
+       });
+     }
+ 
+-    const payment = await createBookingFeePayment(booking.id);
++    // Billplz is a network call — surface gateway outages as a clear retryable
++    // message instead of the generic 500 (details still go to logs/Sentry).
++    let payment;
++    try {
++      payment = await createBookingFeePayment(booking.id);
++    } catch (err) {
++      if (activePaymentProvider() === "billplz") {
++        logger.error({ bookingId: booking.id, err: err instanceof Error ? err.message : String(err) }, "payment gateway unreachable");
++        return jsonError(
++          "The payment gateway is temporarily unavailable. Please try again in a few minutes.",
++          503,
++        );
++      }
++      throw err;
++    }
+     logger.info({ bookingId: booking.id, amount: payment.amount }, "booking fee bill created");
+ 
+     return NextResponse.json(
+diff --git a/src/app/artists/[slug]/page.tsx b/src/app/artists/[slug]/page.tsx
+index dcdc6b5..43164ff 100644
+--- a/src/app/artists/[slug]/page.tsx
++++ b/src/app/artists/[slug]/page.tsx
+@@ -7,7 +7,8 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{
+   const { slug } = await params;
+ 
+   // Catalog-backed profile (src/lib/data.ts) — the same source the listing
+-  // pages use, so artist pages need no external DB to render.
++  // pages use, so artist pages need no external DB to render. Unknown slugs
++  // also get a true 404 from the proxy middleware (see src/proxy.ts).
+   const artist = getArtist(slug);
+   if (!artist) notFound();
+ 
+diff --git a/src/proxy.ts b/src/proxy.ts
+index c21f984..b0a3702 100644
+--- a/src/proxy.ts
++++ b/src/proxy.ts
+@@ -1,7 +1,21 @@
+-import { type NextRequest } from "next/server";
++import { type NextRequest, NextResponse } from "next/server";
+ import { updateSession } from "@/lib/supabase/middleware";
++import { getArtist } from "@/lib/data";
++
++/**
++ * Catalog-driven 404 for artist slugs. The page itself can't guarantee the
++ * HTTP status (the root layout streams the shell before notFound() runs,
++ * which commits a 200), so unknown `/artists/<slug>` paths are short-
++ * circuited here: a rewrite to a route that doesn't exist renders the
++ * global not-found UI with a true 404.
++ */
++const ARTIST_SLUG = /^\/artists\/([^/]+)$/;
+ 
+ export async function proxy(request: NextRequest) {
++  const match = request.nextUrl.pathname.match(ARTIST_SLUG);
++  if (match && !getArtist(match[1])) {
++    return NextResponse.rewrite(new URL("/_leish/artist-not-found", request.url));
++  }
+   return await updateSession(request);
+ }
+ 
+-- 
+2.39.5
+
